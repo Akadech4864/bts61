@@ -113,8 +113,12 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
             dense >= 2 ? (
               <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" title={`ยังขาด ${missingInfo(m).join(' ')}`} />
             ) : (
-              <span className={cx('absolute left-1.5 top-1.5 max-w-[calc(100%-12px)] truncate rounded-full bg-amber-400/95 font-semibold text-navy-950 shadow-sm', dense ? 'px-1.5 py-px text-[10px]' : 'px-2 py-0.5 text-[11px]')}>
-                ขาด {missingInfo(m).map((k) => (dense ? SHORT_MISSING[k] : k)).join(' · ')}
+              <span className="absolute inset-x-1.5 top-1.5 flex flex-wrap gap-1" title={`ยังขาด ${missingInfo(m).join(' ')}`}>
+                {missingInfo(m).map((k) => (
+                  <span key={k} className={cx('rounded-full bg-amber-400/95 font-semibold leading-tight text-navy-950 shadow-sm', dense ? 'px-1.5 py-px text-[10px]' : 'px-2 py-0.5 text-[11px]')}>
+                    {dense ? SHORT_MISSING[k] : `ขาด${k}`}
+                  </span>
+                ))}
               </span>
             )
           )}
