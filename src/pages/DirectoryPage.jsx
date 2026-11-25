@@ -246,12 +246,16 @@ function TableView({ sections, sort, onSort, onOpen }) {
                 <button type="button" className="flex w-full items-center gap-2.5 text-left">
                   <Photo member={m} width={96} className="h-9 w-9 shrink-0 rounded-lg" textClass="text-sm" />
                   <span className="min-w-0">
-                    <span className="block truncate font-medium text-navy-900">{[m.first_name, m.last_name].filter(Boolean).join(' ')}</span>
-                    {section.flag ? (
-                      <span className="block truncate text-[11px] font-semibold text-amber-700">ยังขาด {missingInfo(m).join(' · ')}</span>
-                    ) : (
-                      <span className="block truncate text-[11px] text-slate-400">{m.rank}</span>
+                    {/* ยศ/คำนำหน้าอยู่บรรทัดบน ชื่อ-สกุลอยู่บรรทัดล่าง (กลุ่มข้อมูลไม่ครบ ต่อท้ายด้วยสิ่งที่ยังขาด) */}
+                    {(m.rank || section.flag) && (
+                      <span className="block truncate text-[11px] leading-tight text-slate-500">
+                        {m.rank}
+                        {section.flag && (
+                          <span className="font-semibold text-amber-700">{m.rank ? ' · ' : ''}ยังขาด {missingInfo(m).join(' · ')}</span>
+                        )}
+                      </span>
                     )}
+                    <span className="block truncate font-medium text-navy-900">{[m.first_name, m.last_name].filter(Boolean).join(' ')}</span>
                   </span>
                 </button>
               </td>
