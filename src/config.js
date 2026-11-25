@@ -1,12 +1,14 @@
 /**
  * ตั้งค่าการเชื่อมต่อ
  * ---------------------------------------------------------------------------
- * วาง Web App URL ของ Google Apps Script (ลงท้ายด้วย /exec) ไว้ในเครื่องหมายคำพูดด้านล่าง
- * แล้ว commit ขึ้น branch main — GitHub Actions จะ build และ deploy ให้อัตโนมัติ
+ * Web App URL ของ Google Apps Script (ลงท้ายด้วย /exec)
+ * Backend ถูก deploy อัตโนมัติจาก repo ส่วนตัว bts61-backend โดยอัปเดต deployment เดิม
+ * URL นี้จึงคงที่ ไม่ต้องแก้เมื่อปรับปรุง Backend
  *
  * ถ้าเว้นว่างไว้ แอพจะทำงานใน "โหมดตัวอย่าง" (ข้อมูลสมมติ เก็บในเครื่องเท่านั้น)
  */
-export const GAS_WEB_APP_URL = '';
+export const GAS_WEB_APP_URL =
+  'https://script.google.com/macros/s/AKfycbw3ZxcRFHdh40umYAc_Y2hMzigd_9GyYclKELG0Fu9ra58K7YQe-0MWX3oDmPEVJ8IM/exec';
 
 export const APP_NAME = 'ระบบบริหารการฝึกอบรมหลักสูตร บตส.รุ่นที่ 61';
 export const COURSE_SHORT = 'บตส.รุ่นที่ 61';

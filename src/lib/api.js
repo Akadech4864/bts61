@@ -40,12 +40,10 @@ export async function api(action, payload = {}, { timeout = 60000 } = {}) {
       signal: controller.signal,
     });
   } catch (err) {
-    throw new ApiError(
-      err && err.name === 'AbortError'
-        ? 'เซิร์ฟเวอร์ตอบช้าเกินไป กรุณาลองใหม่อีกครั้ง'
-        : 'เชื่อมต่อไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
-      'NETWORK',
-    );
+    let message = 'ติดต่อระบบฐานข้อมูลไม่ได้ กรุณาลองใหม่อีกครั้ง (หากเพิ่งติดตั้งระบบ ผู้ดูแลอาจยังไม่ได้อนุญาตสิทธิ์ของ Google)';
+    if (err && err.name === 'AbortError') message = 'เซิร์ฟเวอร์ตอบช้าเกินไป กรุณาลองใหม่อีกครั้ง';
+    else if (typeof navigator !== 'undefined' && navigator.onLine === false) message = 'ไม่มีการเชื่อมต่ออินเทอร์เน็ต กรุณาตรวจสอบแล้วลองใหม่';
+    throw new ApiError(message, 'NETWORK');
   } finally {
     clearTimeout(timer);
   }
