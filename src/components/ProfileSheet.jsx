@@ -4,6 +4,7 @@ import { Building2, Copy, Landmark, MapPin, Pencil, Phone, Trash2, UsersRound, X
 import { Sheet, useOverlay } from './Sheet';
 import { Photo } from './Avatar';
 import { Button } from './ui';
+import { SocialList } from './Social';
 import { useToast } from './Toast';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -132,6 +133,8 @@ export default function ProfileSheet({ memberId, onClose }) {
               <p className="mt-0.5 text-[15px] text-white/70">ยังไม่มีเบอร์โทรในระบบ</p>
             )}
           </div>
+
+          <SocialList value={m.social} />
 
           <div className="glass mt-3 divide-y divide-white/70 rounded-3xl px-4">
             {orgTypeOf(m) === 'other' ? (

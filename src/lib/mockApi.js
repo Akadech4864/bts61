@@ -5,6 +5,7 @@
  */
 import { ApiError } from './api';
 import { addDays, normalizeProvince, toISODate } from './utils';
+import { parseSocial } from './social';
 
 const KEY = 'bts61:demo:v2';
 const DEMO_PASSWORD = 'demo';
@@ -34,6 +35,10 @@ function seed() {
     ['อนันต์', 'สมมติพร', 'นันต์', 'อาจารย์ (สบ 5) กอจ.', 'กอจ.', 'บช.ศ.', ''],
     ['สุนทร', 'ตัวอย่างการ', 'ทร', 'ผู้อำนวยการสำนักตัวอย่าง', '', '', 'กรุงเทพฯ', 'นาย', 'หน่วยงานตัวอย่าง'],
   ];
+  const DEMO_SOCIAL = {
+    0: [{ type: 'line', value: 'demo.line01' }, { type: 'facebook', value: 'ตัวอย่าง สมมติ' }, { type: 'instagram', value: '@demo.sample' }],
+    1: [{ type: 'tiktok', value: 'demo_sample' }, { type: 'website', value: 'www.example.com' }],
+  };
   const members = people.map((p, i) => ({
     id: `m_demo${i + 1}`,
     seq: String(i + 1),
@@ -49,6 +54,7 @@ function seed() {
     phone: `08000000${String(i + 1).padStart(2, '0')}`,
     photo_url: '',
     photo_file_id: '',
+    social: DEMO_SOCIAL[i] ? JSON.stringify(DEMO_SOCIAL[i]) : '',
     group_name: `กลุ่ม ${(i % 4) + 1}`,
     updated_at: now(),
   }));
@@ -195,11 +201,15 @@ const actions = {
 
     const record = existing
       ? { ...existing }
-      : { id: uid('m'), seq: '', rank: '', first_name: '', last_name: '', nickname: '', position: '', province: '', division_bk: '', bureau_bch: '', agency: '', phone: '', photo_url: '', photo_file_id: '', group_name: '' };
+      : { id: uid('m'), seq: '', rank: '', first_name: '', last_name: '', nickname: '', position: '', province: '', division_bk: '', bureau_bch: '', agency: '', phone: '', photo_url: '', photo_file_id: '', group_name: '', social: '' };
     if (canInfo) {
       ['rank', 'first_name', 'last_name', 'nickname', 'position', 'province', 'division_bk', 'bureau_bch', 'agency', 'phone'].forEach((f) => {
         if (input[f] !== undefined) record[f] = String(input[f]).trim();
       });
+      if (input.social !== undefined) {
+        const list = parseSocial(input.social);
+        record.social = list.length ? JSON.stringify(list) : '';
+      }
       if (admin) {
         if (input.group_name !== undefined) record.group_name = String(input.group_name).trim();
         if (input.seq !== undefined) record.seq = String(input.seq).replace(/\D/g, '');

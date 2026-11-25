@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { parseSocial } from './social';
 
 export const cx = (...parts) => parts.filter(Boolean).join(' ');
 
@@ -116,7 +117,8 @@ function haystackOf(m) {
   if (!h) {
     h = normalize(
       [m.first_name, m.last_name, m.nickname, m.position, m.province, m.division_bk, m.bureau_bch, m.agency,
-        m.group_name, m.phone, String(m.phone || '').replace(/\D/g, '')].join(' '),
+        m.group_name, m.phone, String(m.phone || '').replace(/\D/g, ''),
+        ...parseSocial(m.social).map((s) => s.value)].join(' '),
     );
     haystacks.set(m, h);
   }

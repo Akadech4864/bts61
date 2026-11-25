@@ -4,6 +4,7 @@ import { Sheet } from './Sheet';
 import { Photo } from './Avatar';
 import { Button, Field, Segmented, Spinner, SuggestInput, TextInput, inputClass } from './ui';
 import MemberSuggest from './MemberSuggest';
+import { SocialEditor, socialPayload, socialRows } from './Social';
 import { useToast } from './Toast';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -28,6 +29,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
   const toast = useToast();
 
   const [form, setForm] = useState(() => ({ ...BLANK, ...(initial || prefill || {}) }));
+  const [socials, setSocials] = useState(() => socialRows((initial || prefill || {}).social)); // [{ key, type, value }]
   const [photo, setPhoto] = useState(null); // { blob, url } รูปใหม่ที่ครอปแล้ว รออัปโหลด
   const [removePhoto, setRemovePhoto] = useState(false);
   const [cropSrc, setCropSrc] = useState(null);
@@ -71,6 +73,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
       return;
     }
     setForm({ ...BLANK, ...m });
+    setSocials(socialRows(m.social));
     setCustomRank(!!m.rank && !options.rank.includes(m.rank));
     setOrgType(orgTypeOf(m));
     orgTouched.current = false;
@@ -116,6 +119,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
       const member = {};
       FIELDS.forEach((k) => { member[k] = typeof form[k] === 'string' ? form[k].trim() : form[k]; });
       member.province = normalizeProvince(member.province);
+      member.social = socialPayload(socials);
       // เก็บเฉพาะสังกัดของประเภทที่เลือก: ตำรวจ = บก./บช., หน่วยงานอื่น = ชื่อหน่วยงาน
       if (orgType === 'other') {
         member.division_bk = '';
@@ -135,6 +139,8 @@ function MemberFormInner({ initial, prefill, onClose }) {
           FIELDS.forEach((k) => { if (k !== 'id' && prev[k]) typed[k] = prev[k]; });
           return { ...BLANK, ...existing, ...typed, id: existing.id };
         });
+        // โซเชียลที่เพิ่งกรอกคงไว้ ถ้ายังไม่ได้กรอกจึงดึงของเดิมมาแสดง (กันบันทึกทับเป็นค่าว่าง)
+        setSocials((prev) => (prev.some((r) => r.value.trim()) ? prev : socialRows(existing.social)));
         setMatched(true);
         setCustomRank(!!form.rank && !options.rank.includes(form.rank));
         toast.info('มีชื่อนี้ในระบบแล้ว — สลับเป็นการอัปเดตข้อมูลเดิม กด "บันทึก" อีกครั้งเพื่อยืนยัน', 5000);
@@ -357,6 +363,8 @@ function MemberFormInner({ initial, prefill, onClose }) {
               autoComplete="off"
             />
           </Field>
+
+          {(canInfo || socials.length > 0) && <SocialEditor rows={socials} onChange={setSocials} disabled={!canInfo} />}
 
           {isAdmin && (
             <div className="grid grid-cols-2 gap-3 rounded-2xl bg-white/40 p-3 ring-1 ring-inset ring-white/70">
