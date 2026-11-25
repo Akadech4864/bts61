@@ -9,7 +9,7 @@ import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { COURSE_BATCH, COURSE_SUBTITLE, COURSE_TITLE_SHORT } from '../config';
 import {
-  cx, formatPhone, fullName, guessMembers, matchMember, missingInfo, missingText, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens,
+  cx, formatPhone, fullName, guessMembers, matchMember, missingInfo, missingText, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens, shortName,
   telHref, thCompare, useBreakpoint, usePersistentState,
 } from '../lib/utils';
 
@@ -138,11 +138,11 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
             <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" title={missingText(m)} />
           )}
           <div className={cx('absolute', label)}>
-            {/* ชื่อเล่นตัวใหญ่ + ยศ ชื่อ-สกุล (ยาวเกินการ์ดจะวิ่งไปกลับช้า ๆ) */}
+            {/* ชื่อเล่นตัวใหญ่ + ยศ ชื่อจริงฯ (ยาวเกินการ์ดจะวิ่งไปกลับช้า ๆ) */}
             {markSize > 0 && <SocialMarks member={m} size={markSize} max={markMax} className={dense ? 'mb-1' : 'mb-1.5'} />}
             <p className={cx('truncate font-bold leading-tight text-white drop-shadow', nickSize)}>{nickOf(m)}</p>
             <Marquee
-              text={fullName(m)}
+              text={shortName(m)}
               measureKey={`${dense}:${Math.round(cardWidth)}`}
               className={cx('leading-tight text-white/85', ['mt-0.5 text-sm', 'text-[12px]', 'text-[10px]', 'text-[9px]'][dense])}
             />

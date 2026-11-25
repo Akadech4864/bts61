@@ -21,6 +21,14 @@ export function fullName(m, withRank = true) {
   return `${rank}${spaced ? ' ' : ''}${name}`.trim();
 }
 
+/** ชื่อแบบย่อบนการ์ดรูป: ยศ + ชื่อจริง แล้วใช้ "ฯ" แทนนามสกุล เช่น "พ.ต.อ. สมชายฯ" */
+export function shortName(m) {
+  if (!m) return '';
+  const rank = rankOf(m);
+  const spaced = /[.]$|หญิง$/.test(rank);
+  return `${rank}${spaced ? ' ' : ''}${m.first_name || ''}${m.first_name && m.last_name ? 'ฯ' : ''}`.trim();
+}
+
 export const nickOf = (m) => (m && (m.nickname || m.first_name)) || '';
 
 /** อักษรย่อสำหรับรูปแทนตัว รองรับสระหน้าและวรรณยุกต์ไทย */
