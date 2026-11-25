@@ -66,12 +66,12 @@ function GridView({ members, cols, onOpen }) {
   const cardWidth = (gridWidth - 8 * (cols - 1)) / cols;
   const dense = cardWidth >= 150 ? 0 : cardWidth >= 100 ? 1 : cardWidth >= 76 ? 2 : 3;
   const nickSize = ['text-lg', 'text-[15px]', 'text-[12px]', 'text-[10px]'][dense];
-  // ป้ายชื่อกระจกฝ้า (การ์ดใหญ่) / แถบไล่สี (การ์ดเล็ก — ไม่ใช้ blur เพื่อให้เลื่อนลื่น)
+  // ป้ายชื่อแบบมินิมอล: แถบไล่สีจากโปร่งใสเป็นกรมท่าที่ขอบล่าง ไม่มีกรอบ
   const label = [
-    'glass-pill inset-x-2 bottom-2 rounded-2xl px-3 py-2',
-    'glass-pill inset-x-1.5 bottom-1.5 rounded-xl px-2 py-1.5',
-    'glass-pill-lite inset-x-0 bottom-0 px-1.5 pb-1.5 pt-5',
-    'glass-pill-lite inset-x-0 bottom-0 px-1 pb-1 pt-4',
+    'name-fade inset-x-0 bottom-0 px-3.5 pb-3 pt-12',
+    'name-fade inset-x-0 bottom-0 px-2.5 pb-2 pt-9',
+    'name-fade inset-x-0 bottom-0 px-1.5 pb-1.5 pt-6',
+    'name-fade inset-x-0 bottom-0 px-1 pb-1 pt-5',
   ][dense];
   const width = cardWidth >= 150 ? 500 : cardWidth >= 90 ? 320 : 220;
   return (
@@ -87,7 +87,7 @@ function GridView({ members, cols, onOpen }) {
           )}
         >
           <Photo member={m} width={width} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass={['text-6xl', 'text-4xl', 'text-3xl', 'text-2xl'][dense]} />
-          <div className={cx('absolute text-center', label)}>
+          <div className={cx('absolute', label)}>
             {/* ชื่อเล่นตัวใหญ่ + ชื่อจริง (ถ้ายังไม่มีชื่อเล่น แสดงชื่อจริงตัวใหญ่อย่างเดียว) */}
             <p className={cx('truncate font-bold leading-tight text-white drop-shadow', nickSize)}>{nickOf(m)}</p>
             {m.nickname && (
