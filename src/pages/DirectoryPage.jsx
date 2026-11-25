@@ -193,11 +193,11 @@ function TableView({ members, sort, onSort, onOpen }) {
               </td>
               <td className="whitespace-nowrap px-3 font-semibold text-navy-800">{m.nickname || <span className="font-normal text-slate-300">—</span>}</td>
               <td className="whitespace-nowrap px-3 text-slate-600">{m.province || <span className="text-slate-300">—</span>}</td>
-              {m.agency ? (
+              {orgTypeOf(m) === 'other' ? (
                 // ผู้ที่ไม่ใช่ตำรวจ: แสดงชื่อหน่วยงานแทนช่อง บก./บช.
                 <td colSpan={2} className="whitespace-nowrap px-3 text-slate-600">
                   <span className="mr-1.5 rounded-md bg-gold-400/20 px-1.5 py-0.5 text-[10px] font-semibold text-gold-700">หน่วยงาน</span>
-                  {m.agency}
+                  {m.agency || <span className="text-slate-300">ยังไม่ระบุ</span>}
                 </td>
               ) : (
                 <>
