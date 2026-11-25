@@ -394,8 +394,8 @@ export default function DirectoryPage() {
         <div className="flex items-center gap-3 pb-3 pt-5">
           <img src="./logo.jpg" alt="" className="h-12 w-12 shrink-0 rounded-full bg-white object-cover shadow-[0_6px_16px_-6px_rgb(11_28_54/0.4)] ring-2 ring-white/80" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold tracking-wide text-gold-600">{COURSE_SUBTITLE} · {COURSE_SHORT}</p>
-            <h1 className="truncate text-2xl font-bold tracking-tight text-navy-900">ทำเนียบรุ่น</h1>
+            <h1 className="text-balance text-lg font-bold leading-snug tracking-tight text-navy-900 sm:text-2xl">{COURSE_SUBTITLE}</h1>
+            <p className="truncate text-xs font-semibold tracking-wide text-gold-600">ทำเนียบรุ่น · {COURSE_SHORT}</p>
           </div>
           <button
             type="button"
