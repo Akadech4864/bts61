@@ -9,7 +9,7 @@ import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { RANK_OPTIONS } from '../config';
 import { BUREAUS, PROVINCES } from '../lib/constants';
-import { cx, fullName, guessMembers, thCompare } from '../lib/utils';
+import { cx, fullName, guessMembers, normalizeProvince, thCompare } from '../lib/utils';
 
 const PhotoCropper = lazy(() => import('./PhotoCropper.jsx'));
 
@@ -48,7 +48,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
     () => ({
       // ตัวเลือกมาตรฐาน + คำนำหน้าอื่นที่มีใช้อยู่แล้วในฐานข้อมูล
       rank: [...new Set([...RANK_OPTIONS, ...data.members.map((m) => m.rank).filter(Boolean)])],
-      province: uniqueSorted([...data.members.map((m) => m.province), ...PROVINCES]),
+      province: uniqueSorted([...data.members.map((m) => normalizeProvince(m.province)), ...PROVINCES]),
       division: uniqueSorted(data.members.map((m) => m.division_bk)),
       bureau: uniqueSorted([...data.members.map((m) => m.bureau_bch), ...BUREAUS]),
     }),
@@ -106,6 +106,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
     try {
       const member = {};
       FIELDS.forEach((k) => { member[k] = typeof form[k] === 'string' ? form[k].trim() : form[k]; });
+      member.province = normalizeProvince(member.province);
       await saveMember(member, { photoBlob: photo && photo.blob, removePhoto });
       toast.success(isNew ? 'เพิ่มรายชื่อเรียบร้อย' : 'บันทึกข้อมูลเรียบร้อย');
       onClose();
@@ -296,7 +297,14 @@ function MemberFormInner({ initial, prefill, onClose }) {
           </div>
 
           <Field label="จังหวัด">
-            <SuggestInput value={form.province} onChange={set('province')} options={options.province} disabled={!canInfo} placeholder="พิมพ์เพื่อค้นหาจังหวัด" />
+            <SuggestInput
+              value={form.province}
+              onChange={set('province')}
+              onBlur={() => setForm((f) => ({ ...f, province: normalizeProvince(f.province) }))}
+              options={options.province}
+              disabled={!canInfo}
+              placeholder="พิมพ์เพื่อค้นหาจังหวัด เช่น กทม."
+            />
           </Field>
 
           <Field label="เบอร์โทรศัพท์">

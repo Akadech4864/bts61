@@ -29,7 +29,15 @@ export function initialOf(m) {
   return hit ? hit[0] : s.slice(0, 1).toUpperCase();
 }
 
-export const orgLine = (m) => [m.division_bk, m.bureau_bch, m.province].filter(Boolean).join(' · ');
+/** กทม / กทม. / กรุงเทพ / กรุงเทพฯ / กรุงเทพมหานคร / Bangkok -> "กรุงเทพฯ" (ตรงกับฝั่ง Backend) */
+export function normalizeProvince(value) {
+  const s = String(value || '').trim();
+  const key = s.replace(/[\s.]/g, '').toLowerCase();
+  if (/^(กทม|กรุงเทพ(ฯ|มหานคร)?|bangkok|bkk)$/.test(key)) return 'กรุงเทพฯ';
+  return s.replace(/^จ(ังหวัด|\.)\s*/, '');
+}
+
+export const orgLine =(m) => [m.division_bk, m.bureau_bch, m.province].filter(Boolean).join(' · ');
 
 /* ------------------------------ เบอร์โทร ------------------------------ */
 

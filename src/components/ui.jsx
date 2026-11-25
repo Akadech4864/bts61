@@ -90,7 +90,7 @@ export function TextArea({ className, ...rest }) {
 }
 
 /** ช่องกรอกข้อความพร้อมรายการแนะนำ (แตะเลือกได้ หรือพิมพ์ค่าอื่นเอง) */
-export function SuggestInput({ value, onChange, options, disabled, ...rest }) {
+export function SuggestInput({ value, onChange, options, disabled, onBlur, ...rest }) {
   const [focused, setFocused] = useState(false);
   const q = String(value || '').trim().toLowerCase();
   const list = focused
@@ -103,7 +103,10 @@ export function SuggestInput({ value, onChange, options, disabled, ...rest }) {
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onBlur={(e) => {
+          setFocused(false);
+          if (onBlur) onBlur(e);
+        }}
         autoComplete="off"
         {...rest}
       />
