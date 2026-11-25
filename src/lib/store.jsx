@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api, blobToBase64, isDemo } from './api';
 import { readStored, writeStored } from './utils';
+import { makeThumb, primePhoto } from './photos';
 import { useToast } from '../components/Toast';
 
 // แยกที่เก็บของโหมดตัวอย่างออกจากข้อมูลจริง เพื่อไม่ให้ข้อมูลสมมติค้างมาแสดงหลังเชื่อมต่อฐานข้อมูลแล้ว
@@ -161,8 +162,20 @@ export function StoreProvider({ children }) {
         mutate('saveSettings', { settings }, (prev, res) => ({ ...prev, settings: { ...DEFAULT_SETTINGS, ...res } })),
       async saveMember(member, { photoBlob = null, removePhoto = false } = {}) {
         const payload = { member, removePhoto };
-        if (photoBlob) payload.photo = { base64: await blobToBase64(photoBlob), mimeType: photoBlob.type || 'image/jpeg' };
-        return mutate('saveMember', payload, (prev, res) => ({ ...prev, members: upsert(prev.members, res) }));
+        let thumbBlob = null;
+        if (photoBlob) {
+          payload.photo = { base64: await blobToBase64(photoBlob), mimeType: photoBlob.type || 'image/jpeg' };
+          // รูปย่อสำหรับหน้ากริด ส่งไปพร้อมกัน (ย่อไม่สำเร็จก็ยังบันทึกรูปได้ตามปกติ)
+          try {
+            thumbBlob = await makeThumb(photoBlob);
+            payload.photo.thumb = await blobToBase64(thumbBlob);
+          } catch {
+            thumbBlob = null;
+          }
+        }
+        const res = await mutate('saveMember', payload, (prev, r) => ({ ...prev, members: upsert(prev.members, r) }));
+        if (photoBlob && res && res.photo_file_id) primePhoto(res.photo_file_id, photoBlob, thumbBlob);
+        return res;
       },
       deleteMember: (id) =>
         mutate('deleteMember', { id }, (prev) => ({ ...prev, members: removeById(prev.members, id) })),

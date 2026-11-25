@@ -38,11 +38,15 @@ function Initial({ member, className, textClass }) {
 export function Photo({ member, width = 400, className, textClass = 'text-2xl', eager = false }) {
   const url = (member && member.photo_url) || '';
   const driveId = url.startsWith('drive:') ? url.slice(6) : '';
-  const driveSrc = useDrivePhoto(driveId);
+  // รูปเล็ก (กริด/รายการ) ใช้รูปย่อ — รูปใหญ่ (หน้ารายละเอียด) แสดงรูปย่อไปก่อนระหว่างรอรูปเต็ม
+  const wantsFull = width >= 600;
+  const thumbSrc = useDrivePhoto(driveId, 'thumb');
+  const fullSrc = useDrivePhoto(wantsFull ? driveId : '', 'full');
   const [stage, setStage] = useState(0); // 0 = ขนาดย่อ, 1 = ไฟล์ต้นฉบับ, 2 = โหลดไม่ได้
   useEffect(() => setStage(0), [url]);
 
   if (driveId) {
+    const driveSrc = (wantsFull && fullSrc) || thumbSrc || (wantsFull ? fullSrc : thumbSrc);
     if (driveSrc === '') return <div className={cx('skeleton', className)} aria-hidden="true" />;
     if (!driveSrc) return <Initial member={member} className={className} textClass={textClass} />;
     return <img src={driveSrc} alt="" draggable={false} decoding="async" className={cx('bg-slate-200 object-cover', className)} />;
