@@ -23,7 +23,7 @@ function PersonChip({ member, highlight, dark, onOpen }) {
         'inline-flex max-w-full items-center gap-2 rounded-full py-1 pl-1 pr-3 text-left transition active:scale-95',
         dark
           ? highlight ? 'bg-gold-400 text-navy-950' : 'bg-white/10 text-white ring-1 ring-inset ring-white/15'
-          : highlight ? 'bg-gold-100 text-navy-900 ring-1 ring-inset ring-gold-300' : 'bg-slate-100 text-navy-900',
+          : highlight ? 'bg-gold-300/40 text-navy-900 ring-1 ring-inset ring-gold-400' : 'bg-white/70 text-navy-900 ring-1 ring-inset ring-white',
       )}
     >
       <Photo member={member} width={96} className="h-9 w-9 shrink-0 rounded-full" textClass="text-sm" />
@@ -47,7 +47,7 @@ function People({ people, mineId, dark, onOpen }) {
         <PersonChip key={m.id} member={m} highlight={m.id === mineId} dark={dark} onOpen={onOpen} />
       ))}
       {people.extras.map((name) => (
-        <span key={name} className={cx('inline-flex h-11 items-center rounded-full px-3.5 text-sm font-medium', dark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-700')}>
+        <span key={name} className={cx('inline-flex h-11 items-center rounded-full px-3.5 text-sm font-medium', dark ? 'bg-white/10 text-white' : 'bg-white/70 text-slate-700')}>
           {name}
         </span>
       ))}
@@ -60,8 +60,8 @@ function DutyCard({ entry, mineId, today, onOpen, onEdit }) {
   const d = parseISODate(item.duty_date);
   const past = item.duty_date < today;
   return (
-    <article className={cx('relative flex gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/70', past && 'opacity-70')}>
-      <div className="grid h-[60px] w-[52px] shrink-0 place-items-center rounded-2xl bg-navy-50 text-navy-900">
+    <article className={cx('glass relative flex gap-3 rounded-3xl p-4', past && 'opacity-70')}>
+      <div className="grid h-[60px] w-[52px] shrink-0 place-items-center rounded-2xl bg-navy-500/10 text-navy-900 ring-1 ring-inset ring-white/70">
         <div className="text-center leading-none">
           <p className="text-[10px] font-medium text-navy-500">{d ? WEEKDAYS[d.getDay()] : ''}</p>
           <p className="mt-0.5 text-xl font-bold tabular-nums">{d ? d.getDate() : '–'}</p>
@@ -85,7 +85,7 @@ function DutyCard({ entry, mineId, today, onOpen, onEdit }) {
           type="button"
           onClick={onEdit}
           aria-label="แก้ไขรายการนี้"
-          className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-navy-800"
+          className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full text-slate-400 hover:bg-white/70 hover:text-navy-800"
         >
           <Pencil className="h-4 w-4" />
         </button>
@@ -97,7 +97,7 @@ function DutyCard({ entry, mineId, today, onOpen, onEdit }) {
 /** การ์ดเด่น "เวรวันนี้" อยู่บนสุดเสมอ */
 function TodayCard({ entries, today, mine, isAdmin, onOpen, onEdit }) {
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-800 to-navy-950 p-5 text-white shadow-lg shadow-navy-900/20">
+    <section className="glass-dark rounded-3xl p-5">
       <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-gold-400/10" />
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -185,7 +185,7 @@ export default function DutyPage() {
       />
 
       {/* ค้นหาเวรของตัวเอง: พิมพ์ชื่อแล้วแตะเลือก ระบบจะจำไว้ในเครื่องนี้ */}
-      <div className="sticky top-0 z-20 -mx-4 bg-paper/90 px-4 py-2 backdrop-blur-lg">
+      <div className="sticky-glass sticky top-0 z-20 -mx-4 px-4 py-2">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <input
@@ -198,7 +198,7 @@ export default function DutyPage() {
             enterKeyHint="search"
             autoComplete="off"
             aria-label="ค้นหาเวร"
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-10 text-[16px] text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-navy-500 focus:ring-4 focus:ring-navy-500/10 [&::-webkit-search-cancel-button]:hidden"
+            className="glass h-12 w-full rounded-2xl pl-11 pr-10 text-[16px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:ring-4 focus:ring-navy-500/15 [&::-webkit-search-cancel-button]:hidden"
           />
           {query && (
             <button
@@ -224,7 +224,7 @@ export default function DutyPage() {
       </div>
 
       {mine && (
-        <div className="mb-3 mt-1 flex items-center gap-3 rounded-2xl bg-gold-50 p-2.5 ring-1 ring-inset ring-gold-200">
+        <div className="glass mb-3 mt-1 flex items-center gap-3 rounded-2xl p-2.5 ring-1 ring-inset ring-gold-300">
           <Photo member={mine} width={96} className="h-11 w-11 shrink-0 rounded-full" textClass="text-base" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-navy-900">เวรของ {nickOf(mine)} <span className="font-normal text-slate-500">· {fullName(mine)}</span></p>
@@ -234,7 +234,7 @@ export default function DutyPage() {
                 : 'ยังไม่มีเวรที่กำลังจะถึง'}
             </p>
           </div>
-          <button type="button" onClick={() => setMineId('')} className="h-9 shrink-0 rounded-full px-3 text-[13px] font-semibold text-navy-700 hover:bg-gold-100">
+          <button type="button" onClick={() => setMineId('')} className="h-9 shrink-0 rounded-full px-3 text-[13px] font-semibold text-navy-700 hover:bg-white/70">
             ดูทั้งหมด
           </button>
         </div>

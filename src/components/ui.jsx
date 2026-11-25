@@ -3,20 +3,20 @@ import { LoaderCircle } from 'lucide-react';
 import { cx } from '../lib/utils';
 
 export const inputClass =
-  'h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-navy-500 focus:ring-4 focus:ring-navy-500/10 disabled:bg-slate-50 disabled:text-slate-500';
+  'h-12 w-full rounded-xl border border-white/80 bg-white/75 px-3.5 shadow-[inset_0_1px_2px_rgb(11_28_54/0.06)] text-[16px] text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-navy-500 focus:ring-4 focus:ring-navy-500/10 disabled:bg-white/40 disabled:text-slate-500';
 
 export function Spinner({ className }) {
   return <LoaderCircle className={cx('animate-spin', className || 'h-5 w-5')} />;
 }
 
 const BUTTON_VARIANTS = {
-  primary: 'bg-navy-900 text-white shadow-sm shadow-navy-900/20 hover:bg-navy-800 active:bg-navy-950',
-  gold: 'bg-gold-500 text-white shadow-sm hover:bg-gold-600',
-  secondary: 'bg-white text-navy-900 ring-1 ring-inset ring-slate-200 hover:bg-slate-50',
-  soft: 'bg-navy-50 text-navy-800 hover:bg-navy-100',
+  primary: 'btn-navy text-white hover:brightness-110',
+  gold: 'btn-gold text-white hover:brightness-105',
+  secondary: 'glass text-navy-900 hover:bg-white/80',
+  soft: 'bg-navy-500/10 text-navy-800 hover:bg-navy-500/15',
   ghost: 'text-navy-700 hover:bg-navy-50',
   danger: 'bg-rose-600 text-white hover:bg-rose-700',
-  dangerSoft: 'bg-rose-50 text-rose-700 hover:bg-rose-100',
+  dangerSoft: 'bg-rose-500/10 text-rose-700 hover:bg-rose-500/15',
 };
 const BUTTON_SIZES = {
   sm: 'h-9 px-3 text-sm gap-1.5 rounded-xl',
@@ -49,7 +49,7 @@ export const Button = forwardRef(function Button(
 
 export function IconButton({ icon: Icon, label, className, tone = 'default', ...rest }) {
   const tones = {
-    default: 'text-slate-500 hover:bg-slate-100 hover:text-navy-900',
+    default: 'text-slate-500 hover:bg-white/70 hover:text-navy-900',
     danger: 'text-rose-500 hover:bg-rose-50',
     onDark: 'text-white/80 hover:bg-white/10 hover:text-white',
   };
@@ -112,7 +112,7 @@ export function SuggestInput({ value, onChange, options, disabled, onBlur, ...re
       />
       {list.length > 0 && (
         <div
-          className="no-scrollbar absolute inset-x-0 top-full z-20 mt-1.5 flex gap-1.5 overflow-x-auto rounded-xl bg-white p-1.5 shadow-lg ring-1 ring-slate-200"
+          className="no-scrollbar absolute inset-x-0 top-full z-20 mt-1.5 flex gap-1.5 overflow-x-auto glass-strong rounded-xl p-1.5"
           onMouseDown={(e) => e.preventDefault()}
         >
           {list.map((o) => (
@@ -123,7 +123,7 @@ export function SuggestInput({ value, onChange, options, disabled, onBlur, ...re
                 onChange(o);
                 setFocused(false);
               }}
-              className="shrink-0 rounded-lg bg-navy-50 px-3 py-1.5 text-sm font-medium text-navy-800 hover:bg-navy-100"
+              className="shrink-0 rounded-lg bg-navy-500/10 px-3 py-1.5 text-sm font-medium text-navy-800 hover:bg-navy-500/15"
             >
               {o}
             </button>
@@ -151,7 +151,7 @@ export function Switch({ checked, onChange, disabled, label, description, busy }
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <span className="h-7 w-12 rounded-full bg-slate-300 transition peer-checked:bg-navy-800 peer-focus-visible:ring-4 peer-focus-visible:ring-navy-500/30" />
+        <span className="h-7 w-12 rounded-full bg-slate-300 transition peer-checked:bg-gradient-to-b peer-checked:from-navy-600 peer-checked:to-navy-900 peer-focus-visible:ring-4 peer-focus-visible:ring-navy-500/30" />
         <span className="absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
       </span>
     </label>
@@ -160,7 +160,7 @@ export function Switch({ checked, onChange, disabled, label, description, busy }
 
 export function Segmented({ options, value, onChange, className, size = 'md' }) {
   return (
-    <div className={cx('inline-flex rounded-xl bg-slate-200/70 p-1', className)} role="tablist">
+    <div className={cx('glass inline-flex rounded-2xl p-1', className)} role="tablist">
       {options.map((o) => {
         const active = o.value === value;
         const Icon = o.icon;
@@ -174,9 +174,9 @@ export function Segmented({ options, value, onChange, className, size = 'md' }) 
             title={o.title || o.label}
             onClick={() => onChange(o.value)}
             className={cx(
-              'inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition',
+              'inline-flex items-center justify-center gap-1.5 rounded-xl font-medium transition',
               size === 'sm' ? 'h-8 min-w-8 px-2 text-[13px]' : 'h-9 min-w-9 px-3 text-sm',
-              active ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-800',
+              active ? 'btn-navy text-white' : 'text-slate-600 hover:bg-white/60 hover:text-navy-800',
             )}
           >
             {Icon && <Icon className="h-4 w-4" />}
@@ -190,7 +190,7 @@ export function Segmented({ options, value, onChange, className, size = 'md' }) 
 
 export function Card({ className, children, ...rest }) {
   return (
-    <div className={cx('rounded-3xl bg-white shadow-sm ring-1 ring-slate-200/70', className)} {...rest}>
+    <div className={cx('glass rounded-3xl', className)} {...rest}>
       {children}
     </div>
   );
@@ -204,7 +204,7 @@ export function EmptyState({ icon: Icon, title, description, action }) {
   return (
     <div className="flex flex-col items-center px-6 py-14 text-center">
       {Icon && (
-        <div className="mb-4 grid h-16 w-16 place-items-center rounded-full bg-navy-50 text-navy-400">
+        <div className="mb-4 grid h-16 w-16 place-items-center rounded-full glass text-navy-500">
           <Icon className="h-7 w-7" />
         </div>
       )}

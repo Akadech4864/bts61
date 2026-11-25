@@ -30,7 +30,7 @@ function Lightbox({ member, onClose }) {
 function InfoRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-start gap-3 py-2.5">
-      <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-navy-50 text-navy-500">
+      <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-navy-500/10 text-navy-600 ring-1 ring-inset ring-white/80">
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
@@ -105,7 +105,7 @@ export default function ProfileSheet({ memberId, onClose }) {
         <div className="px-5 pb-safe pt-4">
           {m.position && <p className="text-[15px] font-medium leading-snug text-navy-800">{m.position}</p>}
 
-          <div className="mt-4 rounded-2xl bg-navy-900 p-4 text-white">
+          <div className="glass-dark mt-4 rounded-3xl p-4">
             <p className="text-xs text-white/60">เบอร์โทรศัพท์</p>
             {hasPhone ? (
               <>
@@ -115,14 +115,14 @@ export default function ProfileSheet({ memberId, onClose }) {
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <a
                     href={telHref(m.phone)}
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gold-400 text-[15px] font-semibold text-navy-950 transition active:scale-[0.98]"
+                    className="btn-gold inline-flex h-12 items-center justify-center gap-2 rounded-2xl text-[15px] font-semibold text-white transition active:scale-[0.98]"
                   >
                     <Phone className="h-[18px] w-[18px]" /> โทรออก
                   </a>
                   <button
                     type="button"
                     onClick={onCopy}
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white/10 text-[15px] font-semibold text-white ring-1 ring-inset ring-white/20 transition active:scale-[0.98]"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white/12 text-[15px] font-semibold text-white ring-1 ring-inset ring-white/25 backdrop-blur transition active:scale-[0.98]"
                   >
                     <Copy className="h-[18px] w-[18px]" /> คัดลอกเบอร์
                   </button>
@@ -133,7 +133,7 @@ export default function ProfileSheet({ memberId, onClose }) {
             )}
           </div>
 
-          <div className="mt-3 divide-y divide-slate-100">
+          <div className="glass mt-3 divide-y divide-white/70 rounded-3xl px-4">
             {orgTypeOf(m) === 'other' ? (
               <InfoRow icon={Landmark} label="หน่วยงาน" value={m.agency} />
             ) : (

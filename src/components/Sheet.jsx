@@ -31,7 +31,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, size =
   return createPortal(
     <div className={cx('fixed inset-0 z-50 flex justify-center sm:items-center sm:p-6', center ? 'items-center p-5' : 'items-end')}>
       <div
-        className="absolute inset-0 animate-fade-in bg-navy-950/55 backdrop-blur-[2px]"
+        className="absolute inset-0 animate-fade-in bg-navy-950/40 backdrop-blur-sm"
         onClick={dismissable ? onClose : undefined}
         aria-hidden="true"
       />
@@ -40,7 +40,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, size =
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         className={cx(
-          'relative flex w-full flex-col overflow-hidden bg-white shadow-2xl',
+          'glass-strong relative flex w-full flex-col overflow-hidden',
           center
             ? 'max-h-[86dvh] animate-pop rounded-3xl'
             : 'max-h-[93dvh] animate-sheet-up rounded-t-[28px] sm:max-h-[88dvh] sm:rounded-3xl',
@@ -58,7 +58,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, size =
               type="button"
               onClick={onClose}
               aria-label="ปิด"
-              className="-mr-1.5 -mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95"
+              className="-mr-1.5 -mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-white/70 active:scale-95"
             >
               <X className="h-5 w-5" />
             </button>
@@ -76,7 +76,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, size =
         <div className={cx('min-h-0 flex-1 overflow-y-auto overscroll-contain', !flush && 'px-5', !footer && !flush && 'pb-safe')}>
           {children}
         </div>
-        {footer && <div className="shrink-0 border-t border-slate-100 bg-white px-5 pb-safe pt-3">{footer}</div>}
+        {footer && <div className="shrink-0 border-t border-white/70 bg-white/60 px-5 pb-safe pt-3 backdrop-blur-xl">{footer}</div>}
       </div>
     </div>,
     document.body,

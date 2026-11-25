@@ -8,17 +8,19 @@ import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { COURSE_SHORT, COURSE_SUBTITLE } from '../config';
 import {
-  cx, formatPhone, fullName, guessMembers, matchMember, nickOf, orgLine, phoneDigits, queryTokens,
+  cx, formatPhone, fullName, guessMembers, matchMember, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens,
   telHref, thCompare, useBreakpoint, usePersistentState,
 } from '../lib/utils';
 
+// scope: ตัวกรองนี้ใช้กับใคร — police = ตำรวจ, other = หน่วยงานอื่น, all = ทุกคน
 const FACETS = [
-  { key: 'bureau_bch', label: 'บช. (กองบัญชาการ)', short: 'บช.' },
-  { key: 'division_bk', label: 'บก. (กองบังคับการ)', short: 'บก.' },
-  { key: 'province', label: 'จังหวัด', short: 'จังหวัด' },
-  { key: 'agency', label: 'หน่วยงาน (นอกสังกัดตำรวจ)', short: 'หน่วยงาน' },
+  { key: 'bureau_bch', label: 'บช. (กองบัญชาการ)', short: 'บช.', scope: 'police' },
+  { key: 'division_bk', label: 'บก. (กองบังคับการ)', short: 'บก.', scope: 'police' },
+  { key: 'agency', label: 'หน่วยงาน', short: 'หน่วยงาน', scope: 'other' },
+  { key: 'province', label: 'จังหวัด', short: 'จังหวัด', scope: 'all' },
 ];
 const NO_FILTERS = { bureau_bch: [], division_bk: [], province: [], agency: [] };
+const ORG_LABELS = { all: 'ทั้งหมด', police: 'ตำรวจ', other: 'หน่วยงานอื่น' };
 
 const VIEWS = [
   { value: 'grid', icon: LayoutGrid, title: 'มุมมองกริดรูปภาพ' },
@@ -63,8 +65,14 @@ function GridView({ members, cols, onOpen }) {
   // ขนาดตัวหนังสือปรับตามความกว้างจริงของการ์ด: การ์ดยิ่งเล็ก ข้อความยิ่งกระชับ
   const cardWidth = (gridWidth - 8 * (cols - 1)) / cols;
   const dense = cardWidth >= 150 ? 0 : cardWidth >= 100 ? 1 : cardWidth >= 76 ? 2 : 3;
-  const nickSize = ['text-xl', 'text-[15px]', 'text-[13px]', 'text-[11px]'][dense];
-  const pad = ['p-3 pt-10', 'p-2 pt-8', 'p-1.5 pt-6', 'p-1 pt-5'][dense];
+  const nickSize = ['text-lg', 'text-[15px]', 'text-[12px]', 'text-[10px]'][dense];
+  // ป้ายชื่อกระจกฝ้า (การ์ดใหญ่) / แถบไล่สี (การ์ดเล็ก — ไม่ใช้ blur เพื่อให้เลื่อนลื่น)
+  const label = [
+    'glass-pill inset-x-2 bottom-2 rounded-2xl px-3 py-2',
+    'glass-pill inset-x-1.5 bottom-1.5 rounded-xl px-2 py-1.5',
+    'glass-pill-lite inset-x-0 bottom-0 px-1.5 pb-1.5 pt-5',
+    'glass-pill-lite inset-x-0 bottom-0 px-1 pb-1 pt-4',
+  ][dense];
   const width = cardWidth >= 150 ? 500 : cardWidth >= 90 ? 320 : 220;
   return (
     <div ref={gridRef} className="photo-grid" style={{ '--cols': cols, '--gap': dense >= 2 ? '6px' : '10px' }}>
@@ -74,12 +82,12 @@ function GridView({ members, cols, onOpen }) {
           type="button"
           onClick={() => onOpen(m.id)}
           className={cx(
-            'group relative overflow-hidden bg-slate-200 text-left shadow-sm ring-1 ring-navy-900/5 transition active:scale-[0.97]',
-            dense >= 2 ? 'rounded-xl' : 'rounded-2xl',
+            'group relative overflow-hidden bg-white/40 text-left shadow-[0_10px_24px_-12px_rgb(11_28_54/0.45)] ring-1 ring-white/70 transition active:scale-[0.97]',
+            dense >= 2 ? 'rounded-xl' : 'rounded-3xl',
           )}
         >
           <Photo member={m} width={width} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass={['text-6xl', 'text-4xl', 'text-3xl', 'text-2xl'][dense]} />
-          <div className={cx('absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-950/90 via-navy-950/55 to-transparent', pad)}>
+          <div className={cx('absolute text-center', label)}>
             {/* ชื่อเล่นตัวใหญ่ + ชื่อจริง (ถ้ายังไม่มีชื่อเล่น แสดงชื่อจริงตัวใหญ่อย่างเดียว) */}
             <p className={cx('truncate font-bold leading-tight text-white drop-shadow', nickSize)}>{nickOf(m)}</p>
             {m.nickname && (
@@ -100,7 +108,7 @@ function ListView({ members, onOpen }) {
   return (
     <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
       {members.map((m) => (
-        <div key={m.id} className="flex items-center gap-3 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70">
+        <div key={m.id} className="glass flex items-center gap-3 rounded-3xl p-2.5">
           <button type="button" onClick={() => onOpen(m.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
             <Photo member={m} width={160} className="h-[72px] w-[54px] shrink-0 rounded-xl" textClass="text-xl" />
             <span className="min-w-0 flex-1">
@@ -114,12 +122,12 @@ function ListView({ members, onOpen }) {
             <a
               href={telHref(m.phone)}
               aria-label={`โทรหา ${nickOf(m)}`}
-              className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-navy-900 text-white shadow-sm transition active:scale-95"
+              className="btn-navy grid h-12 w-12 shrink-0 place-items-center rounded-full text-white transition active:scale-95"
             >
               <Phone className="h-5 w-5" />
             </a>
           ) : (
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-300" title="ยังไม่มีเบอร์โทร">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/40 text-slate-300" title="ยังไม่มีเบอร์โทร">
               <Phone className="h-5 w-5" />
             </span>
           )}
@@ -158,23 +166,23 @@ function SortHeader({ column, sort, onSort, className }) {
 
 function TableView({ members, sort, onSort, onOpen }) {
   return (
-    <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70">
+    <div className="glass overflow-x-auto rounded-3xl">
       <table className="w-full min-w-[640px] border-collapse text-[13px]">
-        <thead className="bg-slate-50 text-xs">
+        <thead className="bg-white/50 text-xs">
           <tr>
             <SortHeader column={{ key: 'seq', label: '#' }} sort={sort} onSort={onSort} className="w-12 pl-3 pr-1" />
-            <SortHeader column={TABLE_COLUMNS[0]} sort={sort} onSort={onSort} className="sticky left-0 z-10 bg-slate-50" />
+            <SortHeader column={TABLE_COLUMNS[0]} sort={sort} onSort={onSort} className="sticky left-0 z-10 bg-[#f3f6fb]" />
             {TABLE_COLUMNS.slice(1).map((c) => (
               <SortHeader key={c.key} column={c} sort={sort} onSort={onSort} />
             ))}
             <th scope="col" className="whitespace-nowrap px-3 py-2.5 text-left font-semibold text-slate-500">โทร</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-white/70">
           {members.map((m) => (
-            <tr key={m.id} onClick={() => onOpen(m.id)} className="group cursor-pointer transition hover:bg-navy-50/60">
+            <tr key={m.id} onClick={() => onOpen(m.id)} className="group cursor-pointer transition hover:bg-white/60">
               <td className="pl-3 pr-1 text-slate-400 tabular-nums">{m.seq}</td>
-              <td className="sticky left-0 z-[1] max-w-[46vw] bg-white px-3 py-2 transition group-hover:bg-navy-50 sm:max-w-none">
+              <td className="sticky left-0 z-[1] max-w-[46vw] bg-[#f3f6fb] px-3 py-2 transition group-hover:bg-white sm:max-w-none">
                 <button type="button" className="flex w-full items-center gap-2.5 text-left">
                   <Photo member={m} width={96} className="h-9 w-9 shrink-0 rounded-lg" textClass="text-sm" />
                   <span className="min-w-0">
@@ -188,7 +196,7 @@ function TableView({ members, sort, onSort, onOpen }) {
               {m.agency ? (
                 // ผู้ที่ไม่ใช่ตำรวจ: แสดงชื่อหน่วยงานแทนช่อง บก./บช.
                 <td colSpan={2} className="whitespace-nowrap px-3 text-slate-600">
-                  <span className="mr-1.5 rounded bg-gold-50 px-1.5 py-0.5 text-[10px] font-semibold text-gold-700">หน่วยงาน</span>
+                  <span className="mr-1.5 rounded-md bg-gold-400/20 px-1.5 py-0.5 text-[10px] font-semibold text-gold-700">หน่วยงาน</span>
                   {m.agency}
                 </td>
               ) : (
@@ -243,27 +251,50 @@ export default function DirectoryPage() {
   const members = data.members;
   const tokens = useMemo(() => queryTokens(query), [query]);
 
-  const { result, facets } = useMemo(() => {
+  const [org, setOrgState] = useState('all'); // all | police | other
+
+  const { result, facets, orgCounts } = useMemo(() => {
+    const typeOf = new Map(members.map((m) => [m.id, orgTypeOf(m)]));
+    const inScope = (m, scope) => scope === 'all' || typeOf.get(m.id) === scope;
+    // except: ข้ามตัวกรองหมวดนี้ (ใช้นับจำนวนในตัวเลือก) / 'org' = ข้ามตัวเลือกประเภท
     const passes = (m, except) =>
+      (except === 'org' || org === 'all' || typeOf.get(m.id) === org) &&
       FACETS.every((f) => f.key === except || !filters[f.key].length || filters[f.key].includes(m[f.key]));
     const searched = members.filter((m) => matchMember(m, tokens));
     const filtered = searched.filter((m) => passes(m)).sort(compareBy(sort));
-    // จำนวนในแต่ละตัวเลือก นับจากผลลัพธ์ที่ผ่านตัวกรองหมวดอื่นแล้ว (faceted count)
-    const facetData = FACETS.map((f) => {
+    const counts3 = { all: 0, police: 0, other: 0 };
+    searched.forEach((m) => {
+      if (!passes(m, 'org')) return;
+      counts3.all += 1;
+      counts3[typeOf.get(m.id)] += 1;
+    });
+    // ตัวเลือกแต่ละหมวดดึงจากข้อมูลจริง เฉพาะกลุ่มที่เกี่ยวข้อง (บก./บช. = ตำรวจ, หน่วยงาน = คนที่ไม่ใช่ตำรวจ)
+    const facetData = FACETS.filter((f) => f.scope === 'all' || org === 'all' || f.scope === org).map((f) => {
       const counts = new Map();
-      members.forEach((m) => { if (m[f.key]) counts.set(m[f.key], 0); });
+      members.forEach((m) => { if (m[f.key] && inScope(m, f.scope)) counts.set(m[f.key], 0); });
       searched.forEach((m) => {
-        if (m[f.key] && passes(m, f.key)) counts.set(m[f.key], (counts.get(m[f.key]) || 0) + 1);
+        if (m[f.key] && inScope(m, f.scope) && passes(m, f.key)) counts.set(m[f.key], (counts.get(m[f.key]) || 0) + 1);
       });
       const options = [...counts.entries()]
         .map(([value, count]) => ({ value, count }))
         .sort((a, b) => thCompare(a.value, b.value));
       return { ...f, options };
     });
-    return { result: filtered, facets: facetData };
-  }, [members, tokens, filters, sort]);
+    return { result: filtered, facets: facetData, orgCounts: counts3 };
+  }, [members, tokens, filters, sort, org]);
+
+  /** เปลี่ยนประเภท แล้วล้างตัวกรองของหมวดที่ไม่เกี่ยวข้อง (เช่น เลือก "หน่วยงานอื่น" จะล้าง บก./บช.) */
+  const setOrg = (next) => {
+    setOrgState(next);
+    setFilters((prev) => {
+      const out = { ...prev };
+      FACETS.forEach((f) => { if (f.scope !== 'all' && next !== 'all' && f.scope !== next) out[f.key] = []; });
+      return out;
+    });
+  };
 
   const activeFilters = FACETS.flatMap((f) => filters[f.key].map((value) => ({ key: f.key, short: f.short, value })));
+  const activeCount = activeFilters.length + (org !== 'all' ? 1 : 0);
   const suggestions = useMemo(
     () => (searchFocused && query.trim() ? guessMembers(members, query, 5) : []),
     [searchFocused, query, members],
@@ -276,6 +307,7 @@ export default function DirectoryPage() {
     }));
   const clearAll = () => {
     setFilters(NO_FILTERS);
+    setOrgState('all');
     setQuery('');
   };
 
@@ -286,7 +318,7 @@ export default function DirectoryPage() {
     <div className="mx-auto max-w-6xl px-4 page-bottom">
       <header className="pt-safe">
         <div className="flex items-center gap-3 pb-3 pt-5">
-          <img src="./logo.jpg" alt="" className="h-12 w-12 shrink-0 rounded-full bg-white object-cover shadow-sm ring-1 ring-slate-200" />
+          <img src="./logo.jpg" alt="" className="h-12 w-12 shrink-0 rounded-full bg-white object-cover shadow-[0_6px_16px_-6px_rgb(11_28_54/0.4)] ring-2 ring-white/80" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold tracking-wide text-gold-600">{COURSE_SUBTITLE} · {COURSE_SHORT}</p>
             <h1 className="truncate text-2xl font-bold tracking-tight text-navy-900">ทำเนียบรุ่น</h1>
@@ -295,7 +327,7 @@ export default function DirectoryPage() {
             type="button"
             onClick={() => refresh()}
             aria-label="รีเฟรชข้อมูล"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-navy-700 shadow-sm ring-1 ring-slate-200 transition active:scale-95"
+            className="glass grid h-11 w-11 shrink-0 place-items-center rounded-full text-navy-700 transition active:scale-95"
           >
             <RefreshCw className={cx('h-5 w-5', syncing && 'animate-spin')} />
           </button>
@@ -303,7 +335,7 @@ export default function DirectoryPage() {
       </header>
 
       {/* แถบค้นหา (ติดขอบบนขณะเลื่อน) */}
-      <div className="sticky top-0 z-30 -mx-4 bg-paper/90 px-4 py-2 backdrop-blur-lg">
+      <div className="sticky-glass sticky top-0 z-30 -mx-4 px-4 pb-2 pt-2">
         <div className="flex gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -317,7 +349,7 @@ export default function DirectoryPage() {
               enterKeyHint="search"
               autoComplete="off"
               aria-label="ค้นหารายชื่อ"
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-10 text-[16px] text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-navy-500 focus:ring-4 focus:ring-navy-500/10 [&::-webkit-search-cancel-button]:hidden"
+              className="glass h-12 w-full rounded-2xl pl-11 pr-10 text-[16px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:ring-4 focus:ring-navy-500/15 [&::-webkit-search-cancel-button]:hidden"
             />
             {query && (
               <button
@@ -344,18 +376,45 @@ export default function DirectoryPage() {
             onClick={() => setFilterOpen(true)}
             aria-label="ตัวกรอง"
             className={cx(
-              'relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl shadow-sm transition active:scale-95',
-              activeFilters.length ? 'bg-navy-900 text-white' : 'bg-white text-navy-700 ring-1 ring-slate-200',
+              'relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl transition active:scale-95',
+              activeCount ? 'btn-navy text-white' : 'glass text-navy-700',
             )}
           >
             <SlidersHorizontal className="h-5 w-5" />
-            {activeFilters.length > 0 && (
-              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-gold-400 px-1 text-[11px] font-bold text-navy-950 ring-2 ring-paper">
-                {activeFilters.length}
+            {activeCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-gold-400 px-1 text-[11px] font-bold text-navy-950 ring-2 ring-white">
+                {activeCount}
               </span>
             )}
           </button>
         </div>
+
+        {/* เลือกกลุ่มได้ทันที: ทั้งหมด / ตำรวจ / หน่วยงานอื่น (แสดงเฉพาะเมื่อมีคนที่ไม่ใช่ตำรวจ) */}
+        {!loading && orgCounts.all > 0 && (members.some((m) => orgTypeOf(m) === 'other') || org !== 'all') && (
+          <div className="mt-2 grid grid-cols-3 gap-1.5 sm:max-w-md" role="tablist" aria-label="กลุ่มผู้เข้าอบรม">
+            {['all', 'police', 'other'].map((k) => {
+              const active = org === k;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setOrg(k)}
+                  className={cx(
+                    'flex h-10 items-center justify-center gap-1.5 rounded-2xl text-[13px] font-semibold transition active:scale-[0.97]',
+                    active ? 'btn-navy text-white' : 'glass text-slate-700',
+                  )}
+                >
+                  {ORG_LABELS[k]}
+                  <span className={cx('rounded-full px-1.5 text-[11px] tabular-nums', active ? 'bg-white/20 text-white' : 'bg-navy-500/10 text-navy-700')}>
+                    {orgCounts[k]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* จำนวนผลลัพธ์ + สลับมุมมอง */}
@@ -382,20 +441,20 @@ export default function DirectoryPage() {
         </div>
       </div>
 
-      {(activeFilters.length > 0 || query) && (
+      {(activeCount > 0 || query) && (
         <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-3">
           {activeFilters.map((f) => (
             <button
               key={`${f.key}:${f.value}`}
               type="button"
               onClick={() => toggleFilter(f.key, f.value)}
-              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-navy-900 pl-3 pr-2 text-[13px] font-medium text-white"
+              className="btn-navy inline-flex h-8 shrink-0 items-center gap-1 rounded-full pl-3 pr-2 text-[13px] font-medium text-white"
             >
               <span className="text-white/60">{f.short}</span> {f.value}
               <X className="h-3.5 w-3.5 text-white/70" />
             </button>
           ))}
-          <button type="button" onClick={clearAll} className="h-8 shrink-0 rounded-full px-3 text-[13px] font-semibold text-rose-600 hover:bg-rose-50">
+          <button type="button" onClick={clearAll} className="h-8 shrink-0 rounded-full px-3 text-[13px] font-semibold text-rose-600 hover:bg-rose-500/10">
             ล้างตัวกรอง
           </button>
         </div>
@@ -408,14 +467,14 @@ export default function DirectoryPage() {
           icon={RefreshCw}
           title="โหลดข้อมูลไม่สำเร็จ"
           description={error}
-          action={<button type="button" onClick={() => refresh()} className="h-11 rounded-2xl bg-navy-900 px-5 text-sm font-semibold text-white">ลองใหม่</button>}
+          action={<button type="button" onClick={() => refresh()} className="btn-navy h-11 rounded-2xl px-5 text-sm font-semibold text-white">ลองใหม่</button>}
         />
       ) : result.length === 0 ? (
         <EmptyState
           icon={Search}
           title={members.length ? 'ไม่พบรายชื่อที่ตรงกับเงื่อนไข' : 'ยังไม่มีรายชื่อในระบบ'}
           description={members.length ? 'ลองเปลี่ยนคำค้นหรือล้างตัวกรอง' : 'เมื่อผู้ดูแลเปิดให้เพิ่มรายชื่อ จะมีปุ่มเพิ่มรายชื่อที่มุมขวาล่าง'}
-          action={members.length ? <button type="button" onClick={clearAll} className="h-11 rounded-2xl bg-navy-50 px-5 text-sm font-semibold text-navy-800">ล้างตัวกรอง</button> : null}
+          action={members.length ? <button type="button" onClick={clearAll} className="glass h-11 rounded-2xl px-5 text-sm font-semibold text-navy-800">ล้างตัวกรอง</button> : null}
         />
       ) : view === 'grid' ? (
         <GridView members={result} cols={cols} onOpen={ui.openProfile} />
@@ -429,7 +488,7 @@ export default function DirectoryPage() {
         <button
           type="button"
           onClick={() => ui.openMemberForm(null, query.trim() && !result.length ? { first_name: queryTokens(query).join(' ') } : null)}
-          className="fab inline-flex h-14 items-center gap-2 rounded-full bg-gold-500 px-5 text-[15px] font-semibold text-white shadow-lg shadow-gold-700/30 transition active:scale-95"
+          className="fab btn-gold inline-flex h-14 items-center gap-2 rounded-full px-5 text-[15px] font-semibold text-white ring-1 ring-white/50 transition active:scale-95"
         >
           <UserPlus className="h-5 w-5" />
           <span>เพิ่มรายชื่อ</span>
@@ -442,9 +501,15 @@ export default function DirectoryPage() {
         facets={facets}
         filters={filters}
         onToggle={toggleFilter}
-        onClear={() => setFilters(NO_FILTERS)}
+        onClear={() => {
+          setFilters(NO_FILTERS);
+          setOrgState('all');
+        }}
         resultCount={result.length}
-        activeCount={activeFilters.length}
+        activeCount={activeCount}
+        org={org}
+        orgCounts={orgCounts}
+        onOrg={setOrg}
         sort={sort}
         onSort={setSort}
       />

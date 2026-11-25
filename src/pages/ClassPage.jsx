@@ -57,10 +57,10 @@ function DateStrip({ days, selected, today, onSelect }) {
             className={cx(
               'relative flex h-[76px] w-[54px] shrink-0 flex-col items-center justify-center rounded-2xl transition active:scale-95',
               active
-                ? 'bg-navy-900 text-white shadow-md shadow-navy-900/25'
+                ? 'btn-navy text-white'
                 : isToday
-                  ? 'bg-gold-50 text-navy-900 ring-2 ring-inset ring-gold-400'
-                  : 'bg-white text-slate-700 ring-1 ring-inset ring-slate-200/80',
+                  ? 'glass text-navy-900 ring-2 ring-inset ring-gold-400'
+                  : 'glass text-slate-700',
               !has && !active && !isToday && 'opacity-55',
             )}
           >
@@ -91,7 +91,7 @@ function StatusBadge({ status, isNext }) {
     return <span className="rounded-full bg-gold-100 px-2.5 py-1 text-[11px] font-semibold text-gold-700">วิชาถัดไป</span>;
   }
   if (status === 'past') {
-    return <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-500">เรียนจบแล้ว</span>;
+    return <span className="rounded-full bg-white/60 px-2.5 py-1 text-[11px] font-medium text-slate-500">เรียนจบแล้ว</span>;
   }
   return null;
 }
@@ -100,8 +100,8 @@ function ClassCard({ item, status, isNext, onEdit }) {
   return (
     <article
       className={cx(
-        'relative flex gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 transition',
-        status === 'now' ? 'ring-2 ring-emerald-500/70' : isNext ? 'ring-2 ring-gold-300' : 'ring-slate-200/70',
+        'glass relative flex gap-3 rounded-3xl p-4 transition',
+        status === 'now' ? 'ring-2 ring-emerald-500/70' : isNext ? 'ring-2 ring-gold-300' : '',
         status === 'past' && 'opacity-60',
       )}
     >
@@ -142,7 +142,7 @@ function ClassCard({ item, status, isNext, onEdit }) {
           type="button"
           onClick={onEdit}
           aria-label="แก้ไขรายการนี้"
-          className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-navy-800"
+          className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full text-slate-400 hover:bg-white/70 hover:text-navy-800"
         >
           <Pencil className="h-4 w-4" />
         </button>
@@ -157,7 +157,7 @@ function HeroCard({ item, live, today, onJump }) {
     <button
       type="button"
       onClick={onJump}
-      className="relative block w-full overflow-hidden rounded-3xl bg-gradient-to-br from-navy-800 to-navy-950 p-5 text-left text-white shadow-lg shadow-navy-900/20 transition active:scale-[0.99]"
+      className="glass-dark block w-full rounded-3xl p-5 text-left transition active:scale-[0.99]"
     >
       <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gold-400/10" />
       <div className="flex items-center justify-between gap-2">
@@ -212,11 +212,11 @@ export default function ClassPage() {
         right={
           <div className="flex shrink-0 items-center gap-2">
             {selected !== today && (
-              <button type="button" onClick={() => setSelected(today)} className="h-10 rounded-full bg-gold-100 px-3.5 text-sm font-semibold text-gold-700 transition active:scale-95">
+              <button type="button" onClick={() => setSelected(today)} className="btn-gold h-10 rounded-full px-3.5 text-sm font-semibold text-white transition active:scale-95">
                 วันนี้
               </button>
             )}
-            <label className="relative grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-navy-700 shadow-sm ring-1 ring-slate-200" title="เลือกวันที่">
+            <label className="glass relative grid h-11 w-11 cursor-pointer place-items-center rounded-full text-navy-700" title="เลือกวันที่">
               <CalendarSearch className="h-5 w-5" />
               <input
                 type="date"
@@ -241,7 +241,7 @@ export default function ClassPage() {
         <>
           {hero && <HeroCard item={hero} live={!!live} today={today} onJump={() => setSelected(hero.class_date)} />}
 
-          <div className="sticky top-0 z-20 -mx-4 mt-3 bg-paper/90 px-4 py-2 backdrop-blur-lg">
+          <div className="sticky-glass sticky top-0 z-20 -mx-4 mt-3 px-4 py-2">
             <DateStrip days={days} selected={selected} today={today} onSelect={setSelected} />
           </div>
 

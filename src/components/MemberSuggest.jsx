@@ -10,20 +10,20 @@ export default function MemberSuggest({ items, onPick, title, className, floatin
   return (
     <div
       className={cx(
-        'overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200',
+        'glass-strong overflow-hidden rounded-2xl',
         floating && 'absolute inset-x-0 top-full z-30 mt-1.5 animate-pop shadow-xl shadow-navy-900/10',
         className,
       )}
       onMouseDown={(e) => e.preventDefault()}
     >
-      {title && <p className="border-b border-slate-100 px-3.5 py-2 text-xs font-medium text-slate-500">{title}</p>}
+      {title && <p className="border-b border-white/70 px-3.5 py-2 text-xs font-medium text-slate-500">{title}</p>}
       <ul className="max-h-72 overflow-y-auto overscroll-contain py-1">
         {items.map((m) => (
           <li key={m.id}>
             <button
               type="button"
               onClick={() => onPick(m)}
-              className="flex w-full items-center gap-3 px-3.5 py-2 text-left transition hover:bg-navy-50 active:bg-navy-100"
+              className="flex w-full items-center gap-3 px-3.5 py-2 text-left transition hover:bg-navy-500/10 active:bg-navy-500/15"
             >
               <Photo member={m} width={96} className="h-11 w-11 shrink-0 rounded-xl" textClass="text-base" />
               <span className="min-w-0 flex-1">

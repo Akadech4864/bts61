@@ -52,7 +52,7 @@ export function ToastProvider({ children }) {
                 key={t.id}
                 type="button"
                 onClick={() => dismiss(t.id)}
-                className="pointer-events-auto flex max-w-md animate-toast items-start gap-2.5 rounded-2xl bg-navy-900/95 px-4 py-3 text-left text-sm font-medium text-white shadow-xl shadow-navy-950/20 backdrop-blur"
+                className="pointer-events-auto flex max-w-md animate-toast items-start gap-2.5 glass-dark rounded-2xl px-4 py-3 text-left text-sm font-medium"
               >
                 <Icon className={cx('mt-0.5 h-[18px] w-[18px] shrink-0', tone)} />
                 <span className="leading-snug">{t.message}</span>

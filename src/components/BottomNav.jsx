@@ -53,7 +53,7 @@ export default function BottomNav({ tab, onChange, adminActive }) {
 
   return (
     <nav className="dock" data-hidden={hidden ? 'true' : 'false'} aria-label="เมนูหลัก">
-      <div className="grid grid-cols-4 gap-1 rounded-[26px] border border-white/60 bg-white/75 p-1.5 shadow-[0_10px_40px_-10px_rgba(11,28,54,0.35)] ring-1 ring-navy-900/5 backdrop-blur-xl">
+      <div className="grid grid-cols-4 gap-1 glass rounded-[28px] p-1.5 shadow-[0_16px_40px_-12px_rgba(11,28,54,0.45)]">
         {TABS.map((t) => {
           const active = t.id === tab;
           const Icon = t.icon;
@@ -65,7 +65,7 @@ export default function BottomNav({ tab, onChange, adminActive }) {
               aria-current={active ? 'page' : undefined}
               className={cx(
                 'relative flex h-[54px] flex-col items-center justify-center gap-0.5 rounded-[20px] transition-all duration-200 active:scale-95',
-                active ? 'bg-navy-900 text-white shadow-md shadow-navy-900/25' : 'text-slate-500 hover:bg-navy-50 hover:text-navy-800',
+                active ? 'btn-navy text-white' : 'text-slate-600 hover:bg-white/60 hover:text-navy-800',
               )}
             >
               <Icon className="h-[21px] w-[21px]" strokeWidth={active ? 2.2 : 1.9} />

@@ -28,7 +28,7 @@ function DateBadge({ iso }) {
   const [, m, d] = (iso || '--').split('-');
   const months = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
   return (
-    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-navy-50 text-navy-800">
+    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-navy-500/10 text-navy-800 ring-1 ring-inset ring-white/70">
       <div className="text-center leading-none">
         <div className="text-base font-bold">{Number(d) || '–'}</div>
         <div className="mt-0.5 text-[10px] font-medium text-navy-500">{months[Number(m)] || ''}</div>
@@ -141,7 +141,7 @@ export function ManageSheet({ kind, onClose }) {
         </Button>
       }
     >
-      <div className="sticky top-0 z-10 bg-white pb-2">
+      <div className="sticky top-0 z-10 bg-white/70 pb-2 backdrop-blur-xl">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" />
           <TextInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ค้นหา" className="pl-10" enterKeyHint="search" />
@@ -279,7 +279,7 @@ function PasswordResetInner({ onClose }) {
 
       {step === 'request' && (
         <div className="space-y-4 pb-2">
-          <div className="flex items-start gap-3 rounded-2xl bg-navy-50 p-4">
+          <div className="flex items-start gap-3 rounded-2xl bg-navy-500/10 p-4">
             <Mail className="mt-0.5 h-5 w-5 shrink-0 text-navy-600" />
             <p className="text-sm leading-relaxed text-navy-800">
               ระบบจะส่งรหัส OTP 6 หลัก (อายุ 10 นาที) ไปยัง<strong>อีเมลผู้ดูแลระบบที่กำหนดไว้ตายตัว</strong>เท่านั้น
@@ -346,7 +346,7 @@ export function PasswordResetSheet({ open, onClose }) {
 export function MenuRow({ icon: Icon, title, description, onClick, tone = 'navy' }) {
   return (
     <button type="button" onClick={onClick} className="flex w-full items-center gap-3 py-3 text-left transition active:opacity-70">
-      <span className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-xl', tone === 'gold' ? 'bg-gold-50 text-gold-600' : 'bg-navy-50 text-navy-600')}>
+      <span className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-xl', tone === 'gold' ? 'bg-gold-400/20 text-gold-700' : 'bg-navy-500/10 text-navy-600')}>
         <Icon className="h-5 w-5" />
       </span>
       <span className="min-w-0 flex-1">

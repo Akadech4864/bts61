@@ -40,7 +40,7 @@ function LoginCard({ onForgot }) {
   return (
     <Card className="p-5">
       <div className="mb-4 flex items-center gap-3">
-        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-navy-900 text-gold-300">
+        <span className="grid h-12 w-12 place-items-center rounded-2xl btn-navy text-gold-300">
           <Lock className="h-5 w-5" />
         </span>
         <div>
@@ -107,7 +107,7 @@ function PermissionCard() {
 
   return (
     <Card className="overflow-hidden">
-      <div className={cx('px-5 transition-colors', master ? 'bg-navy-900 text-white' : 'bg-white')}>
+      <div className={cx('px-5 transition-colors', master ? 'glass-dark rounded-none! border-0!' : 'bg-white/40')}>
         <label className="flex cursor-pointer items-center gap-3 py-4">
           <span className="min-w-0 flex-1">
             <span className={cx('block text-base font-semibold', master ? 'text-white' : 'text-navy-900')}>โหมดแก้ไขสำหรับผู้ใช้งานทั่วไป</span>
@@ -142,7 +142,7 @@ function PermissionCard() {
           />
         ))}
       </div>
-      {!master && <p className="border-t border-slate-100 bg-slate-50 px-5 py-2.5 text-xs text-slate-500">เปิดสวิตช์หลักก่อน จึงจะกำหนดสิทธิ์ย่อยได้</p>}
+      {!master && <p className="border-t border-white/70 bg-white/30 px-5 py-2.5 text-xs text-slate-500">เปิดสวิตช์หลักก่อน จึงจะกำหนดสิทธิ์ย่อยได้</p>}
     </Card>
   );
 }
@@ -160,7 +160,7 @@ export default function SettingsPage() {
       <PageHeader eyebrow={isAdmin ? 'Admin Control Panel' : 'Settings'} title={isAdmin ? 'แผงควบคุมแอดมิน' : 'ตั้งค่า / แอดมิน'} />
 
       {isDemo && (
-        <div className="mb-4 flex items-start gap-3 rounded-2xl bg-gold-50 p-4 ring-1 ring-inset ring-gold-200">
+        <div className="glass mb-4 flex items-start gap-3 rounded-2xl p-4 ring-1 ring-inset ring-gold-300">
           <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-gold-600" />
           <div className="text-[13px] leading-relaxed text-gold-700">
             <p className="font-semibold">โหมดตัวอย่าง — ยังไม่ได้เชื่อมต่อฐานข้อมูล</p>
@@ -174,7 +174,7 @@ export default function SettingsPage() {
           <LoginCard onForgot={() => setResetOpen(true)} />
           <SectionTitle>สถานะการแก้ไขข้อมูล</SectionTitle>
           <Card className="flex items-center gap-3 p-4">
-            <span className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-xl', publicOpen ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400')}>
+            <span className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-xl', publicOpen ? 'bg-emerald-500/15 text-emerald-600' : 'bg-white/60 text-slate-400')}>
               <ShieldCheck className="h-5 w-5" />
             </span>
             <div className="min-w-0">
@@ -189,7 +189,7 @@ export default function SettingsPage() {
         </>
       ) : (
         <>
-          <Card className="flex items-center gap-3 bg-gradient-to-br from-navy-800 to-navy-950 p-4 text-white ring-0">
+          <div className="glass-dark flex items-center gap-3 rounded-3xl p-4">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/10 text-gold-300">
               <ShieldCheck className="h-5 w-5" />
             </span>
@@ -207,13 +207,13 @@ export default function SettingsPage() {
             >
               <LogOut className="h-4 w-4" /> ออก
             </button>
-          </Card>
+          </div>
 
           {auth && auth.usingDefaultPassword && !isDemo && (
             <button
               type="button"
               onClick={() => setResetOpen(true)}
-              className="mt-3 flex w-full items-start gap-3 rounded-2xl bg-rose-50 p-4 text-left ring-1 ring-inset ring-rose-200"
+              className="glass mt-3 flex w-full items-start gap-3 rounded-2xl p-4 text-left ring-1 ring-inset ring-rose-300"
             >
               <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
               <span className="text-[13px] leading-relaxed text-rose-700">
@@ -259,7 +259,7 @@ export default function SettingsPage() {
             ['รายการสอน', data.classes.length],
             ['รายการเวร', data.duty.length],
           ].map(([label, value]) => (
-            <div key={label} className="rounded-xl bg-slate-50 py-2.5">
+            <div key={label} className="rounded-2xl bg-white/50 py-2.5 ring-1 ring-inset ring-white/70">
               <dd className="text-xl font-bold text-navy-900 tabular-nums">{value}</dd>
               <dt className="text-[11px] text-slate-500">{label}</dt>
             </div>
@@ -268,7 +268,7 @@ export default function SettingsPage() {
       </Card>
 
       <div className="mt-8 flex flex-col items-center gap-2 px-6 text-center">
-        <img src="./logo.jpg" alt="" className="h-14 w-14 rounded-full bg-white object-cover ring-1 ring-slate-200" />
+        <img src="./logo.jpg" alt="" className="h-14 w-14 rounded-full bg-white object-cover shadow-[0_6px_16px_-6px_rgb(11_28_54/0.4)] ring-2 ring-white/80" />
         <p className="text-sm font-semibold text-navy-900">{APP_NAME}</p>
         <p className="text-xs leading-relaxed text-slate-400">
           {COURSE_PERIOD} · {COURSE_PLACE}

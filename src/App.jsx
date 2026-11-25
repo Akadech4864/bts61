@@ -90,6 +90,7 @@ function Shell() {
 
   return (
     <UIContext.Provider value={ui}>
+      <div className="app-bg" aria-hidden="true" />
       <main key={tab} className="animate-fade-in">
         <Page />
       </main>

@@ -218,7 +218,7 @@ function DutyFormInner({ initial, onClose }) {
           {pickedMembers.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {pickedMembers.map((m) => (
-                <span key={m.id} className="inline-flex items-center gap-2 rounded-full bg-navy-50 py-1 pl-1 pr-1.5 text-sm font-medium text-navy-900">
+                <span key={m.id} className="inline-flex items-center gap-2 rounded-full glass py-1 pl-1 pr-1.5 text-sm font-medium text-navy-900">
                   <Photo member={m} width={96} className="h-7 w-7 rounded-full" textClass="text-xs" />
                   {nickOf(m)}
                   <span className="text-xs font-normal text-slate-500">{m.first_name}</span>

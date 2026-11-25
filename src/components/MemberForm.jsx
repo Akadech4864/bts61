@@ -147,7 +147,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
 
   const previewUrl = photo ? photo.url : removePhoto ? '' : form.photo_url;
   const pickClass =
-    'inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-navy-50 px-3 text-sm font-semibold text-navy-800 transition hover:bg-navy-100 active:scale-[0.98]';
+    'inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl glass px-3 text-sm font-semibold text-navy-800 transition hover:bg-white/80 active:scale-[0.98]';
 
   return (
     <>
@@ -165,13 +165,13 @@ function MemberFormInner({ initial, prefill, onClose }) {
       >
         <form id="member-form" onSubmit={submit} className="space-y-4 pb-5" autoComplete="off">
           {matched && (
-            <div className="flex items-start gap-2.5 rounded-2xl bg-gold-50 px-3.5 py-3 text-[13px] leading-snug text-gold-700 ring-1 ring-inset ring-gold-200">
+            <div className="flex items-start gap-2.5 rounded-2xl bg-gold-300/25 px-3.5 py-3 text-[13px] leading-snug text-gold-700 ring-1 ring-inset ring-gold-300">
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
               <span>ดึงข้อมูลเดิมจากระบบมาให้แล้ว แก้ไขเฉพาะส่วนที่ต้องการแล้วกดบันทึก (ไม่สร้างรายชื่อซ้ำ)</span>
             </div>
           )}
           {!canInfo && canPhoto && (
-            <div className="flex items-start gap-2.5 rounded-2xl bg-navy-50 px-3.5 py-3 text-[13px] leading-snug text-navy-700">
+            <div className="flex items-start gap-2.5 rounded-2xl bg-navy-500/10 px-3.5 py-3 text-[13px] leading-snug text-navy-700">
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
               <span>ขณะนี้ผู้ดูแลเปิดให้เปลี่ยนรูปถ่ายเท่านั้น ข้อมูลอื่นแก้ไขไม่ได้</span>
             </div>
@@ -179,7 +179,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
 
           {canPhoto && (
             <div className="flex gap-4">
-              <Photo member={{ ...form, photo_url: previewUrl }} width={400} eager className="aspect-[3/4] w-28 shrink-0 rounded-2xl ring-1 ring-slate-200" textClass="text-4xl" />
+              <Photo member={{ ...form, photo_url: previewUrl }} width={400} eager className="aspect-[3/4] w-28 shrink-0 rounded-3xl shadow-[0_10px_24px_-12px_rgb(11_28_54/0.5)] ring-2 ring-white" textClass="text-4xl" />
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
                 <p className="text-[13px] font-medium text-slate-600">ภาพถ่ายหน้าตรง</p>
                 <label className={pickClass}>
@@ -258,7 +258,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
                     }}
                     className={cx(
                       'h-10 rounded-full px-3.5 text-sm font-semibold transition active:scale-95 disabled:opacity-50',
-                      active ? 'bg-navy-900 text-white shadow-sm' : 'bg-white text-slate-700 ring-1 ring-inset ring-slate-200 hover:ring-navy-300',
+                      active ? 'btn-navy text-white' : 'glass text-slate-700',
                     )}
                   >
                     {r}
@@ -276,7 +276,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
                 }}
                 className={cx(
                   'h-10 rounded-full px-3.5 text-sm font-semibold transition active:scale-95 disabled:opacity-50',
-                  customRank ? 'bg-navy-900 text-white shadow-sm' : 'bg-white text-slate-500 ring-1 ring-inset ring-slate-200 hover:ring-navy-300',
+                  customRank ? 'btn-navy text-white' : 'glass text-slate-500',
                 )}
               >
                 อื่น ๆ
@@ -359,7 +359,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
           </Field>
 
           {isAdmin && (
-            <div className="grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3">
+            <div className="grid grid-cols-2 gap-3 rounded-2xl bg-white/40 p-3 ring-1 ring-inset ring-white/70">
               <Field label="กลุ่ม (เฉพาะแอดมิน)">
                 <TextInput value={form.group_name} onChange={(e) => set('group_name')(e.target.value)} placeholder="เช่น กลุ่ม 1" />
               </Field>
