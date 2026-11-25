@@ -1,9 +1,26 @@
-import { forwardRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { cx } from '../lib/utils';
 
 export const inputClass =
   'h-12 w-full rounded-xl border border-white/80 bg-white/75 px-3.5 shadow-[inset_0_1px_2px_rgb(11_28_54/0.06)] text-[16px] text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-navy-500 focus:ring-4 focus:ring-navy-500/10 disabled:bg-white/40 disabled:text-slate-500';
+
+/**
+ * วางไว้หน้าแถบ sticky ที่มี class "topbar" — คอยบอกว่าแถบนั้นติดขอบบนจอแล้วหรือยัง
+ * แถบจะหุบขึ้นพร้อมเมนูล่างเฉพาะตอนที่ติดขอบจอแล้ว (ยังอยู่กลางหน้าจะไม่หายไปเฉย ๆ)
+ */
+export function TopBarSentinel() {
+  const ref = useRef(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting && entry.boundingClientRect.top < 0));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return <span ref={ref} aria-hidden="true" data-stuck={stuck ? 'true' : 'false'} className="topbar-sentinel -mb-px block h-px" />;
+}
 
 export function Spinner({ className }) {
   return <LoaderCircle className={cx('animate-spin', className || 'h-5 w-5')} />;

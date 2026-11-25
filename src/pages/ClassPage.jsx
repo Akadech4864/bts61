@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, CalendarDays, CalendarSearch, ChevronRight, Clock, MapPin, Pencil, Plus, StickyNote, UserRound } from 'lucide-react';
-import { Button, EmptyState, PageHeader, Skeleton } from '../components/ui';
+import { Button, EmptyState, PageHeader, Skeleton, TopBarSentinel } from '../components/ui';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import {
@@ -241,7 +241,9 @@ export default function ClassPage() {
         <>
           {hero && <HeroCard item={hero} live={!!live} today={today} onJump={() => setSelected(hero.class_date)} />}
 
-          <div className="sticky-glass sticky top-0 z-20 -mx-4 mt-3 px-4 py-2">
+          <div className="mt-3" />
+          <TopBarSentinel />
+          <div className="topbar sticky-glass sticky top-0 z-20 -mx-4 px-4 py-2">
             <DateStrip days={days} selected={selected} today={today} onSelect={setSelected} />
           </div>
 

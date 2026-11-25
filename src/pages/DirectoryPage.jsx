@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, CircleAlert, CircleCheck, IdCard, LayoutGrid, Phone, RefreshCw, Search, SlidersHorizontal, Table2, UserPlus, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
 import { SocialInline, SocialMarks } from '../components/Social';
-import { EmptyState, Segmented, Skeleton } from '../components/ui';
+import { EmptyState, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import MemberSuggest from '../components/MemberSuggest';
 import FilterSheet, { SORT_OPTIONS } from '../components/FilterSheet';
 import { useStore } from '../lib/store';
@@ -471,8 +471,9 @@ export default function DirectoryPage() {
         </div>
       </header>
 
-      {/* แถบค้นหา (ติดขอบบนขณะเลื่อน) */}
-      <div className="sticky-glass sticky top-0 z-30 -mx-4 px-4 pb-2 pt-2">
+      {/* แถบค้นหา (ติดขอบบนขณะเลื่อน — หุบขึ้นเมื่อเลื่อนลง แสดงเมื่อเลื่อนขึ้น เหมือนเมนูล่าง) */}
+      <TopBarSentinel />
+      <div className="topbar sticky-glass sticky top-0 z-30 -mx-4 px-4 pb-2 pt-2">
         <div className="flex gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />

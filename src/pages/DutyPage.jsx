@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarClock, Pencil, Plus, Search, ShieldCheck, StickyNote, UserRoundSearch, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
-import { Button, EmptyState, PageHeader, Segmented, Skeleton } from '../components/ui';
+import { Button, EmptyState, PageHeader, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import MemberSuggest from '../components/MemberSuggest';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -185,7 +185,8 @@ export default function DutyPage() {
       />
 
       {/* ค้นหาเวรของตัวเอง: พิมพ์ชื่อแล้วแตะเลือก ระบบจะจำไว้ในเครื่องนี้ */}
-      <div className="sticky-glass sticky top-0 z-20 -mx-4 px-4 py-2">
+      <TopBarSentinel />
+      <div className="topbar sticky-glass sticky top-0 z-20 -mx-4 px-4 py-2">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <input

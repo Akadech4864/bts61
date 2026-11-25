@@ -209,6 +209,18 @@
   pointer-events: none;
 }
 
+/* แถบด้านบนที่ติดขอบจอ (ค้นหา / เลือกวัน): หุบขึ้นพร้อมกับเมนูล่างเมื่อเลื่อนลง แสดงเมื่อเลื่อนขึ้น
+   หุบเฉพาะเมื่อแถบติดขอบบนจอแล้ว (.topbar-sentinel บอกสถานะ) และไม่หุบขณะกำลังพิมพ์ค้นหา (focus-within) */
+.topbar {
+  transition: transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
+  will-change: transform;
+}
+html[data-nav-hidden="true"] .topbar-sentinel[data-stuck="true"] + .topbar:not(:focus-within) {
+  transform: translateY(calc(-100% - 8px));
+  opacity: 0;
+  pointer-events: none;
+}
+
 .fab {
   position: fixed;
   z-index: 35;
