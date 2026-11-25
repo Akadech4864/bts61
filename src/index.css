@@ -232,6 +232,28 @@ html[data-nav-hidden="true"] .fab {
   bottom: calc(env(safe-area-inset-bottom) + 20px);
 }
 
+/* ---------- ข้อความยาวเกินกรอบ: วิ่งไปกลับช้า ๆ (ดู <Marquee>) ---------- */
+.marquee {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.marquee > span { display: inline-block; }
+.marquee[data-overflow="true"] > span {
+  animation: marquee-pingpong var(--marquee-time, 6s) ease-in-out infinite alternate;
+  animation-play-state: paused;
+  will-change: transform;
+}
+.marquee[data-overflow="true"][data-inview="true"] > span { animation-play-state: running; }
+@keyframes marquee-pingpong {
+  0%, 20% { transform: translateX(0); }
+  80%, 100% { transform: translateX(var(--marquee-shift, 0)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee { text-overflow: ellipsis; }
+  .marquee > span { display: inline; }
+  .marquee[data-overflow="true"] > span { animation: none; }
+}
+
 /* ---------- กริดรูปภาพปรับจำนวนคอลัมน์ได้ ---------- */
 .photo-grid {
   display: grid;

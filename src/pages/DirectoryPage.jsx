@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, CircleAlert, CircleCheck, IdCard, LayoutGrid, Phone, RefreshCw, Search, SlidersHorizontal, Table2, UserPlus, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
 import { SocialInline, SocialMarks } from '../components/Social';
-import { EmptyState, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
+import { EmptyState, Marquee, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import MemberSuggest from '../components/MemberSuggest';
 import FilterSheet, { SORT_OPTIONS } from '../components/FilterSheet';
 import { useStore } from '../lib/store';
@@ -112,29 +112,40 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
           )}
         >
           <Photo member={m} width={width} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass={['text-6xl', 'text-4xl', 'text-3xl', 'text-2xl'][dense]} />
-          {flagMissing && (
-            dense >= 2 ? (
-              <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" title={missingText(m)} />
-            ) : (
-              <span className="absolute inset-x-1.5 top-1.5 flex flex-wrap gap-1" title={missingText(m)}>
-                {/* ป้ายแรกขึ้นต้นด้วย "ขาด" เช่น ขาดรูป · โทร. · ชื่อเล่น */}
-                {missingInfo(m).map((k, i) => (
-                  <span key={k} className={cx('rounded-full bg-amber-400/95 font-semibold leading-tight text-navy-950 shadow-sm', dense ? 'px-1.5 py-px text-[10px]' : 'px-2 py-0.5 text-[11px]')}>
-                    {i === 0 ? `ขาด${k}` : k}
-                  </span>
-                ))}
-              </span>
-            )
+          {/* มุมบนซ้าย: ลำดับที่ ตามด้วยป้ายข้อมูลที่ยังขาด (การ์ดเล็กมากใช้จุดสีเหลืองมุมขวาแทนป้าย) */}
+          {(m.seq || (flagMissing && dense < 2)) && (
+            <span className={cx('absolute flex flex-wrap items-center gap-1', dense >= 2 ? 'inset-x-1 top-1' : 'inset-x-1.5 top-1.5')}>
+              {m.seq && (
+                <span
+                  title={`ลำดับที่ ${m.seq}`}
+                  className={cx(
+                    'grid shrink-0 place-items-center rounded-full bg-navy-950/60 font-semibold tabular-nums leading-none text-white ring-1 ring-inset ring-white/30',
+                    ['h-6 min-w-6 px-1.5 text-[12px]', 'h-5 min-w-5 px-1 text-[11px]', 'h-4 min-w-4 px-1 text-[9px]', 'h-3.5 min-w-3.5 px-0.5 text-[8px]'][dense],
+                  )}
+                >
+                  {m.seq}
+                </span>
+              )}
+              {/* ป้ายแรกขึ้นต้นด้วย "ขาด" เช่น ขาดรูป · โทร. · ชื่อเล่น */}
+              {flagMissing && dense < 2 && missingInfo(m).map((k, i) => (
+                <span key={k} title={missingText(m)} className={cx('rounded-full bg-amber-400/95 font-semibold leading-tight text-navy-950 shadow-sm', dense ? 'px-1.5 py-px text-[10px]' : 'px-2 py-0.5 text-[11px]')}>
+                  {i === 0 ? `ขาด${k}` : k}
+                </span>
+              ))}
+            </span>
+          )}
+          {flagMissing && dense >= 2 && (
+            <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" title={missingText(m)} />
           )}
           <div className={cx('absolute', label)}>
-            {/* ชื่อเล่นตัวใหญ่ + ชื่อจริง (ถ้ายังไม่มีชื่อเล่น แสดงชื่อจริงตัวใหญ่อย่างเดียว) */}
+            {/* ชื่อเล่นตัวใหญ่ + ยศ ชื่อ-สกุล (ยาวเกินการ์ดจะวิ่งไปกลับช้า ๆ) */}
             {markSize > 0 && <SocialMarks member={m} size={markSize} max={markMax} className={dense ? 'mb-1' : 'mb-1.5'} />}
             <p className={cx('truncate font-bold leading-tight text-white drop-shadow', nickSize)}>{nickOf(m)}</p>
-            {m.nickname && (
-              <p className={cx('truncate leading-tight text-white/85', ['mt-0.5 text-sm', 'text-[12px]', 'text-[10px]', 'text-[9px]'][dense])}>
-                {m.first_name}
-              </p>
-            )}
+            <Marquee
+              text={fullName(m)}
+              measureKey={`${dense}:${Math.round(cardWidth)}`}
+              className={cx('leading-tight text-white/85', ['mt-0.5 text-sm', 'text-[12px]', 'text-[10px]', 'text-[9px]'][dense])}
+            />
           </div>
         </button>
       ))}

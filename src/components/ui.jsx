@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { cx } from '../lib/utils';
 
@@ -20,6 +20,59 @@ export function TopBarSentinel() {
     return () => observer.disconnect();
   }, []);
   return <span ref={ref} aria-hidden="true" data-stuck={stuck ? 'true' : 'false'} className="topbar-sentinel -mb-px block h-px" />;
+}
+
+// ตัวอักษรวิ่งจะเล่นเฉพาะตอนที่มองเห็นบนจอ (ใช้ตัวสังเกตร่วมกันตัวเดียว ประหยัดแบตมือถือ)
+let marqueeObserver = null;
+function watchInView(el) {
+  if (typeof IntersectionObserver === 'undefined') {
+    el.dataset.inview = 'true';
+    return () => {};
+  }
+  if (!marqueeObserver) {
+    marqueeObserver = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { e.target.dataset.inview = e.isIntersecting ? 'true' : 'false'; });
+    }, { rootMargin: '80px 0px' });
+  }
+  marqueeObserver.observe(el);
+  return () => marqueeObserver.unobserve(el);
+}
+
+/**
+ * ข้อความบรรทัดเดียว: ถ้าพอดีก็แสดงปกติ ถ้ายาวเกินกรอบจะเลื่อนไปกลับช้า ๆ ให้อ่านได้ครบ
+ * measureKey = ค่าที่เปลี่ยนเมื่อความกว้างกรอบเปลี่ยน (ให้วัดใหม่)
+ */
+export function Marquee({ text, className, measureKey }) {
+  const outer = useRef(null);
+  const inner = useRef(null);
+  const [shift, setShift] = useState(0);
+
+  useLayoutEffect(() => {
+    let cancelled = false;
+    const measure = () => {
+      if (cancelled || !outer.current || !inner.current) return;
+      const extra = inner.current.offsetWidth - outer.current.clientWidth;
+      setShift(extra > 2 ? Math.ceil(extra) : 0);
+    };
+    measure();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    return () => { cancelled = true; };
+  }, [text, measureKey]);
+
+  useEffect(() => (outer.current ? watchInView(outer.current) : undefined), []);
+
+  return (
+    <span
+      ref={outer}
+      title={text}
+      data-overflow={shift ? 'true' : 'false'}
+      className={cx('marquee block', className)}
+      // ความเร็วคงที่ราว 14px ต่อวินาที + หยุดพักที่ปลายทั้งสองด้าน
+      style={shift ? { '--marquee-shift': `-${shift}px`, '--marquee-time': `${(shift / 14 + 3).toFixed(1)}s` } : undefined}
+    >
+      <span ref={inner}>{text}</span>
+    </span>
+  );
 }
 
 export function Spinner({ className }) {
