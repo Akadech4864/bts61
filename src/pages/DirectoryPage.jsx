@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown, IdCard, LayoutGrid, Phone, RefreshCw, Search, SlidersHorizontal, Table2, UserPlus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, CircleAlert, CircleCheck, IdCard, LayoutGrid, Phone, RefreshCw, Search, SlidersHorizontal, Table2, UserPlus, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
 import { EmptyState, Segmented, Skeleton } from '../components/ui';
 import MemberSuggest from '../components/MemberSuggest';
@@ -8,7 +8,7 @@ import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { COURSE_SHORT, COURSE_SUBTITLE } from '../config';
 import {
-  cx, formatPhone, fullName, guessMembers, matchMember, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens,
+  cx, formatPhone, fullName, guessMembers, matchMember, missingInfo, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens,
   telHref, thCompare, useBreakpoint, usePersistentState,
 } from '../lib/utils';
 
@@ -47,9 +47,31 @@ function compareBy(sort) {
   };
 }
 
+/* ------------------------------ หัวข้อแบ่งกลุ่ม (ข้อมูลยังไม่ครบ / ครบแล้ว) ------------------------------ */
+
+const SHORT_MISSING = { 'ชื่อเล่น': 'ชื่อเล่น', 'เบอร์โทร': 'เบอร์', 'รูปถ่าย': 'รูป' };
+
+function SectionHeading({ tone, title, count, note }) {
+  const warn = tone === 'warn';
+  const Icon = warn ? CircleAlert : CircleCheck;
+  return (
+    <div className="mb-2.5 flex items-start gap-2.5">
+      <span className={cx('mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full', warn ? 'bg-amber-400/25 text-amber-600' : 'bg-emerald-500/15 text-emerald-600')}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0">
+        <h2 className="text-[15px] font-bold leading-snug text-navy-900">
+          {title} <span className="font-medium tabular-nums text-slate-400">{count} คน</span>
+        </h2>
+        {note && <p className="text-xs leading-snug text-slate-500">{note}</p>}
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------ มุมมองกริดรูปภาพ ------------------------------ */
 
-function GridView({ members, cols, onOpen }) {
+function GridView({ members, cols, onOpen, flagMissing = false }) {
   const gridRef = useRef(null);
   const [gridWidth, setGridWidth] = useState(() => Math.min(window.innerWidth, 1152) - 32);
   useLayoutEffect(() => {
@@ -87,6 +109,15 @@ function GridView({ members, cols, onOpen }) {
           )}
         >
           <Photo member={m} width={width} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass={['text-6xl', 'text-4xl', 'text-3xl', 'text-2xl'][dense]} />
+          {flagMissing && (
+            dense >= 2 ? (
+              <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" title={`ยังขาด ${missingInfo(m).join(' ')}`} />
+            ) : (
+              <span className={cx('absolute left-1.5 top-1.5 max-w-[calc(100%-12px)] truncate rounded-full bg-amber-400/95 font-semibold text-navy-950 shadow-sm', dense ? 'px-1.5 py-px text-[10px]' : 'px-2 py-0.5 text-[11px]')}>
+                ขาด {missingInfo(m).map((k) => (dense ? SHORT_MISSING[k] : k)).join(' · ')}
+              </span>
+            )
+          )}
           <div className={cx('absolute', label)}>
             {/* ชื่อเล่นตัวใหญ่ + ชื่อจริง (ถ้ายังไม่มีชื่อเล่น แสดงชื่อจริงตัวใหญ่อย่างเดียว) */}
             <p className={cx('truncate font-bold leading-tight text-white drop-shadow', nickSize)}>{nickOf(m)}</p>
@@ -104,7 +135,7 @@ function GridView({ members, cols, onOpen }) {
 
 /* ------------------------------ มุมมองการ์ดรายชื่อ ------------------------------ */
 
-function ListView({ members, onOpen }) {
+function ListView({ members, onOpen, flagMissing = false }) {
   return (
     <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
       {members.map((m) => (
@@ -116,6 +147,11 @@ function ListView({ members, onOpen }) {
               <span className="block truncate text-sm text-slate-700">{fullName(m)}</span>
               {m.position && <span className="block truncate text-xs text-slate-500">{m.position}</span>}
               {orgLine(m) && <span className="block truncate text-xs text-slate-400">{orgLine(m)}</span>}
+              {flagMissing && (
+                <span className="mt-1 inline-block max-w-full truncate rounded-full bg-amber-400/25 px-2 py-px text-[11px] font-semibold text-amber-700">
+                  ยังขาด {missingInfo(m).join(' · ')}
+                </span>
+              )}
             </span>
           </button>
           {phoneDigits(m.phone) ? (
@@ -164,7 +200,8 @@ function SortHeader({ column, sort, onSort, className }) {
   );
 }
 
-function TableView({ members, sort, onSort, onOpen }) {
+/** sections: [{ key, title, note, tone, flag, members }] — มีหลายกลุ่มจะคั่นด้วยแถวหัวข้อ */
+function TableView({ sections, sort, onSort, onOpen }) {
   return (
     <div className="glass overflow-x-auto rounded-3xl">
       <table className="w-full min-w-[640px] border-collapse text-[13px]">
@@ -178,8 +215,20 @@ function TableView({ members, sort, onSort, onOpen }) {
             <th scope="col" className="whitespace-nowrap px-3 py-2.5 text-left font-semibold text-slate-500">โทร</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/70">
-          {members.map((m) => (
+        {sections.map((section) => (
+        <tbody key={section.key} className="divide-y divide-white/70">
+          {sections.length > 1 && (
+            <tr>
+              <td colSpan={7} className={cx('px-3 py-2', section.tone === 'warn' ? 'bg-amber-400/15' : 'bg-emerald-500/10')}>
+                <span className="sticky left-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-navy-900">
+                  {section.tone === 'warn' ? <CircleAlert className="h-4 w-4 text-amber-600" /> : <CircleCheck className="h-4 w-4 text-emerald-600" />}
+                  {section.title}
+                  <span className="font-medium tabular-nums text-slate-400">{section.members.length} คน</span>
+                </span>
+              </td>
+            </tr>
+          )}
+          {section.members.map((m) => (
             <tr key={m.id} onClick={() => onOpen(m.id)} className="group cursor-pointer transition hover:bg-white/60">
               <td className="pl-3 pr-1 text-slate-400 tabular-nums">{m.seq}</td>
               <td className="sticky left-0 z-[1] max-w-[46vw] bg-[#f3f6fb] px-3 py-2 transition group-hover:bg-white sm:max-w-none">
@@ -187,7 +236,11 @@ function TableView({ members, sort, onSort, onOpen }) {
                   <Photo member={m} width={96} className="h-9 w-9 shrink-0 rounded-lg" textClass="text-sm" />
                   <span className="min-w-0">
                     <span className="block truncate font-medium text-navy-900">{[m.first_name, m.last_name].filter(Boolean).join(' ')}</span>
-                    <span className="block truncate text-[11px] text-slate-400">{m.rank}</span>
+                    {section.flag ? (
+                      <span className="block truncate text-[11px] font-semibold text-amber-700">ยังขาด {missingInfo(m).join(' · ')}</span>
+                    ) : (
+                      <span className="block truncate text-[11px] text-slate-400">{m.rank}</span>
+                    )}
                   </span>
                 </button>
               </td>
@@ -217,6 +270,7 @@ function TableView({ members, sort, onSort, onOpen }) {
             </tr>
           ))}
         </tbody>
+        ))}
       </table>
     </div>
   );
@@ -292,6 +346,26 @@ export default function DirectoryPage() {
       return out;
     });
   };
+
+  // แบ่งกลุ่ม: คนที่ยังขาด ชื่อเล่น/เบอร์โทร/รูปถ่าย ขึ้นก่อน — เมื่อทุกคนกรอกครบ ตัวแบ่งจะหายไปเอง
+  const sections = useMemo(() => {
+    const pending = [];
+    const complete = [];
+    result.forEach((m) => (missingInfo(m).length ? pending : complete).push(m));
+    if (!pending.length) return [{ key: 'all', members: result }];
+    const out = [{
+      key: 'pending',
+      tone: 'warn',
+      flag: true,
+      title: 'ยังกรอกข้อมูลไม่ครบ',
+      note: can.edit || can.photo
+        ? 'ชื่อเล่น เบอร์โทร หรือรูปถ่าย ยังไม่ครบ · แตะที่ชื่อตัวเอง แล้วกด "แก้ไขข้อมูล" เพื่อเพิ่มได้เลย'
+        : 'ชื่อเล่น เบอร์โทร หรือรูปถ่าย ยังไม่ครบ · แจ้งข้อมูลกับผู้ดูแลรุ่นเพื่อเพิ่มให้',
+      members: pending,
+    }];
+    if (complete.length) out.push({ key: 'complete', tone: 'ok', title: 'ข้อมูลครบแล้ว', members: complete });
+    return out;
+  }, [result, can.edit, can.photo]);
 
   const activeFilters = FACETS.flatMap((f) => filters[f.key].map((value) => ({ key: f.key, short: f.short, value })));
   const activeCount = activeFilters.length + (org !== 'all' ? 1 : 0);
@@ -476,12 +550,28 @@ export default function DirectoryPage() {
           description={members.length ? 'ลองเปลี่ยนคำค้นหรือล้างตัวกรอง' : 'เมื่อผู้ดูแลเปิดให้เพิ่มรายชื่อ จะมีปุ่มเพิ่มรายชื่อที่มุมขวาล่าง'}
           action={members.length ? <button type="button" onClick={clearAll} className="glass h-11 rounded-2xl px-5 text-sm font-semibold text-navy-800">ล้างตัวกรอง</button> : null}
         />
-      ) : view === 'grid' ? (
-        <GridView members={result} cols={cols} onOpen={ui.openProfile} />
-      ) : view === 'list' ? (
-        <ListView members={result} onOpen={ui.openProfile} />
+      ) : view === 'table' ? (
+        <TableView sections={sections} sort={sort} onSort={setSort} onOpen={ui.openProfile} />
       ) : (
-        <TableView members={result} sort={sort} onSort={setSort} onOpen={ui.openProfile} />
+        <div className="space-y-6">
+          {sections.map((s) => (
+            <section
+              key={s.key}
+              className={cx(s.tone === 'warn' && '-mx-1.5 rounded-[28px] bg-amber-300/15 p-1.5 pt-3 ring-1 ring-amber-300/40')}
+            >
+              {s.title && (
+                <div className={cx(s.tone === 'warn' && 'px-1.5')}>
+                  <SectionHeading tone={s.tone} title={s.title} count={s.members.length} note={s.note} />
+                </div>
+              )}
+              {view === 'grid' ? (
+                <GridView members={s.members} cols={cols} onOpen={ui.openProfile} flagMissing={s.flag} />
+              ) : (
+                <ListView members={s.members} onOpen={ui.openProfile} flagMissing={s.flag} />
+              )}
+            </section>
+          ))}
+        </div>
       )}
 
       {can.add && !loading && (

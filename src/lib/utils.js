@@ -61,6 +61,15 @@ export function phoneDigits(phone) {
   return first.replace(/[^\d+]/g, '');
 }
 
+/** ข้อมูลสำคัญที่ยังขาด (ชื่อเล่น / เบอร์โทร / รูปถ่าย) — คืนรายการชื่อสั้น ๆ ว่างเปล่า = ครบแล้ว */
+export function missingInfo(m) {
+  const out = [];
+  if (!String(m.nickname || '').trim()) out.push('ชื่อเล่น');
+  if (!phoneDigits(m.phone)) out.push('เบอร์โทร');
+  if (!m.photo_url) out.push('รูปถ่าย');
+  return out;
+}
+
 export function formatPhone(phone) {
   const d = phoneDigits(phone);
   if (/^0\d{9}$/.test(d)) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
