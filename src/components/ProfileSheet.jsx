@@ -7,7 +7,7 @@ import { Button } from './ui';
 import { useToast } from './Toast';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
-import { copyText, formatPhone, fullName, phoneDigits, telHref } from '../lib/utils';
+import { copyText, formatPhone, fullName, orgTypeOf, phoneDigits, telHref } from '../lib/utils';
 
 function Lightbox({ member, onClose }) {
   useOverlay(true, onClose);
@@ -134,8 +134,14 @@ export default function ProfileSheet({ memberId, onClose }) {
           </div>
 
           <div className="mt-3 divide-y divide-slate-100">
-            <InfoRow icon={Building2} label="บก. (กองบังคับการ)" value={m.division_bk} />
-            <InfoRow icon={Landmark} label="บช. (กองบัญชาการ)" value={m.bureau_bch} />
+            {orgTypeOf(m) === 'other' ? (
+              <InfoRow icon={Landmark} label="หน่วยงาน" value={m.agency} />
+            ) : (
+              <>
+                <InfoRow icon={Building2} label="บก. (กองบังคับการ)" value={m.division_bk} />
+                <InfoRow icon={Landmark} label="บช. (กองบัญชาการ)" value={m.bureau_bch} />
+              </>
+            )}
             <InfoRow icon={MapPin} label="จังหวัด" value={m.province} />
             {m.group_name && <InfoRow icon={UsersRound} label="กลุ่ม" value={m.group_name} />}
           </div>

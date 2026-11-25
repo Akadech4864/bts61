@@ -32,11 +32,13 @@ function seed() {
     ['ศักดา', 'สาธิตกิจ', 'ดา', 'รอง ผบก.ทท.1', 'ทท.1', 'บช.ทท.', ''],
     ['สมพร', 'ตัวอย่างศรี', '', 'รอง ผบก.ภ.จว.นครปฐม', 'ภ.จว.นครปฐม', 'ภ.7', 'นครปฐม'],
     ['อนันต์', 'สมมติพร', 'นันต์', 'อาจารย์ (สบ 5) กอจ.', 'กอจ.', 'บช.ศ.', ''],
+    ['สุนทร', 'ตัวอย่างการ', 'ทร', 'ผู้อำนวยการสำนักตัวอย่าง', '', '', 'กรุงเทพฯ', 'นาย', 'หน่วยงานตัวอย่าง'],
   ];
   const members = people.map((p, i) => ({
     id: `m_demo${i + 1}`,
     seq: String(i + 1),
     rank: p[7] || 'พ.ต.อ.',
+    agency: p[8] || '',
     first_name: p[0],
     last_name: p[1],
     nickname: p[2],
@@ -193,9 +195,9 @@ const actions = {
 
     const record = existing
       ? { ...existing }
-      : { id: uid('m'), seq: '', rank: '', first_name: '', last_name: '', nickname: '', position: '', province: '', division_bk: '', bureau_bch: '', phone: '', photo_url: '', photo_file_id: '', group_name: '' };
+      : { id: uid('m'), seq: '', rank: '', first_name: '', last_name: '', nickname: '', position: '', province: '', division_bk: '', bureau_bch: '', agency: '', phone: '', photo_url: '', photo_file_id: '', group_name: '' };
     if (canInfo) {
-      ['rank', 'first_name', 'last_name', 'nickname', 'position', 'province', 'division_bk', 'bureau_bch', 'phone'].forEach((f) => {
+      ['rank', 'first_name', 'last_name', 'nickname', 'position', 'province', 'division_bk', 'bureau_bch', 'agency', 'phone'].forEach((f) => {
         if (input[f] !== undefined) record[f] = String(input[f]).trim();
       });
       if (admin) {

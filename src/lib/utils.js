@@ -37,7 +37,22 @@ export function normalizeProvince(value) {
   return s.replace(/^จ(ังหวัด|\.)\s*/, '');
 }
 
-export const orgLine =(m) => [m.division_bk, m.bureau_bch, m.province].filter(Boolean).join(' · ');
+/** คำนำหน้าของบุคคลทั่วไป (ไม่ใช่ยศตำรวจ) */
+export const isCivilianRank = (rank) => /^(นาย|นาง|นางสาว)$/.test(String(rank || '').trim());
+
+/**
+ * 'police' = สังกัดตำรวจ (กรอก บก./บช.) | 'other' = หน่วยงานอื่น (กรอกชื่อหน่วยงาน)
+ * มีชื่อหน่วยงานแล้ว = หน่วยงานอื่น; ยังไม่มีทั้ง บก./บช. และคำนำหน้าเป็น นาย/นาง/นางสาว = หน่วยงานอื่น
+ */
+export function orgTypeOf(m) {
+  if (!m) return 'police';
+  if (m.agency) return 'other';
+  if (!m.division_bk && !m.bureau_bch && isCivilianRank(m.rank)) return 'other';
+  return 'police';
+}
+
+export const orgLine = (m) =>
+  (m.agency ? [m.agency, m.province] : [m.division_bk, m.bureau_bch, m.province]).filter(Boolean).join(' · ');
 
 /* ------------------------------ เบอร์โทร ------------------------------ */
 
@@ -91,7 +106,7 @@ function haystackOf(m) {
   let h = haystacks.get(m);
   if (!h) {
     h = normalize(
-      [m.first_name, m.last_name, m.nickname, m.position, m.province, m.division_bk, m.bureau_bch,
+      [m.first_name, m.last_name, m.nickname, m.position, m.province, m.division_bk, m.bureau_bch, m.agency,
         m.group_name, m.phone, String(m.phone || '').replace(/\D/g, '')].join(' '),
     );
     haystacks.set(m, h);

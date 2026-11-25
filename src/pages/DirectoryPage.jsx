@@ -16,8 +16,9 @@ const FACETS = [
   { key: 'bureau_bch', label: 'บช. (กองบัญชาการ)', short: 'บช.' },
   { key: 'division_bk', label: 'บก. (กองบังคับการ)', short: 'บก.' },
   { key: 'province', label: 'จังหวัด', short: 'จังหวัด' },
+  { key: 'agency', label: 'หน่วยงาน (นอกสังกัดตำรวจ)', short: 'หน่วยงาน' },
 ];
-const NO_FILTERS = { bureau_bch: [], division_bk: [], province: [] };
+const NO_FILTERS = { bureau_bch: [], division_bk: [], province: [], agency: [] };
 
 const VIEWS = [
   { value: 'grid', icon: LayoutGrid, title: 'มุมมองกริดรูปภาพ' },
@@ -184,8 +185,18 @@ function TableView({ members, sort, onSort, onOpen }) {
               </td>
               <td className="whitespace-nowrap px-3 font-semibold text-navy-800">{m.nickname || <span className="font-normal text-slate-300">—</span>}</td>
               <td className="whitespace-nowrap px-3 text-slate-600">{m.province || <span className="text-slate-300">—</span>}</td>
-              <td className="whitespace-nowrap px-3 text-slate-600">{m.division_bk || <span className="text-slate-300">—</span>}</td>
-              <td className="whitespace-nowrap px-3 text-slate-600">{m.bureau_bch || <span className="text-slate-300">—</span>}</td>
+              {m.agency ? (
+                // ผู้ที่ไม่ใช่ตำรวจ: แสดงชื่อหน่วยงานแทนช่อง บก./บช.
+                <td colSpan={2} className="whitespace-nowrap px-3 text-slate-600">
+                  <span className="mr-1.5 rounded bg-gold-50 px-1.5 py-0.5 text-[10px] font-semibold text-gold-700">หน่วยงาน</span>
+                  {m.agency}
+                </td>
+              ) : (
+                <>
+                  <td className="whitespace-nowrap px-3 text-slate-600">{m.division_bk || <span className="text-slate-300">—</span>}</td>
+                  <td className="whitespace-nowrap px-3 text-slate-600">{m.bureau_bch || <span className="text-slate-300">—</span>}</td>
+                </>
+              )}
               <td className="whitespace-nowrap px-3">
                 {phoneDigits(m.phone) ? (
                   <a href={telHref(m.phone)} onClick={(e) => e.stopPropagation()} className="font-medium text-navy-700 underline-offset-2 hover:underline">

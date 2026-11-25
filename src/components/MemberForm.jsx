@@ -2,19 +2,23 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, ImagePlus, Info, Trash2 } from 'lucide-react';
 import { Sheet } from './Sheet';
 import { Photo } from './Avatar';
-import { Button, Field, Spinner, SuggestInput, TextInput, inputClass } from './ui';
+import { Button, Field, Segmented, Spinner, SuggestInput, TextInput, inputClass } from './ui';
 import MemberSuggest from './MemberSuggest';
 import { useToast } from './Toast';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { RANK_OPTIONS } from '../config';
 import { BUREAUS, PROVINCES } from '../lib/constants';
-import { cx, fullName, guessMembers, normalizeProvince, thCompare } from '../lib/utils';
+import { cx, fullName, guessMembers, isCivilianRank, normalizeProvince, orgTypeOf, thCompare } from '../lib/utils';
 
 const PhotoCropper = lazy(() => import('./PhotoCropper.jsx'));
 
-const FIELDS = ['id', 'rank', 'first_name', 'last_name', 'nickname', 'position', 'province', 'division_bk', 'bureau_bch', 'phone', 'group_name', 'seq'];
-const BLANK = { id: '', rank: '', first_name: '', last_name: '', nickname: '', position: '', province: '', division_bk: '', bureau_bch: '', phone: '', group_name: '', seq: '', photo_url: '' };
+const FIELDS = ['id', 'rank', 'first_name', 'last_name', 'nickname', 'position', 'province', 'division_bk', 'bureau_bch', 'agency', 'phone', 'group_name', 'seq'];
+const BLANK = { id: '', rank: '', first_name: '', last_name: '', nickname: '', position: '', province: '', division_bk: '', bureau_bch: '', agency: '', phone: '', group_name: '', seq: '', photo_url: '' };
+const ORG_TYPES = [
+  { value: 'police', label: 'สังกัดตำรวจ' },
+  { value: 'other', label: 'หน่วยงานอื่น' },
+];
 
 const uniqueSorted = (values) => [...new Set(values.filter(Boolean))].sort(thCompare);
 
@@ -31,6 +35,8 @@ function MemberFormInner({ initial, prefill, onClose }) {
   const [nameFocused, setNameFocused] = useState(false);
   const [matched, setMatched] = useState(false); // ดึงข้อมูลเดิมมาจากระบบเดาชื่อ
   const [customRank, setCustomRank] = useState(false); // เลือก "อื่น ๆ" แล้วพิมพ์คำนำหน้าเอง
+  const [orgType, setOrgType] = useState(() => orgTypeOf(form)); // police = บก./บช., other = ชื่อหน่วยงาน
+  const orgTouched = useRef(false); // ผู้ใช้เลือกประเภทสังกัดเองแล้ว ไม่ต้องเปลี่ยนตามคำนำหน้าอีก
   const urls = useRef([]);
 
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
@@ -50,6 +56,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
       rank: [...new Set([...RANK_OPTIONS, ...data.members.map((m) => m.rank).filter(Boolean)])],
       province: uniqueSorted([...data.members.map((m) => normalizeProvince(m.province)), ...PROVINCES]),
       division: uniqueSorted(data.members.map((m) => m.division_bk)),
+      agency: uniqueSorted(data.members.map((m) => m.agency)),
       bureau: uniqueSorted([...data.members.map((m) => m.bureau_bch), ...BUREAUS]),
     }),
     [data.members],
@@ -65,6 +72,8 @@ function MemberFormInner({ initial, prefill, onClose }) {
     }
     setForm({ ...BLANK, ...m });
     setCustomRank(!!m.rank && !options.rank.includes(m.rank));
+    setOrgType(orgTypeOf(m));
+    orgTouched.current = false;
     setPhoto(null);
     setRemovePhoto(false);
     setMatched(true);
@@ -107,6 +116,13 @@ function MemberFormInner({ initial, prefill, onClose }) {
       const member = {};
       FIELDS.forEach((k) => { member[k] = typeof form[k] === 'string' ? form[k].trim() : form[k]; });
       member.province = normalizeProvince(member.province);
+      // เก็บเฉพาะสังกัดของประเภทที่เลือก: ตำรวจ = บก./บช., หน่วยงานอื่น = ชื่อหน่วยงาน
+      if (orgType === 'other') {
+        member.division_bk = '';
+        member.bureau_bch = '';
+      } else {
+        member.agency = '';
+      }
       await saveMember(member, { photoBlob: photo && photo.blob, removePhoto });
       toast.success(isNew ? 'เพิ่มรายชื่อเรียบร้อย' : 'บันทึกข้อมูลเรียบร้อย');
       onClose();
@@ -235,6 +251,10 @@ function MemberFormInner({ initial, prefill, onClose }) {
                     onClick={() => {
                       setCustomRank(false);
                       set('rank')(r);
+                      // นาย/นาง/นางสาว มักไม่ใช่ตำรวจ: สลับเป็น "หน่วยงานอื่น" ให้ (ถ้ายังไม่ได้เลือกเองและยังไม่ได้กรอก บก./บช.)
+                      if (!orgTouched.current && !form.division_bk && !form.bureau_bch) {
+                        setOrgType(isCivilianRank(r) ? 'other' : 'police');
+                      }
                     }}
                     className={cx(
                       'h-10 rounded-full px-3.5 text-sm font-semibold transition active:scale-95 disabled:opacity-50',
@@ -287,13 +307,32 @@ function MemberFormInner({ initial, prefill, onClose }) {
             <TextInput value={form.position} onChange={(e) => set('position')(e.target.value)} disabled={!canInfo} placeholder="เช่น รอง ผบก.ภ.จว.เชียงใหม่" />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="บก. (กองบังคับการ)">
-              <SuggestInput value={form.division_bk} onChange={set('division_bk')} options={options.division} disabled={!canInfo} placeholder="เช่น ภ.จว.เชียงใหม่" />
-            </Field>
-            <Field label="บช. (กองบัญชาการ)">
-              <SuggestInput value={form.bureau_bch} onChange={set('bureau_bch')} options={options.bureau} disabled={!canInfo} placeholder="เช่น ภ.5" />
-            </Field>
+          <div>
+            <span className="mb-1.5 block text-[13px] font-medium text-slate-600">สังกัด</span>
+            <Segmented
+              value={orgType}
+              onChange={(v) => {
+                if (!canInfo) return;
+                orgTouched.current = true;
+                setOrgType(v);
+              }}
+              options={ORG_TYPES}
+              className="mb-3 w-full [&>button]:flex-1"
+            />
+            {orgType === 'police' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="บก. (กองบังคับการ)">
+                  <SuggestInput value={form.division_bk} onChange={set('division_bk')} options={options.division} disabled={!canInfo} placeholder="เช่น ภ.จว.เชียงใหม่" />
+                </Field>
+                <Field label="บช. (กองบัญชาการ)">
+                  <SuggestInput value={form.bureau_bch} onChange={set('bureau_bch')} options={options.bureau} disabled={!canInfo} placeholder="เช่น ภ.5" />
+                </Field>
+              </div>
+            ) : (
+              <Field label="ชื่อหน่วยงาน" hint="สำหรับผู้เข้าอบรมที่ไม่ได้สังกัดสำนักงานตำรวจแห่งชาติ">
+                <SuggestInput value={form.agency} onChange={set('agency')} options={options.agency} disabled={!canInfo} placeholder="เช่น สำนักงานอัยการสูงสุด, กรมราชทัณฑ์" />
+              </Field>
+            )}
           </div>
 
           <Field label="จังหวัด">
