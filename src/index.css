@@ -1,0 +1,197 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans Thai", "Prompt", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-paper: #f5f6f8;
+
+  --color-navy-50: #f1f5fa;
+  --color-navy-100: #e2e9f3;
+  --color-navy-200: #c3d0e4;
+  --color-navy-300: #94a9c9;
+  --color-navy-400: #5f7aa6;
+  --color-navy-500: #3d5a8a;
+  --color-navy-600: #284472;
+  --color-navy-700: #1b335b;
+  --color-navy-800: #122747;
+  --color-navy-900: #0b1c36;
+  --color-navy-950: #071226;
+
+  --color-gold-50: #faf6ee;
+  --color-gold-100: #f2e8d5;
+  --color-gold-200: #e4d0a9;
+  --color-gold-300: #d3b57c;
+  --color-gold-400: #c19a57;
+  --color-gold-500: #a9823f;
+  --color-gold-600: #8c6a32;
+  --color-gold-700: #6f5429;
+
+  --animate-fade-in: fade-in 0.18s ease-out both;
+  --animate-sheet-up: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop: pop 0.18s ease-out both;
+  --animate-toast: toast-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes sheet-up {
+    from { transform: translateY(32px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+  @keyframes pop {
+    from { transform: scale(0.96); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+  @keyframes toast-in {
+    from { transform: translateY(-12px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    min-height: 100dvh;
+    background: var(--color-paper);
+    color: var(--color-slate-800);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: none;
+  }
+  button,
+  [role="button"],
+  select,
+  summary {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-navy-500);
+    outline-offset: 2px;
+  }
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+  }
+  input[type="date"],
+  input[type="time"] {
+    min-width: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
+/* ---------- พื้นที่ปลอดภัยของมือถือ (notch / home indicator) ---------- */
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 14px); }
+.page-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 112px); }
+
+/* ---------- Floating bottom navigation (ซ่อนเมื่อเลื่อนลง) ---------- */
+.dock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 12px);
+  z-index: 40;
+  width: min(calc(100vw - 24px), 26rem);
+  transform: translateX(-50%);
+  transition: transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
+  will-change: transform;
+}
+.dock[data-hidden="true"] {
+  transform: translate(-50%, calc(100% + env(safe-area-inset-bottom) + 28px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fab {
+  position: fixed;
+  z-index: 35;
+  right: max(16px, calc((100vw - 72rem) / 2 + 16px));
+  bottom: calc(env(safe-area-inset-bottom) + 96px);
+  transition: bottom 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+html[data-nav-hidden="true"] .fab {
+  bottom: calc(env(safe-area-inset-bottom) + 20px);
+}
+
+/* ---------- กริดรูปภาพปรับจำนวนคอลัมน์ได้ ---------- */
+.photo-grid {
+  display: grid;
+  gap: var(--gap, 8px);
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+}
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ---------- Loading skeleton ---------- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-slate-200);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.65), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* ---------- กรอบช่วยจัดหน้าตรงในหน้าครอปรูป ---------- */
+.face-guide::after {
+  content: "";
+  position: absolute;
+  left: 17%;
+  right: 17%;
+  top: 9%;
+  bottom: 24%;
+  border: 2px dashed rgb(255 255 255 / 0.75);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.pulse-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+.pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  opacity: 0.6;
+  animation: pulse-ring 1.6s ease-out infinite;
+}
+@keyframes pulse-ring {
+  from { transform: scale(0.5); opacity: 0.7; }
+  to { transform: scale(1.5); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
