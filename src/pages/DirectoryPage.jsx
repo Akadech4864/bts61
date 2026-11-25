@@ -6,7 +6,7 @@ import MemberSuggest from '../components/MemberSuggest';
 import FilterSheet, { SORT_OPTIONS } from '../components/FilterSheet';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
-import { COURSE_SHORT, COURSE_SUBTITLE } from '../config';
+import { COURSE_BATCH, COURSE_SUBTITLE } from '../config';
 import {
   cx, formatPhone, fullName, guessMembers, matchMember, missingInfo, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens,
   telHref, thCompare, useBreakpoint, usePersistentState,
@@ -398,8 +398,10 @@ export default function DirectoryPage() {
         <div className="flex items-center gap-3 pb-3 pt-5">
           <img src="./logo.jpg" alt="" className="h-12 w-12 shrink-0 rounded-full bg-white object-cover shadow-[0_6px_16px_-6px_rgb(11_28_54/0.4)] ring-2 ring-white/80" />
           <div className="min-w-0 flex-1">
-            <h1 className="text-balance text-lg font-bold leading-snug tracking-tight text-navy-900 sm:text-2xl">{COURSE_SUBTITLE}</h1>
-            <p className="truncate text-xs font-semibold tracking-wide text-gold-600">ทำเนียบรุ่น · {COURSE_SHORT}</p>
+            <h1 className="text-balance text-lg font-bold leading-snug tracking-tight text-navy-900 sm:text-2xl">
+              {COURSE_SUBTITLE} <span className="whitespace-nowrap">{COURSE_BATCH}</span>
+            </h1>
+            <p className="truncate text-xs font-semibold tracking-wide text-gold-600">ทำเนียบรุ่น</p>
           </div>
           <button
             type="button"
