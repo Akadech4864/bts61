@@ -10,37 +10,37 @@ export const MAX_SOCIAL_VALUE = 200;
 const HANDLE = /^[A-Za-z0-9._-]{1,60}$/;
 const handleLink = (prefix, suffix = '') => (h) => (HANDLE.test(h) ? `${prefix}${h}${suffix}` : '');
 
-/** glyph = อักษรย่อ หรือชื่อไอคอน (ขึ้นต้นด้วย "icon:") ที่แสดงในป้ายสีของแต่ละแพลตฟอร์ม */
+/** bg / fg = สีพื้นและสีโลโก้ของป้ายแพลตฟอร์ม (โลโก้อยู่ใน brandIcons.js) */
 export const SOCIAL_PLATFORMS = [
   {
-    key: 'line', label: 'LINE', glyph: 'LINE', bg: '#06C755', placeholder: 'LINE ID',
+    key: 'line', label: 'LINE', bg: '#06C755', placeholder: 'LINE ID',
     // ไอดีส่วนตัวใช้ ~id ส่วนบัญชีทางการ (ขึ้นต้นด้วย @) ใช้ลิงก์อีกแบบ
     link: (h, raw) => (!HANDLE.test(h) ? '' : raw.startsWith('@') ? `https://line.me/R/ti/p/%40${h}` : `https://line.me/ti/p/~${h}`),
   },
   {
-    key: 'facebook', label: 'Facebook', glyph: 'f', bg: '#1877F2', placeholder: 'ชื่อบัญชี หรือลิงก์โปรไฟล์',
+    key: 'facebook', label: 'Facebook', bg: '#1877F2', placeholder: 'ชื่อบัญชี หรือลิงก์โปรไฟล์',
     // คนส่วนใหญ่กรอกชื่อที่แสดงในเฟซบุ๊ก (มีเว้นวรรค/ภาษาไทย) จึงพาไปหน้าค้นหาแทน
     link: (h, raw) => (HANDLE.test(h) ? `https://www.facebook.com/${h}` : `https://www.facebook.com/search/top/?q=${encodeURIComponent(raw)}`),
   },
-  { key: 'instagram', label: 'Instagram', glyph: 'IG', bg: 'linear-gradient(45deg,#F9CE34,#EE2A7B 55%,#6228D7)', placeholder: 'ชื่อผู้ใช้ เช่น somchai.j', link: handleLink('https://www.instagram.com/', '/') },
-  { key: 'tiktok', label: 'TikTok', glyph: 'icon:music', bg: '#111111', placeholder: 'ชื่อผู้ใช้ เช่น somchai.j', link: handleLink('https://www.tiktok.com/@') },
-  { key: 'x', label: 'X (Twitter)', glyph: 'X', bg: '#111111', placeholder: 'ชื่อผู้ใช้ เช่น somchai_j', link: handleLink('https://x.com/') },
-  { key: 'threads', label: 'Threads', glyph: '@', bg: '#111111', placeholder: 'ชื่อผู้ใช้ เช่น somchai.j', link: handleLink('https://www.threads.com/@') },
-  { key: 'youtube', label: 'YouTube', glyph: 'icon:play', bg: '#FF0000', placeholder: 'ชื่อช่อง หรือลิงก์ช่อง', link: handleLink('https://www.youtube.com/@') },
-  { key: 'lemon8', label: 'Lemon8', glyph: 'L8', bg: '#FFE600', fg: '#111111', placeholder: 'ชื่อผู้ใช้ หรือลิงก์โปรไฟล์', link: handleLink('https://www.lemon8-app.com/@') },
-  { key: 'linkedin', label: 'LinkedIn', glyph: 'in', bg: '#0A66C2', placeholder: 'ชื่อผู้ใช้ หรือลิงก์โปรไฟล์', link: handleLink('https://www.linkedin.com/in/') },
-  { key: 'telegram', label: 'Telegram', glyph: 'icon:send', bg: '#26A5E4', placeholder: 'ชื่อผู้ใช้ เช่น somchai_j', link: handleLink('https://t.me/') },
+  { key: 'instagram', label: 'Instagram', bg: 'linear-gradient(45deg,#F9CE34,#EE2A7B 55%,#6228D7)', placeholder: 'ชื่อผู้ใช้ เช่น somchai.j', link: handleLink('https://www.instagram.com/', '/') },
+  { key: 'tiktok', label: 'TikTok', bg: '#111111', placeholder: 'ชื่อผู้ใช้ เช่น somchai.j', link: handleLink('https://www.tiktok.com/@') },
+  { key: 'x', label: 'X (Twitter)', bg: '#111111', placeholder: 'ชื่อผู้ใช้ เช่น somchai_j', link: handleLink('https://x.com/') },
+  { key: 'threads', label: 'Threads', bg: '#111111', placeholder: 'ชื่อผู้ใช้ เช่น somchai.j', link: handleLink('https://www.threads.com/@') },
+  { key: 'youtube', label: 'YouTube', bg: '#FF0000', placeholder: 'ชื่อช่อง หรือลิงก์ช่อง', link: handleLink('https://www.youtube.com/@') },
+  { key: 'lemon8', label: 'Lemon8', bg: '#FFE600', fg: '#111111', placeholder: 'ชื่อผู้ใช้ หรือลิงก์โปรไฟล์', link: handleLink('https://www.lemon8-app.com/@') },
+  { key: 'linkedin', label: 'LinkedIn', bg: '#0A66C2', placeholder: 'ชื่อผู้ใช้ หรือลิงก์โปรไฟล์', link: handleLink('https://www.linkedin.com/in/') },
+  { key: 'telegram', label: 'Telegram', bg: '#26A5E4', placeholder: 'ชื่อผู้ใช้ เช่น somchai_j', link: handleLink('https://t.me/') },
   {
-    key: 'whatsapp', label: 'WhatsApp', glyph: 'icon:chat', bg: '#25D366', placeholder: 'เบอร์โทร เช่น 08x-xxx-xxxx',
+    key: 'whatsapp', label: 'WhatsApp', bg: '#25D366', placeholder: 'เบอร์โทร เช่น 08x-xxx-xxxx',
     link: (h, raw) => {
       let d = raw.replace(/\D/g, '');
       if (/^0\d{8,9}$/.test(d)) d = `66${d.slice(1)}`; // เบอร์ไทย 08x... -> 668x...
       return d.length >= 8 ? `https://wa.me/${d}` : '';
     },
   },
-  { key: 'wechat', label: 'WeChat', glyph: 'icon:chats', bg: '#07C160', placeholder: 'WeChat ID', link: () => '' },
-  { key: 'website', label: 'เว็บไซต์', glyph: 'icon:globe', bg: '#1E3A64', placeholder: 'เช่น www.example.com', link: () => '' },
-  { key: 'other', label: 'อื่น ๆ', glyph: 'icon:link', bg: '#64748B', placeholder: 'ชื่อแพลตฟอร์ม และชื่อบัญชีหรือลิงก์', link: () => '' },
+  { key: 'wechat', label: 'WeChat', bg: '#07C160', placeholder: 'WeChat ID', link: () => '' },
+  { key: 'website', label: 'เว็บไซต์', bg: '#1E3A64', placeholder: 'เช่น www.example.com', link: () => '' },
+  { key: 'other', label: 'อื่น ๆ', bg: '#64748B', placeholder: 'ชื่อแพลตฟอร์ม และชื่อบัญชีหรือลิงก์', link: () => '' },
 ];
 
 const BY_KEY = new Map(SOCIAL_PLATFORMS.map((p) => [p.key, p]));
@@ -70,6 +70,18 @@ export function parseSocial(raw) {
     if (out.length >= MAX_SOCIALS) break;
   }
   return out;
+}
+
+const socialCache = new WeakMap();
+/** โซเชียลของสมาชิก 1 คน (จำผลไว้ ไม่ต้องแปลง JSON ซ้ำทุกครั้งที่วาดหน้าจอ) */
+export function memberSocials(m) {
+  if (!m || !m.social) return [];
+  let list = socialCache.get(m);
+  if (!list) {
+    list = parseSocial(m.social);
+    socialCache.set(m, list);
+  }
+  return list;
 }
 
 /** แปลงสิ่งที่ผู้ใช้กรอกเป็นลิงก์ http(s) ที่ปลอดภัย — ไม่ใช่ลิงก์คืน '' */

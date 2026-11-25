@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, CircleAlert, CircleCheck, IdCard, LayoutGrid, Phone, RefreshCw, Search, SlidersHorizontal, Table2, UserPlus, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
+import { SocialInline, SocialMarks } from '../components/Social';
 import { EmptyState, Segmented, Skeleton } from '../components/ui';
 import MemberSuggest from '../components/MemberSuggest';
 import FilterSheet, { SORT_OPTIONS } from '../components/FilterSheet';
@@ -96,6 +97,10 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
     'name-fade inset-x-0 bottom-0 px-1 pb-1 pt-5',
   ][dense];
   const width = cardWidth >= 150 ? 500 : cardWidth >= 90 ? 320 : 220;
+  // โลโก้โซเชียลบนรูป: ขนาดวงกลมตามความหนาแน่น และจำนวนที่วางได้พอดีความกว้างการ์ด (การ์ดเล็กมากไม่แสดง)
+  const markSize = [22, 17, 13, 0][dense];
+  const markGap = Math.max(2, Math.round(markSize / 6));
+  const markMax = markSize ? Math.floor((cardWidth - [28, 20, 12, 8][dense] + markGap) / (markSize + markGap)) : 0;
   return (
     <div ref={gridRef} className="photo-grid" style={{ '--cols': cols, '--gap': dense >= 2 ? '6px' : '10px' }}>
       {members.map((m) => (
@@ -124,6 +129,7 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
           )}
           <div className={cx('absolute', label)}>
             {/* ชื่อเล่นตัวใหญ่ + ชื่อจริง (ถ้ายังไม่มีชื่อเล่น แสดงชื่อจริงตัวใหญ่อย่างเดียว) */}
+            {markSize > 0 && <SocialMarks member={m} size={markSize} max={markMax} className={dense ? 'mb-1' : 'mb-1.5'} />}
             <p className={cx('truncate font-bold leading-tight text-white drop-shadow', nickSize)}>{nickOf(m)}</p>
             {m.nickname && (
               <p className={cx('truncate leading-tight text-white/85', ['mt-0.5 text-sm', 'text-[12px]', 'text-[10px]', 'text-[9px]'][dense])}>
@@ -151,6 +157,7 @@ function ListView({ members, onOpen, flagMissing = false }) {
               <span className="block truncate text-sm text-slate-700">{fullName(m)}</span>
               {m.position && <span className="block truncate text-xs text-slate-500">{m.position}</span>}
               {orgLine(m) && <span className="block truncate text-xs text-slate-400">{orgLine(m)}</span>}
+              <SocialInline member={m} className="mt-1" />
               {flagMissing && (
                 <span className="mt-1 inline-block max-w-full truncate rounded-full bg-amber-400/25 px-2 py-px text-[11px] font-semibold text-amber-700">
                   ยังขาด {missingInfo(m).join(' · ')}

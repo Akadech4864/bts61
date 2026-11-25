@@ -38,6 +38,8 @@ function seed() {
   const DEMO_SOCIAL = {
     0: [{ type: 'line', value: 'demo.line01' }, { type: 'facebook', value: 'ตัวอย่าง สมมติ' }, { type: 'instagram', value: '@demo.sample' }],
     1: [{ type: 'tiktok', value: 'demo_sample' }, { type: 'website', value: 'www.example.com' }],
+    2: [{ type: 'telegram', value: 'demo_tg' }, { type: 'whatsapp', value: '0800000003' }, { type: 'lemon8', value: 'demo.l8' }, { type: 'youtube', value: 'demochannel' },
+      { type: 'x', value: '@demo_x' }, { type: 'threads', value: 'demo.th' }, { type: 'linkedin', value: 'demo-in' }, { type: 'wechat', value: 'demo_wc' }],
   };
   const members = people.map((p, i) => ({
     id: `m_demo${i + 1}`,

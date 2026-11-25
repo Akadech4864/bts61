@@ -1,28 +1,91 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Copy, ExternalLink, Globe, Link2, MessageCircle, MessagesSquare, Music2, Play, Plus, Send, X } from 'lucide-react';
+import { ChevronDown, Copy, ExternalLink, Globe, Link2, Plus, X } from 'lucide-react';
 import { inputClass } from './ui';
 import { useToast } from './Toast';
 import { copyText, cx } from '../lib/utils';
-import { MAX_SOCIALS, MAX_SOCIAL_VALUE, SOCIAL_PLATFORMS, parseSocial, platformOf, socialHref, socialText } from '../lib/social';
+import { MAX_SOCIALS, MAX_SOCIAL_VALUE, SOCIAL_PLATFORMS, memberSocials, parseSocial, platformOf, socialHref, socialText } from '../lib/social';
+import { BRAND_MASKS, BRAND_PATHS } from '../lib/brandIcons';
 
-const GLYPH_ICONS = { music: Music2, play: Play, send: Send, chat: MessageCircle, chats: MessagesSquare, globe: Globe, link: Link2 };
+/** โลโก้จริงของแพลตฟอร์ม แบบสีเดียว (ใช้สีตัวอักษรปัจจุบัน จึงย้อมให้เข้าโทนได้) */
+export function BrandIcon({ type, className }) {
+  const key = platformOf(type).key;
+  if (BRAND_PATHS[key]) {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+        <path d={BRAND_PATHS[key]} />
+      </svg>
+    );
+  }
+  if (BRAND_MASKS[key]) {
+    const mask = `url(${BRAND_MASKS[key]}) center / contain no-repeat`;
+    return <span aria-hidden="true" className={cx('inline-block bg-current', className)} style={{ WebkitMask: mask, mask }} />;
+  }
+  const Icon = key === 'website' ? Globe : Link2;
+  return <Icon aria-hidden="true" strokeWidth={2.2} className={className} />;
+}
 
-/** ป้ายสีประจำแพลตฟอร์ม (ใช้อักษรย่อ/ไอคอนกลาง ๆ แทนโลโก้) */
+/** ป้ายโลโก้สีประจำแพลตฟอร์ม */
 export function SocialBadge({ type, className }) {
   const p = platformOf(type);
-  const iconName = p.glyph.startsWith('icon:') ? p.glyph.slice(5) : '';
-  const Icon = GLYPH_ICONS[iconName];
   return (
     <span
       aria-hidden="true"
       style={{ background: p.bg, color: p.fg || '#fff' }}
-      className={cx('grid shrink-0 select-none place-items-center rounded-xl font-bold leading-none shadow-sm ring-1 ring-inset ring-white/25', className || 'h-9 w-9')}
+      className={cx('grid shrink-0 select-none place-items-center rounded-xl shadow-sm ring-1 ring-inset ring-white/25', className || 'h-9 w-9')}
     >
-      {Icon ? (
-        <Icon className="h-[46%] w-[46%]" strokeWidth={2.4} fill={iconName === 'play' ? 'currentColor' : 'none'} />
-      ) : (
-        <span className={p.glyph.length > 2 ? 'text-[9px] tracking-tight' : p.glyph.length > 1 ? 'text-[13px]' : 'text-[19px]'}>{p.glyph}</span>
+      <BrandIcon type={type} className={BRAND_MASKS[p.key] ? 'h-[84%] w-[84%]' : 'h-[56%] w-[56%]'} />
+    </span>
+  );
+}
+
+/** แพลตฟอร์มที่สมาชิกมี (ไม่ซ้ำ) เรียงตามที่กรอก */
+function platformsOf(member) {
+  const seen = new Set();
+  return memberSocials(member).map((s) => platformOf(s.type)).filter((p) => !seen.has(p.key) && seen.add(p.key));
+}
+
+/**
+ * โลโก้แพลตฟอร์มที่สมาชิกมี วางบนรูปถ่ายในกริด — คุมโทนเดียว (โลโก้ขาวบนวงกลมกรมท่าโปร่งแสง)
+ * size = เส้นผ่านศูนย์กลางของวงกลม (px), max = จำนวนสูงสุดที่วางได้ในแถวเดียว
+ */
+export function SocialMarks({ member, size = 20, max = 5, className }) {
+  const list = platformsOf(member);
+  if (!list.length || max < 1) return null;
+  const shown = list.length > max ? list.slice(0, Math.max(1, max - 1)) : list;
+  const more = list.length - shown.length;
+  const dot = { width: size, height: size };
+  const chip = 'grid shrink-0 place-items-center rounded-full bg-navy-950/55 text-white ring-1 ring-inset ring-white/30';
+  return (
+    <span className={cx('flex items-center', className)} style={{ gap: Math.max(2, Math.round(size / 6)) }} title={list.map((p) => p.label).join(' · ')}>
+      {shown.map((p) => (
+        <span key={p.key} className={chip} style={dot}>
+          <BrandIcon type={p.key} className={BRAND_MASKS[p.key] ? 'h-[82%] w-[82%]' : 'h-[58%] w-[58%]'} />
+        </span>
+      ))}
+      {more > 0 && (
+        <span className={cx(chip, 'font-semibold leading-none')} style={{ ...dot, fontSize: Math.max(7, Math.round(size * 0.42)) }}>
+          +{more}
+        </span>
       )}
+    </span>
+  );
+}
+
+/** โลโก้ + ชื่อบัญชี แบบย่อในบรรทัดเดียว (ใช้ในการ์ดรายชื่อ) */
+export function SocialInline({ member, max = 2, className }) {
+  const items = memberSocials(member);
+  if (!items.length) return null;
+  const shown = items.slice(0, max);
+  const more = items.length - shown.length;
+  return (
+    <span className={cx('flex min-w-0 items-center gap-x-2.5 text-xs text-navy-700', className)}>
+      {shown.map((item, i) => (
+        <span key={`${item.type}-${i}`} className="flex min-w-0 items-center gap-1" title={platformOf(item.type).label}>
+          <BrandIcon type={item.type} className={cx('shrink-0 text-navy-600', BRAND_MASKS[platformOf(item.type).key] ? 'h-4 w-6' : 'h-3.5 w-3.5')} />
+          <span className="truncate">{socialText(item)}</span>
+        </span>
+      ))}
+      {more > 0 && <span className="shrink-0 font-semibold text-slate-400">+{more}</span>}
     </span>
   );
 }
