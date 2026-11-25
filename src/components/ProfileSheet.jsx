@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Building2, Copy, Landmark, MapPin, Pencil, Phone, Trash2, UsersRound, X } from 'lucide-react';
+import { Building2, Copy, Landmark, Mail, MapPin, Pencil, Phone, Trash2, UsersRound, X } from 'lucide-react';
 import { Sheet, useOverlay } from './Sheet';
 import { Photo } from './Avatar';
 import { Button } from './ui';
@@ -137,6 +137,11 @@ export default function ProfileSheet({ memberId, onClose }) {
           <SocialList value={m.social} />
 
           <div className="glass mt-3 divide-y divide-white/70 rounded-3xl px-4">
+            {m.email && (
+              <a href={`mailto:${encodeURI(m.email)}`} className="block transition active:opacity-70 [&_p]:break-all" aria-label={`ส่งอีเมลถึง ${m.email}`}>
+                <InfoRow icon={Mail} label="อีเมล" value={m.email} />
+              </a>
+            )}
             {orgTypeOf(m) === 'other' ? (
               <InfoRow icon={Landmark} label="หน่วยงาน" value={m.agency} />
             ) : (

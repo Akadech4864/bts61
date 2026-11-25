@@ -9,7 +9,7 @@ import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { COURSE_BATCH, COURSE_SUBTITLE, COURSE_TITLE_SHORT } from '../config';
 import {
-  cx, formatPhone, fullName, guessMembers, matchMember, missingInfo, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens,
+  cx, formatPhone, fullName, guessMembers, matchMember, missingInfo, missingText, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens,
   telHref, thCompare, useBreakpoint, usePersistentState,
 } from '../lib/utils';
 
@@ -49,8 +49,6 @@ function compareBy(sort) {
 }
 
 /* ------------------------------ หัวข้อแบ่งกลุ่ม (ข้อมูลยังไม่ครบ / ครบแล้ว) ------------------------------ */
-
-const SHORT_MISSING = { 'ชื่อเล่น': 'ชื่อเล่น', 'เบอร์โทร': 'เบอร์', 'รูปถ่าย': 'รูป' };
 
 function SectionHeading({ tone, title, count, note }) {
   const warn = tone === 'warn';
@@ -116,12 +114,13 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
           <Photo member={m} width={width} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass={['text-6xl', 'text-4xl', 'text-3xl', 'text-2xl'][dense]} />
           {flagMissing && (
             dense >= 2 ? (
-              <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" title={`ยังขาด ${missingInfo(m).join(' ')}`} />
+              <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" title={missingText(m)} />
             ) : (
-              <span className="absolute inset-x-1.5 top-1.5 flex flex-wrap gap-1" title={`ยังขาด ${missingInfo(m).join(' ')}`}>
-                {missingInfo(m).map((k) => (
+              <span className="absolute inset-x-1.5 top-1.5 flex flex-wrap gap-1" title={missingText(m)}>
+                {/* ป้ายแรกขึ้นต้นด้วย "ขาด" เช่น ขาดรูป · โทร. · ชื่อเล่น */}
+                {missingInfo(m).map((k, i) => (
                   <span key={k} className={cx('rounded-full bg-amber-400/95 font-semibold leading-tight text-navy-950 shadow-sm', dense ? 'px-1.5 py-px text-[10px]' : 'px-2 py-0.5 text-[11px]')}>
-                    {dense ? SHORT_MISSING[k] : `ขาด${k}`}
+                    {i === 0 ? `ขาด${k}` : k}
                   </span>
                 ))}
               </span>
@@ -160,7 +159,7 @@ function ListView({ members, onOpen, flagMissing = false }) {
               <SocialInline member={m} className="mt-1" />
               {flagMissing && (
                 <span className="mt-1 inline-block max-w-full truncate rounded-full bg-amber-400/25 px-2 py-px text-[11px] font-semibold text-amber-700">
-                  ยังขาด {missingInfo(m).join(' · ')}
+                  {missingText(m)}
                 </span>
               )}
             </span>
@@ -251,7 +250,7 @@ function TableView({ sections, sort, onSort, onOpen }) {
                       <span className="block truncate text-[11px] leading-tight text-slate-500">
                         {m.rank}
                         {section.flag && (
-                          <span className="font-semibold text-amber-700">{m.rank ? ' · ' : ''}ยังขาด {missingInfo(m).join(' · ')}</span>
+                          <span className="font-semibold text-amber-700">{m.rank ? ' · ' : ''}{missingText(m)}</span>
                         )}
                       </span>
                     )}
@@ -426,8 +425,8 @@ export default function DirectoryPage() {
       flag: true,
       title: 'ยังกรอกข้อมูลไม่ครบ',
       note: can.edit || can.photo
-        ? 'ชื่อเล่น เบอร์โทร หรือรูปถ่าย ยังไม่ครบ · แตะที่ชื่อตัวเอง แล้วกด "แก้ไขข้อมูล" เพื่อเพิ่มได้เลย'
-        : 'ชื่อเล่น เบอร์โทร หรือรูปถ่าย ยังไม่ครบ · แจ้งข้อมูลกับผู้ดูแลรุ่นเพื่อเพิ่มให้',
+        ? 'ขาดรูป โทร. หรือชื่อเล่น · แตะที่ชื่อตัวเอง แล้วกด "แก้ไขข้อมูล" เพื่อเพิ่มได้เลย'
+        : 'ขาดรูป โทร. หรือชื่อเล่น · แจ้งข้อมูลกับผู้ดูแลรุ่นเพื่อเพิ่มให้',
       members: pending,
     }];
     if (complete.length) out.push({ key: 'complete', tone: 'ok', title: 'ข้อมูลครบแล้ว', members: complete });

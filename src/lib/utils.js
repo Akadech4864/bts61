@@ -62,14 +62,23 @@ export function phoneDigits(phone) {
   return first.replace(/[^\d+]/g, '');
 }
 
-/** ข้อมูลสำคัญที่ยังขาด (ชื่อเล่น / เบอร์โทร / รูปถ่าย) — คืนรายการชื่อสั้น ๆ ว่างเปล่า = ครบแล้ว */
+/** ข้อมูลสำคัญที่ยังขาด (รูป / โทร. / ชื่อเล่น) — คืนรายการคำสั้น ๆ ว่างเปล่า = ครบแล้ว */
 export function missingInfo(m) {
   const out = [];
+  if (!m.photo_url) out.push('รูป');
+  if (!phoneDigits(m.phone)) out.push('โทร.');
   if (!String(m.nickname || '').trim()) out.push('ชื่อเล่น');
-  if (!phoneDigits(m.phone)) out.push('เบอร์โทร');
-  if (!m.photo_url) out.push('รูปถ่าย');
   return out;
 }
+
+/** "ขาดรูป, โทร., ชื่อเล่น" — ขึ้นต้นด้วยคำว่า ขาด ครั้งเดียว (ครบแล้วคืน '') */
+export function missingText(m) {
+  const list = missingInfo(m);
+  return list.length ? `ขาด${list.join(', ')}` : '';
+}
+
+/** รูปแบบอีเมลอย่างง่าย (ตรงกับฝั่ง Backend) */
+export const isEmail = (value) => /^[^@\s<>"',;]+@[^@\s<>"',;]+\.[^@\s<>"',;.]{2,}$/.test(String(value || '').trim());
 
 export function formatPhone(phone) {
   const d = phoneDigits(phone);
@@ -117,7 +126,7 @@ function haystackOf(m) {
   if (!h) {
     h = normalize(
       [m.first_name, m.last_name, m.nickname, m.position, m.province, m.division_bk, m.bureau_bch, m.agency,
-        m.group_name, m.phone, String(m.phone || '').replace(/\D/g, ''),
+        m.group_name, m.phone, String(m.phone || '').replace(/\D/g, ''), m.email,
         ...parseSocial(m.social).map((s) => s.value)].join(' '),
     );
     haystacks.set(m, h);

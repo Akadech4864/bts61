@@ -10,12 +10,12 @@ import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { RANK_OPTIONS } from '../config';
 import { BUREAUS, PROVINCES } from '../lib/constants';
-import { cx, fullName, guessMembers, isCivilianRank, normalizeProvince, orgTypeOf, thCompare } from '../lib/utils';
+import { cx, fullName, guessMembers, isCivilianRank, isEmail, normalizeProvince, orgTypeOf, thCompare } from '../lib/utils';
 
 const PhotoCropper = lazy(() => import('./PhotoCropper.jsx'));
 
-const FIELDS = ['id', 'rank', 'first_name', 'last_name', 'nickname', 'position', 'province', 'division_bk', 'bureau_bch', 'agency', 'phone', 'group_name', 'seq'];
-const BLANK = { id: '', rank: '', first_name: '', last_name: '', nickname: '', position: '', province: '', division_bk: '', bureau_bch: '', agency: '', phone: '', group_name: '', seq: '', photo_url: '' };
+const FIELDS = ['id', 'rank', 'first_name', 'last_name', 'nickname', 'position', 'province', 'division_bk', 'bureau_bch', 'agency', 'phone', 'email', 'group_name', 'seq'];
+const BLANK = { id: '', rank: '', first_name: '', last_name: '', nickname: '', position: '', province: '', division_bk: '', bureau_bch: '', agency: '', phone: '', email: '', group_name: '', seq: '', photo_url: '' };
 const ORG_TYPES = [
   { value: 'police', label: 'สังกัดตำรวจ' },
   { value: 'other', label: 'หน่วยงานอื่น' },
@@ -112,6 +112,10 @@ function MemberFormInner({ initial, prefill, onClose }) {
     }
     if (canInfo && !String(form.rank || '').trim()) {
       toast.error('กรุณาเลือกคำนำหน้า / ยศ');
+      return;
+    }
+    if (canInfo && String(form.email || '').trim() && !isEmail(form.email)) {
+      toast.error('รูปแบบอีเมลไม่ถูกต้อง เช่น name@example.com');
       return;
     }
     setSaving(true);
@@ -361,6 +365,22 @@ function MemberFormInner({ initial, prefill, onClose }) {
               disabled={!canInfo}
               placeholder="08x-xxx-xxxx"
               autoComplete="off"
+            />
+          </Field>
+
+          <Field label="อีเมล">
+            <TextInput
+              type="email"
+              inputMode="email"
+              value={form.email}
+              onChange={(e) => set('email')(e.target.value)}
+              disabled={!canInfo}
+              placeholder="name@example.com"
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              maxLength={120}
             />
           </Field>
 

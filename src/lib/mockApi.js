@@ -54,6 +54,7 @@ function seed() {
     bureau_bch: p[5],
     province: p[6],
     phone: `08000000${String(i + 1).padStart(2, '0')}`,
+    email: i === 0 ? 'demo.member01@example.com' : '',
     photo_url: '',
     photo_file_id: '',
     social: DEMO_SOCIAL[i] ? JSON.stringify(DEMO_SOCIAL[i]) : '',
@@ -203,9 +204,9 @@ const actions = {
 
     const record = existing
       ? { ...existing }
-      : { id: uid('m'), seq: '', rank: '', first_name: '', last_name: '', nickname: '', position: '', province: '', division_bk: '', bureau_bch: '', agency: '', phone: '', photo_url: '', photo_file_id: '', group_name: '', social: '' };
+      : { id: uid('m'), seq: '', rank: '', first_name: '', last_name: '', nickname: '', position: '', province: '', division_bk: '', bureau_bch: '', agency: '', phone: '', email: '', photo_url: '', photo_file_id: '', group_name: '', social: '' };
     if (canInfo) {
-      ['rank', 'first_name', 'last_name', 'nickname', 'position', 'province', 'division_bk', 'bureau_bch', 'agency', 'phone'].forEach((f) => {
+      ['rank', 'first_name', 'last_name', 'nickname', 'position', 'province', 'division_bk', 'bureau_bch', 'agency', 'phone', 'email'].forEach((f) => {
         if (input[f] !== undefined) record[f] = String(input[f]).trim();
       });
       if (input.social !== undefined) {
