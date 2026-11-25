@@ -114,6 +114,11 @@ function MemberFormInner({ initial, prefill, onClose }) {
       toast.error('กรุณาเลือกคำนำหน้า / ยศ');
       return;
     }
+    // ชื่อเล่นบังคับกรอกสำหรับผู้เข้าอบรม (แอดมินแก้ข้อมูลแทนได้แม้ยังไม่ทราบชื่อเล่น)
+    if (canInfo && !isAdmin && !String(form.nickname || '').trim()) {
+      toast.error('กรุณากรอกชื่อเล่น');
+      return;
+    }
     if (canInfo && String(form.email || '').trim() && !isEmail(form.email)) {
       toast.error('รูปแบบอีเมลไม่ถูกต้อง เช่น name@example.com');
       return;
@@ -308,7 +313,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
             <Field label="นามสกุล">
               <TextInput value={form.last_name} onChange={(e) => set('last_name')(e.target.value)} disabled={!canInfo} placeholder="นามสกุล" />
             </Field>
-            <Field label="ชื่อเล่น">
+            <Field label="ชื่อเล่น" required={!isAdmin}>
               <TextInput value={form.nickname} onChange={(e) => set('nickname')(e.target.value)} disabled={!canInfo} placeholder="ชื่อเล่น" />
             </Field>
           </div>

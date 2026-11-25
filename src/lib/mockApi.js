@@ -224,6 +224,7 @@ const actions = {
     const dup = db.members.find((m) => m.id !== record.id && key(m) === key(record));
     if (dup) fail('DUPLICATE', `มีรายชื่อ "${record.first_name} ${record.last_name}" อยู่ในระบบแล้ว`, { existingId: dup.id });
     if (canInfo && !record.rank) fail('VALIDATION', 'กรุณาเลือกคำนำหน้า / ยศ');
+    if (canInfo && !admin && !record.nickname) fail('VALIDATION', 'กรุณากรอกชื่อเล่น');
 
     if (p.photo) {
       record.photo_url = `data:${p.photo.mimeType};base64,${p.photo.base64}`;
