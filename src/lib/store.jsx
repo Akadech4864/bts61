@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { api, blobToBase64 } from './api';
+import { api, blobToBase64, isDemo } from './api';
 import { readStored, writeStored } from './utils';
 import { useToast } from '../components/Toast';
 
-const CACHE_KEY = 'bts61:data:v1';
-const AUTH_KEY = 'bts61:auth:v1';
+// แยกที่เก็บของโหมดตัวอย่างออกจากข้อมูลจริง เพื่อไม่ให้ข้อมูลสมมติค้างมาแสดงหลังเชื่อมต่อฐานข้อมูลแล้ว
+const CACHE_KEY = isDemo ? 'bts61:demo:data' : 'bts61:data:v2';
+const AUTH_KEY = isDemo ? 'bts61:demo:auth' : 'bts61:auth:v2';
 const STALE_MS = 60 * 1000;
 const POLL_MS = 5 * 60 * 1000;
 
