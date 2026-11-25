@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown, CircleAlert, CircleCheck, IdCard, LayoutGrid, Phone, RefreshCw, Search, SlidersHorizontal, Table2, UserPlus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Camera, CircleAlert, CircleCheck, IdCard, LayoutGrid, Phone, RefreshCw, Search, SlidersHorizontal, Table2, Tag, UserPlus, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
 import { SocialInline, SocialMarks } from '../components/Social';
 import { EmptyState, Marquee, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
@@ -9,7 +9,7 @@ import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { COURSE_BATCH, COURSE_SUBTITLE, COURSE_TITLE_SHORT } from '../config';
 import {
-  cx, formatPhone, fullName, guessMembers, matchMember, missingInfo, missingText, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens, shortName,
+  cx, formatPhone, fullName, guessMembers, matchMember, missingInfo, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens, shortName,
   telHref, thCompare, useBreakpoint, usePersistentState,
 } from '../lib/utils';
 
@@ -50,6 +50,39 @@ function compareBy(sort) {
 
 /* ------------------------------ หัวข้อแบ่งกลุ่ม (ข้อมูลยังไม่ครบ / ครบแล้ว) ------------------------------ */
 
+// สัญลักษณ์ของข้อมูลที่ยังขาด: ไอคอนของสิ่งนั้น มีกากบาทสีแดงทับ (กล้อง = รูป, โทรศัพท์ = เบอร์โทร, ป้ายชื่อ = ชื่อเล่น)
+const MISSING_ICONS = { 'รูป': Camera, 'โทร.': Phone, 'ชื่อเล่น': Tag };
+
+function MissingMark({ kind, size = 20 }) {
+  const Icon = MISSING_ICONS[kind] || CircleAlert;
+  return (
+    <span
+      role="img"
+      aria-label={`ขาด${kind}`}
+      title={`ขาด${kind}`}
+      style={{ width: size, height: size }}
+      className="relative inline-grid shrink-0 place-items-center rounded-full bg-white align-middle text-navy-900 shadow-sm ring-1 ring-rose-400"
+    >
+      <Icon aria-hidden="true" strokeWidth={2.3} style={{ width: size * 0.62, height: size * 0.62 }} />
+      {/* กากบาทเส้นบาง ทับจากมุมถึงมุม ให้ยังมองเห็นไอคอนข้างใต้ */}
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="absolute inset-0 h-full w-full text-rose-600">
+        <path d="M5.5 5.5l13 13M18.5 5.5l-13 13" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
+/** แถวสัญลักษณ์ของทุกอย่างที่สมาชิกคนนี้ยังขาด */
+function MissingMarks({ member, size = 20, className }) {
+  const list = missingInfo(member);
+  if (!list.length) return null;
+  return (
+    <span className={cx('inline-flex items-center', className)} style={{ gap: Math.max(2, Math.round(size / 6)) }}>
+      {list.map((k) => <MissingMark key={k} kind={k} size={size} />)}
+    </span>
+  );
+}
+
 function SectionHeading({ tone, title, count, note }) {
   const warn = tone === 'warn';
   const Icon = warn ? CircleAlert : CircleCheck;
@@ -62,7 +95,7 @@ function SectionHeading({ tone, title, count, note }) {
         <h2 className="text-[15px] font-bold leading-snug text-navy-900">
           {title} <span className="font-medium tabular-nums text-slate-400">{count} คน</span>
         </h2>
-        {note && <p className="text-xs leading-snug text-slate-500">{note}</p>}
+        {note && <div className="text-xs leading-snug text-slate-500">{note}</div>}
       </div>
     </div>
   );
@@ -112,9 +145,9 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
           )}
         >
           <Photo member={m} width={width} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass={['text-6xl', 'text-4xl', 'text-3xl', 'text-2xl'][dense]} />
-          {/* มุมบนซ้าย: ลำดับที่ ตามด้วยป้ายข้อมูลที่ยังขาด (การ์ดเล็กมากใช้จุดสีเหลืองมุมขวาแทนป้าย) */}
-          {(m.seq || (flagMissing && dense < 2)) && (
-            <span className={cx('absolute flex flex-wrap items-center gap-1', dense >= 2 ? 'inset-x-1 top-1' : 'inset-x-1.5 top-1.5')}>
+          {/* มุมบนซ้าย: ลำดับที่ ตามด้วยสัญลักษณ์ของข้อมูลที่ยังขาด (ไอคอนมีกากบาททับ) */}
+          {(m.seq || flagMissing) && (
+            <span className={cx('absolute flex flex-wrap items-center', dense >= 2 ? 'inset-x-1 top-1 gap-0.5' : 'inset-x-1.5 top-1.5 gap-1')}>
               {m.seq && (
                 <span
                   title={`ลำดับที่ ${m.seq}`}
@@ -126,16 +159,8 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
                   {m.seq}
                 </span>
               )}
-              {/* ป้ายแรกขึ้นต้นด้วย "ขาด" เช่น ขาดรูป · โทร. · ชื่อเล่น */}
-              {flagMissing && dense < 2 && missingInfo(m).map((k, i) => (
-                <span key={k} title={missingText(m)} className={cx('rounded-full bg-amber-400/95 font-semibold leading-tight text-navy-950 shadow-sm', dense ? 'px-1.5 py-px text-[10px]' : 'px-2 py-0.5 text-[11px]')}>
-                  {i === 0 ? `ขาด${k}` : k}
-                </span>
-              ))}
+              {flagMissing && <MissingMarks member={m} size={[28, 22, 18, 13][dense]} />}
             </span>
-          )}
-          {flagMissing && dense >= 2 && (
-            <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" title={missingText(m)} />
           )}
           <div className={cx('absolute', label)}>
             {/* ชื่อเล่นตัวใหญ่ + ยศ ชื่อจริงฯ (ยาวเกินการ์ดจะวิ่งไปกลับช้า ๆ) */}
@@ -168,11 +193,7 @@ function ListView({ members, onOpen, flagMissing = false }) {
               {m.position && <span className="block truncate text-xs text-slate-500">{m.position}</span>}
               {orgLine(m) && <span className="block truncate text-xs text-slate-400">{orgLine(m)}</span>}
               <SocialInline member={m} className="mt-1" />
-              {flagMissing && (
-                <span className="mt-1 inline-block max-w-full truncate rounded-full bg-amber-400/25 px-2 py-px text-[11px] font-semibold text-amber-700">
-                  {missingText(m)}
-                </span>
-              )}
+              {flagMissing && <MissingMarks member={m} size={26} className="mt-1.5 flex" />}
             </span>
           </button>
           {phoneDigits(m.phone) ? (
@@ -245,6 +266,11 @@ function TableView({ sections, sort, onSort, onOpen }) {
                   {section.tone === 'warn' ? <CircleAlert className="h-4 w-4 text-amber-600" /> : <CircleCheck className="h-4 w-4 text-emerald-600" />}
                   {section.title}
                   <span className="font-medium tabular-nums text-slate-400">{section.members.length} คน</span>
+                  {section.flag && Object.keys(MISSING_ICONS).map((k) => (
+                    <span key={k} className="ml-1 inline-flex items-center gap-1 text-[11px] font-medium text-slate-600">
+                      <MissingMark kind={k} size={19} /> ขาด{k}
+                    </span>
+                  ))}
                 </span>
               </td>
             </tr>
@@ -258,11 +284,9 @@ function TableView({ sections, sort, onSort, onOpen }) {
                   <span className="min-w-0">
                     {/* ยศ/คำนำหน้าอยู่บรรทัดบน ชื่อ-สกุลอยู่บรรทัดล่าง (กลุ่มข้อมูลไม่ครบ ต่อท้ายด้วยสิ่งที่ยังขาด) */}
                     {(m.rank || section.flag) && (
-                      <span className="block truncate text-[11px] leading-tight text-slate-500">
-                        {m.rank}
-                        {section.flag && (
-                          <span className="font-semibold text-amber-700">{m.rank ? ' · ' : ''}{missingText(m)}</span>
-                        )}
+                      <span className="flex items-center gap-1.5 text-[11px] leading-tight text-slate-500">
+                        <span className="truncate">{m.rank}</span>
+                        {section.flag && <MissingMarks member={m} size={19} />}
                       </span>
                     )}
                     <span className="block truncate font-medium text-navy-900">{[m.first_name, m.last_name].filter(Boolean).join(' ')}</span>
@@ -436,8 +460,8 @@ export default function DirectoryPage() {
       flag: true,
       title: 'ยังกรอกข้อมูลไม่ครบ',
       note: can.edit || can.photo
-        ? 'ขาดรูป โทร. หรือชื่อเล่น · แตะที่ชื่อตัวเอง แล้วกด "แก้ไขข้อมูล" เพื่อเพิ่มได้เลย'
-        : 'ขาดรูป โทร. หรือชื่อเล่น · แจ้งข้อมูลกับผู้ดูแลรุ่นเพื่อเพิ่มให้',
+        ? 'แตะที่ชื่อตัวเอง แล้วกด "แก้ไขข้อมูล" เพื่อเพิ่มได้เลย'
+        : 'แจ้งข้อมูลกับผู้ดูแลรุ่นเพื่อเพิ่มให้',
       members: pending,
     }];
     if (complete.length) out.push({ key: 'complete', tone: 'ok', title: 'ข้อมูลครบแล้ว', members: complete });
@@ -639,7 +663,24 @@ export default function DirectoryPage() {
             >
               {s.title && (
                 <div className={cx(s.tone === 'warn' && 'px-1.5')}>
-                  <SectionHeading tone={s.tone} title={s.title} count={s.members.length} note={s.note} />
+                  <SectionHeading
+                    tone={s.tone}
+                    title={s.title}
+                    count={s.members.length}
+                    note={s.flag ? (
+                      <>
+                        {/* คำอธิบายสัญลักษณ์ */}
+                        <span className="mb-1 mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-medium text-slate-600">
+                          {Object.keys(MISSING_ICONS).map((k) => (
+                            <span key={k} className="inline-flex items-center gap-1">
+                              <MissingMark kind={k} size={22} /> ขาด{k}
+                            </span>
+                          ))}
+                        </span>
+                        {s.note}
+                      </>
+                    ) : s.note}
+                  />
                 </div>
               )}
               {view === 'grid' ? (
