@@ -4,7 +4,8 @@ export const PHOTO_ASPECT = 3 / 4;
 const OUT_WIDTH = 600;
 const OUT_HEIGHT = 800;
 const MAX_SOURCE_SIDE = 2400;
-const TARGET_BYTES = 260 * 1024;
+// รูปถูกส่งผ่าน Apps Script เป็น base64 จึงบีบให้เล็กพอโหลดเร็วบนมือถือ แต่ยังเห็นหน้าชัด
+const TARGET_BYTES = 140 * 1024;
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {

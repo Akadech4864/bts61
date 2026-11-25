@@ -79,13 +79,13 @@ function GridView({ members, cols, onOpen }) {
         >
           <Photo member={m} width={width} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass={['text-6xl', 'text-4xl', 'text-3xl', 'text-2xl'][dense]} />
           <div className={cx('absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-950/90 via-navy-950/55 to-transparent', pad)}>
+            {/* ชื่อเล่นตัวใหญ่ + ชื่อจริง (ถ้ายังไม่มีชื่อเล่น แสดงชื่อจริงตัวใหญ่อย่างเดียว) */}
             <p className={cx('truncate font-bold leading-tight text-white drop-shadow', nickSize)}>{nickOf(m)}</p>
-            {dense <= 2 && (
-              <p className={cx('truncate leading-tight text-white/80', dense === 0 ? 'mt-0.5 text-[13px]' : 'text-[10px]')}>
-                {dense === 0 ? fullName(m) : m.nickname ? m.first_name : m.last_name}
+            {m.nickname && (
+              <p className={cx('truncate leading-tight text-white/85', ['mt-0.5 text-sm', 'text-[12px]', 'text-[10px]', 'text-[9px]'][dense])}>
+                {m.first_name}
               </p>
             )}
-            {dense === 0 && orgLine(m) && <p className="mt-0.5 truncate text-[11px] leading-tight text-white/60">{orgLine(m)}</p>}
           </div>
         </button>
       ))}
