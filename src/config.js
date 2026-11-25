@@ -13,6 +13,8 @@ export const GAS_WEB_APP_URL =
 export const APP_NAME = 'ระบบบริหารการฝึกอบรมหลักสูตร บตส.รุ่นที่ 61';
 export const COURSE_SHORT = 'บตส.รุ่นที่ 61';
 export const COURSE_BATCH = 'รุ่นที่ 61';
+/** ชื่อย่อ ใช้แทนชื่อเต็มเมื่อจอแคบจนชื่อเต็มไม่พอดี 1 บรรทัด */
+export const COURSE_TITLE_SHORT = 'หลักสูตร บตส. รุ่นที่ 61';
 export const COURSE_SUBTITLE = 'หลักสูตรการบริหารงานตำรวจชั้นสูง';
 export const COURSE_PERIOD = '23 พ.ย. 2569 – 9 มี.ค. 2570';
 export const COURSE_PLACE = 'วิทยาลัยการตำรวจ';

@@ -6,7 +6,7 @@ import MemberSuggest from '../components/MemberSuggest';
 import FilterSheet, { SORT_OPTIONS } from '../components/FilterSheet';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
-import { COURSE_BATCH, COURSE_SUBTITLE } from '../config';
+import { COURSE_BATCH, COURSE_SUBTITLE, COURSE_TITLE_SHORT } from '../config';
 import {
   cx, formatPhone, fullName, guessMembers, matchMember, missingInfo, nickOf, orgLine, orgTypeOf, phoneDigits, queryTokens,
   telHref, thCompare, useBreakpoint, usePersistentState,
@@ -290,6 +290,58 @@ function LoadingGrid({ cols }) {
   );
 }
 
+/* ------------------------------ ชื่อหลักสูตร (1 บรรทัดเสมอ) ------------------------------ */
+
+const TITLE_FULL = `${COURSE_SUBTITLE} ${COURSE_BATCH}`;
+const TITLE_MIN_PX = 16; // ชื่อเต็มเล็กกว่านี้อ่านยาก → ใช้ชื่อย่อแทน
+
+let measureCtx = null;
+function textWidth(text, font) {
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+  measureCtx.font = font;
+  return measureCtx.measureText(text).width;
+}
+
+/**
+ * แสดงชื่อเต็มบรรทัดเดียว (ย่อขนาดตัวอักษรลงได้ถึง 16px)
+ * ถ้าจอแคบจนไม่พอ ใช้ชื่อย่อ "หลักสูตร บตส. รุ่นที่ 61" แทน
+ */
+function CourseTitle() {
+  const ref = useRef(null);
+  const [fit, setFit] = useState({ text: TITLE_FULL, size: 20 });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const measure = () => {
+      const avail = el.parentElement.clientWidth;
+      if (!avail) return;
+      const style = getComputedStyle(el);
+      const font = (px) => `${style.fontWeight} ${px}px ${style.fontFamily}`;
+      const base = avail >= 480 ? 26 : 22;
+      // เผื่อพื้นที่ 4% สำหรับสระ/วรรณยุกต์ที่วัดได้ไม่แม่นในบางเบราว์เซอร์
+      const sizeFor = (text) => (avail * 0.96 * 100) / textWidth(text, font(100));
+      const fullSize = Math.min(base, sizeFor(TITLE_FULL));
+      if (fullSize >= TITLE_MIN_PX) setFit({ text: TITLE_FULL, size: fullSize });
+      else setFit({ text: COURSE_TITLE_SHORT, size: Math.max(13, Math.min(base, sizeFor(COURSE_TITLE_SHORT))) });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el.parentElement);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <h1
+      ref={ref}
+      title={TITLE_FULL}
+      style={{ fontSize: `${fit.size.toFixed(1)}px` }}
+      className="overflow-hidden text-ellipsis whitespace-nowrap font-bold leading-snug text-navy-900"
+    >
+      {fit.text}
+    </h1>
+  );
+}
+
 /* ------------------------------ หน้าทำเนียบรุ่น ------------------------------ */
 
 export default function DirectoryPage() {
@@ -398,9 +450,7 @@ export default function DirectoryPage() {
         <div className="flex items-center gap-3 pb-3 pt-5">
           <img src="./logo.jpg" alt="" className="h-12 w-12 shrink-0 rounded-full bg-white object-cover shadow-[0_6px_16px_-6px_rgb(11_28_54/0.4)] ring-2 ring-white/80" />
           <div className="min-w-0 flex-1">
-            <h1 className="text-balance text-lg font-bold leading-snug tracking-tight text-navy-900 sm:text-2xl">
-              {COURSE_SUBTITLE} <span className="whitespace-nowrap">{COURSE_BATCH}</span>
-            </h1>
+            <CourseTitle />
             <p className="truncate text-xs font-semibold tracking-wide text-gold-600">ทำเนียบรุ่น</p>
           </div>
           <button
