@@ -1,4 +1,4 @@
-import { Pencil } from 'lucide-react';
+import { ChevronRight, Pencil } from 'lucide-react';
 import { Photo } from './Avatar';
 import { SwapDot, firstNameShort, markOf } from './DutySwap';
 import { cx, formatDate, nickOf, relativeDay } from '../lib/utils';
@@ -7,7 +7,7 @@ import { cx, formatDate, nickOf, relativeDay } from '../lib/utils';
  * การ์ดเด่นของเวร (แบบเดียวกับการ์ด "กำลังเรียนอยู่ตอนนี้"): ผู้เข้าเวรวันนี้ หรือวันเวรถัดไป
  * groups = [{ role, entries: [{ item, people }] }] | next = { date, names } เวรวันถัดไป (ถ้ามี)
  */
-export default function DutyHero({ date, today, groups, marks, mineId, onOpen, onEdit, next }) {
+export default function DutyHero({ date, today, groups, marks, mineId, onOpen, onEdit, next, hideDate = false, onMore }) {
   const isToday = date === today;
   return (
     <section className="glass-dark relative overflow-hidden rounded-3xl p-5">
@@ -16,10 +16,15 @@ export default function DutyHero({ date, today, groups, marks, mineId, onOpen, o
         <span className={cx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold', isToday ? 'bg-emerald-500 text-white' : 'bg-gold-400 text-navy-950')}>
           {isToday ? <><span className="pulse-dot" /> เข้าเวรวันนี้</> : `เวรถัดไป · ${relativeDay(date, today)}`}
         </span>
+        {onMore && (
+          <button type="button" onClick={onMore} className="inline-flex items-center gap-0.5 text-[12px] font-medium text-white/60 transition active:opacity-70">
+            ตารางเวร <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
       </div>
-      <h2 className="mt-3 text-[20px] font-bold leading-snug">{formatDate(date, 'long')}</h2>
+      {!hideDate && <h2 className="mt-3 text-[20px] font-bold leading-snug">{formatDate(date, 'long')}</h2>}
 
-      <div className={cx('mt-4 grid gap-3', groups.length > 1 ? 'grid-cols-2' : 'grid-cols-1')}>
+      <div className={cx(hideDate ? 'mt-3' : 'mt-4', 'grid gap-3', groups.length > 1 ? 'grid-cols-2' : 'grid-cols-1')}>
         {groups.map(({ role, entries }) => (
           <div key={role} className="min-w-0 rounded-2xl bg-white/[0.07] p-3 ring-1 ring-inset ring-white/10">
             <p className="mb-2 truncate text-[12px] font-semibold text-gold-200">{role}</p>

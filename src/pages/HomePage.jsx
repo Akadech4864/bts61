@@ -333,6 +333,27 @@ export default function HomePage() {
             )}
           </div>
 
+          {dutyToday.length > 0 && (
+            <div className="mt-3">
+              {/* วันที่ใช้ของการ์ดด้านบน จึงไม่แสดงซ้ำ */}
+              <DutyHero
+                date={dutyDate}
+                today={today}
+                groups={dutyGroups}
+                marks={dutyMarks}
+                onOpen={ui.openProfile}
+                next={dutyNext}
+                hideDate
+                onMore={() => ui.go('duty')}
+              />
+              {pendingSwaps > 0 && (
+                <button type="button" onClick={() => ui.go('duty')} className="mt-2 flex w-full items-center gap-2 rounded-2xl bg-amber-400/20 px-3 py-2 text-left text-[13px] font-semibold text-amber-800">
+                  <ArrowLeftRight className="h-4 w-4" /> มีคำขอสลับเวรรออนุมัติ {pendingSwaps} รายการ{isAdmin ? ' · แตะเพื่อพิจารณา' : ''}
+                </button>
+              )}
+            </div>
+          )}
+
           {studyTasks.some((t) => t.due_date >= today) && (
             <div className="mt-3">
               <StudyReminder tasks={studyTasks} today={today} onOpen={() => ui.go('course', { tab: 'study' })} />
@@ -367,23 +388,6 @@ export default function HomePage() {
             </Section>
           )}
 
-          {dutyToday.length > 0 && (
-            <Section icon={ShieldCheck} title="เวร" action="ตารางเวร" onAction={() => ui.go('duty')}>
-              <DutyHero
-                date={dutyDate}
-                today={today}
-                groups={dutyGroups}
-                marks={dutyMarks}
-                onOpen={ui.openProfile}
-                next={dutyNext}
-              />
-              {pendingSwaps > 0 && (
-                <button type="button" onClick={() => ui.go('duty')} className="mt-2 flex w-full items-center gap-2 rounded-2xl bg-amber-400/20 px-3 py-2 text-left text-[13px] font-semibold text-amber-800">
-                  <ArrowLeftRight className="h-4 w-4" /> มีคำขอสลับเวรรออนุมัติ {pendingSwaps} รายการ{isAdmin ? ' · แตะเพื่อพิจารณา' : ''}
-                </button>
-              )}
-            </Section>
-          )}
 
           {tasks.length > 0 && (
             <Section icon={ClipboardList} title="งานวิชาอื่นที่ใกล้ถึงกำหนดส่ง">
