@@ -151,9 +151,10 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
 
 function ListView({ members, onOpen, flagMissing = false }) {
   return (
-    <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+    // grid-cols-1 + min-w-0: การ์ดไม่ขยายตามชื่อที่ยาว (ไม่ให้หน้ากว้างเกินจอ)
+    <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3">
       {members.map((m) => (
-        <div key={m.id} className="glass flex items-center gap-3 rounded-3xl p-2.5">
+        <div key={m.id} className="glass flex min-w-0 items-center gap-3 rounded-3xl p-2.5">
           <button type="button" onClick={() => onOpen(m.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
             <Photo member={m} width={160} className="h-[72px] w-[54px] shrink-0 rounded-xl" textClass="text-xl" />
             <span className="min-w-0 flex-1">

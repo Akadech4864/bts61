@@ -125,9 +125,9 @@ export function GroupsView({ instructors, members, onOpen, bare = false }) {
         <h2 className="mt-0.5 text-lg font-bold leading-snug">อาจารย์ประจำกลุ่ม</h2>
         <p className="mt-1 text-[13px] text-white/70">{groups.length} กลุ่ม · กลุ่มละ {Math.max(...groups.map(([, list]) => list.length))} ท่าน</p>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {groups.map(([g, list]) => (
-          <section key={g} className="glass rounded-3xl px-4 pb-2 pt-3">
+          <section key={g} className="glass min-w-0 rounded-3xl px-4 pb-2 pt-3">
             <div className="flex items-center justify-between gap-2">
               <h3 className="flex items-center gap-2 text-[15px] font-bold text-navy-900">
                 <span className="grid h-8 w-8 place-items-center rounded-full btn-navy text-sm text-white tabular-nums">{g}</span>
