@@ -27,8 +27,8 @@ function Badge({ tone = 'slate', children }) {
   return <span className={cx('inline-flex shrink-0 items-center rounded-full px-2 py-px text-[11px] font-semibold leading-5', tones[tone])}>{children}</span>;
 }
 
-/** มีประวัติวิทยากรแบบละเอียดหรือไม่ (แสดงลูกศรให้รู้ว่าแตะดูประวัติได้) */
-const hasProfile = (ins) => !!String(ins.profile || '').trim();
+/** มีข้อมูลประวัติให้ดูหรือไม่ — ประวัติละเอียด หรืออย่างน้อยความเชี่ยวชาญ/วุฒิ/ไฟล์ประวัติ/เบอร์โทร (แสดงลูกศรให้รู้ว่าแตะดูได้) */
+const hasProfile = (ins) => ['profile', 'expertise', 'education', 'links', 'phone'].some((k) => !!String(ins[k] || '').trim());
 
 function InstructorRow({ ins, role, onOpen, compact = false }) {
   const full = hasProfile(ins);
