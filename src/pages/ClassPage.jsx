@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, CalendarDays, CalendarSearch, ChevronRight, Clock, MapPin, Pencil, Plus, StickyNote, UserRound } from 'lucide-react';
+import { Paperclip, BookOpen, CalendarDays, CalendarSearch, ChevronRight, Clock, MapPin, Pencil, Plus, StickyNote, UserRound } from 'lucide-react';
+import { subjectKey } from '../lib/docs';
 import MoreMenuButton from '../components/MoreMenu';
 import { Photo } from '../components/Avatar';
 import InstructorSheet from '../components/InstructorSheet';
@@ -131,7 +132,7 @@ function PersonRow({ name, label, match, onOpen, small = false }) {
   );
 }
 
-function ClassCard({ item, status, isNext, onEdit, findPerson, onPerson, mainRoom }) {
+function ClassCard({ item, status, isNext, onEdit, findPerson, onPerson, mainRoom, docCount = 0, onDocs }) {
   const minor = !item.speaker && !item.secretary && !item.topic && !item.kind && !item.session;
   const room = item.location && item.location !== mainRoom ? item.location : '';
   return (
@@ -157,6 +158,16 @@ function ClassCard({ item, status, isNext, onEdit, findPerson, onPerson, mainRoo
           <StatusBadge status={status} isNext={isNext} />
           {item.kind && <span className={cx('rounded-full px-2 py-0.5 text-[11px] font-semibold', kindTone(item.kind))}>{item.kind}</span>}
           {item.session && <span className="rounded-full bg-white/60 px-2 py-0.5 text-[11px] font-medium text-slate-500">ครั้งที่ {item.session}</span>}
+          {docCount > 0 && (
+            <button
+              type="button"
+              onClick={onDocs}
+              title="เอกสารประกอบการสอนของวิชานี้"
+              className="inline-flex items-center gap-1 rounded-full bg-navy-500/10 px-2 py-0.5 text-[11px] font-semibold text-navy-700 transition active:scale-95"
+            >
+              <Paperclip className="h-3 w-3" /> เอกสาร {docCount}
+            </button>
+          )}
         </div>
         <h3 className={cx('leading-snug', minor ? 'text-[14.5px] font-medium text-slate-700' : 'text-[16px] font-semibold text-navy-900')}>
           {item.subject}
@@ -262,6 +273,12 @@ export default function ClassPage({ switcher }) {
     return [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
   }, [classes]);
   const dayInMainRoom = dayClasses.some((c) => c.location === mainRoom);
+  // จำนวนเอกสารประกอบการสอนของแต่ละวิชา (เมนูหลักสูตร > วิชา)
+  const docCounts = useMemo(() => {
+    const out = {};
+    (data.resources || []).forEach((r) => { if (r.type === 'link' || !r.type) { const k = subjectKey(r.subject); out[k] = (out[k] || 0) + 1; } });
+    return out;
+  }, [data.resources]);
   const loading = status === 'loading';
 
   return (
@@ -359,6 +376,8 @@ export default function ClassPage({ switcher }) {
                   onEdit={isAdmin ? () => ui.openClassForm(c) : null}
                   findPerson={findPerson}
                   mainRoom={mainRoom}
+                  docCount={docCounts[subjectKey(c.subject)] || 0}
+                  onDocs={() => ui.go('course', { tab: 'docs', subject: c.subject })}
                   onPerson={onPerson}
                 />
               ))}

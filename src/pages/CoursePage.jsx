@@ -9,10 +9,10 @@ import { DocsPanel } from './DocsPage';
 const SUBTABS = [
   { value: 'info', label: 'ข้อมูล' },
   { value: 'instructors', label: 'อาจารย์' },
-  { value: 'docs', label: 'เอกสาร' },
+  { value: 'docs', label: 'วิชา' },
 ];
 
-/** หมวดหลักสูตร: ข้อมูลหลักสูตร / อาจารย์ (รวมประวัติ) / งานและเอกสาร */
+/** หมวดหลักสูตร: ข้อมูลหลักสูตร / อาจารย์ (รวมประวัติ) / วิชา (เอกสาร สไลด์ ลิงก์ประกอบการสอนของแต่ละวิชา) */
 export default function CoursePage() {
   const ui = useUI();
   // แท็บประวัติเดิมรวมอยู่ในแท็บอาจารย์แล้ว
@@ -34,7 +34,7 @@ export default function CoursePage() {
 
       {tab === 'info' && <CourseInfoPanel />}
       {tab === 'instructors' && <InstructorsPanel key={mode || 'default'} initialMode={mode} />}
-      {tab === 'docs' && <DocsPanel />}
+      {tab === 'docs' && <DocsPanel key={(ui.view && ui.view.subject) || 'all'} />}
     </div>
   );
 }

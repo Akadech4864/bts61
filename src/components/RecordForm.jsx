@@ -1,12 +1,13 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, ImagePlus, Trash2 } from 'lucide-react';
+import { Camera, FileText, ImagePlus, Paperclip, Trash2 } from 'lucide-react';
 import { Sheet } from './Sheet';
 import { Photo } from './Avatar';
-import { Button, Field, Segmented, Spinner, SuggestInput, TextArea, TextInput } from './ui';
+import { Button, Field, Segmented, Spinner, SuggestInput, TextArea, TextInput, inputClass } from './ui';
 import { useToast } from './Toast';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
-import { thCompare } from '../lib/utils';
+import { cx, formatDate, thCompare } from '../lib/utils';
+import { buildSubjects, DOC_ACCEPT, DOC_CATEGORIES, fileSizeLabel, subjectKey } from '../lib/docs';
 import { faceOf, KIND_OPTIONS, RESOURCE_TYPES } from '../lib/course';
 
 const PhotoCropper = lazy(() => import('./PhotoCropper.jsx'));
@@ -58,18 +59,21 @@ const CONFIG = {
     ],
   },
   resources: {
-    titles: ['เพิ่มงาน / เอกสาร', 'แก้ไขงาน / เอกสาร'],
+    titles: ['แนบเอกสาร / เพิ่มงาน', 'แก้ไขเอกสาร / งาน'],
     photo: false,
-    blank: { subject: '', type: 'link', title: '', url: '', due_date: '', due_time: '', detail: '', sort: '' },
-    required: ['title', 'กรุณากรอกหัวข้อ'],
+    blank: { subject: '', type: 'link', category: '', title: '', url: '', class_date: '', topic: '', due_date: '', due_time: '', detail: '', sort: '' },
+    required: ['title', 'กรุณากรอกชื่อเอกสาร / หัวข้อ'],
     fields: [
-      { key: 'subject', label: 'วิชา / หมวด', suggest: true, placeholder: 'เช่น วิชาเอกสารศึกษา' },
+      { key: 'subject', label: 'วิชา', suggest: true, placeholder: 'เลือกหรือพิมพ์ชื่อวิชา' },
       { key: 'type', label: 'ประเภท', options: RESOURCE_TYPES },
-      { key: 'title', label: 'หัวข้อ', required: true },
+      { key: 'title', label: 'ชื่อเอกสาร / หัวข้อ', required: true, placeholder: 'เช่น สไลด์ประกอบการบรรยาย ครั้งที่ 1' },
+      { key: 'category', label: 'หมวด', chips: DOC_CATEGORIES, showIf: (f) => f.type === 'link' },
+      { key: 'file', label: 'ไฟล์ หรือ ลิงก์', custom: 'file', showIf: (f) => f.type === 'link' },
+      { key: 'url', label: 'ลิงก์ (ถ้ามี)', type: 'url', placeholder: 'https://…', showIf: (f) => f.type !== 'link' },
+      { key: 'session', label: 'คาบเรียนในตารางสอน (ถ้ามี)', custom: 'session', showIf: (f) => f.type !== 'info' },
       { key: 'due_date', label: 'กำหนดส่ง', type: 'date', half: true, showIf: (f) => f.type === 'task' },
       { key: 'due_time', label: 'เวลา (ถ้ามี)', type: 'time', half: true, showIf: (f) => f.type === 'task' },
-      { key: 'url', label: 'ลิงก์ (ถ้ามี)', type: 'url', placeholder: 'https://…', showIf: (f) => f.type !== 'info' },
-      { key: 'detail', label: 'รายละเอียด', textarea: true, rows: 5, hint: 'ขึ้นบรรทัดใหม่ได้ · "หัวข้อ: รายละเอียด" จะแสดงหัวข้อเป็นตัวหนา' },
+      { key: 'detail', label: 'รายละเอียด', textarea: true, rows: 4, hint: 'ขึ้นบรรทัดใหม่ได้ · "หัวข้อ: รายละเอียด" จะแสดงหัวข้อเป็นตัวหนา' },
       { key: 'sort', label: 'ลำดับการแสดง', numeric: true },
     ],
   },
@@ -84,6 +88,8 @@ function RecordFormInner({ collection, initial, onClose }) {
   const [photo, setPhoto] = useState(null); // { blob, url } รูปใหม่ที่ครอปแล้ว
   const [removePhoto, setRemovePhoto] = useState(false);
   const [cropSrc, setCropSrc] = useState(null);
+  const [docFile, setDocFile] = useState(null); // ไฟล์เอกสารใหม่ที่จะอัปโหลด
+  const [removeFile, setRemoveFile] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const urls = useRef([]);
@@ -92,9 +98,19 @@ function RecordFormInner({ collection, initial, onClose }) {
   const isNew = !form.id;
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
   const subjectOptions = useMemo(
-    () => [...new Set((data.resources || []).map((r) => r.subject).filter(Boolean))].sort(thCompare),
-    [data.resources],
+    () => (collection === 'resources'
+      ? buildSubjects(data.classes, data.resources || []).map((x) => x.name)
+      : [...new Set((data.resources || []).map((r) => r.subject).filter(Boolean))].sort(thCompare)),
+    [collection, data.classes, data.resources],
   );
+  // คาบเรียนของวิชาที่เลือก (ใช้ผูกเอกสารกับวันที่เรียน)
+  const sessionOptions = useMemo(
+    () => (collection === 'resources' && form.subject
+      ? data.classes.filter((c) => subjectKey(c.subject) === subjectKey(form.subject)).sort((a, b) => a.class_date.localeCompare(b.class_date) || String(a.start_time).localeCompare(String(b.start_time)))
+      : []),
+    [collection, data.classes, form.subject],
+  );
+  const hasFile = !!docFile || (!!form.file_id && !removeFile);
 
   function onFile(e) {
     const file = e.target.files && e.target.files[0];
@@ -128,9 +144,25 @@ function RecordFormInner({ collection, initial, onClose }) {
     try {
       const item = { id: form.id };
       cfg.fields.forEach((f) => {
+        if (f.custom === 'file') return;
+        if (f.custom === 'session') {
+          item.class_date = form.class_date || '';
+          item.topic = form.topic || '';
+          return;
+        }
         item[f.key] = typeof form[f.key] === 'string' ? form[f.key].trim() : form[f.key];
       });
-      await saveRecord(collection, item, { photoBlob: photo && photo.blob, removePhoto });
+      if (cfg.fields.some((f) => f.custom === 'file')) {
+        // มีไฟล์แนบอยู่แล้ว ลิงก์คือที่อยู่ของไฟล์นั้น ไม่ต้องส่งซ้ำ
+        if (form.type === 'link' && hasFile) delete item.url;
+        else item.url = String(form.url || '').trim();
+        if (form.type === 'link' && !hasFile && !item.url) {
+          toast.error('กรุณาแนบไฟล์ หรือใส่ลิงก์ของเอกสาร');
+          setSaving(false);
+          return;
+        }
+      }
+      await saveRecord(collection, item, { photoBlob: photo && photo.blob, removePhoto, file: form.type === 'link' ? docFile : null, removeFile });
       toast.success(isNew ? 'เพิ่มข้อมูลเรียบร้อย' : 'บันทึกข้อมูลเรียบร้อย');
       onClose();
     } catch (err) {
@@ -216,7 +248,95 @@ function RecordFormInner({ collection, initial, onClose }) {
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            {visible.map((f) => (f.options ? (
+            {visible.map((f) => (f.custom === 'file' ? (
+              <div key={f.key} className="col-span-2">
+                <span className="mb-1.5 block text-[13px] font-medium text-slate-600">{f.label}</span>
+                {hasFile ? (
+                  <div className="flex items-center gap-3 rounded-2xl bg-white/70 p-2.5 ring-1 ring-inset ring-slate-200">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy-500/10 text-navy-700"><FileText className="h-5 w-5" /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-semibold text-navy-900">{docFile ? docFile.name : form.file_name}</span>
+                      <span className="block text-[12px] text-slate-500">{fileSizeLabel(docFile ? docFile.size : form.file_size)}{docFile ? ' · จะอัปโหลดเมื่อกดบันทึก' : ' · เก็บใน Google Drive'}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDocFile(null);
+                        setRemoveFile(!!form.file_id);
+                      }}
+                      className="shrink-0 rounded-lg px-2 py-1 text-[13px] font-semibold text-rose-600"
+                    >
+                      เอาออก
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className={pickClass + ' w-full'}>
+                      <Paperclip className="h-[18px] w-[18px]" /> แนบไฟล์ (PDF, สไลด์, Word, รูป ไม่เกิน 15 MB)
+                      <input
+                        type="file"
+                        accept={DOC_ACCEPT}
+                        className="sr-only"
+                        onChange={(e) => {
+                          const file = e.target.files && e.target.files[0];
+                          e.target.value = '';
+                          if (!file) return;
+                          if (file.size > 15 * 1024 * 1024) {
+                            toast.error('ไฟล์ใหญ่เกิน 15 MB — ให้แชร์จาก Drive/YouTube แล้ววางลิงก์แทน');
+                            return;
+                          }
+                          setDocFile(file);
+                          if (!String(form.title || '').trim()) set('title')(file.name.replace(/\.[^.]+$/, ''));
+                        }}
+                      />
+                    </label>
+                    <TextInput
+                      type="url"
+                      value={form.url && !String(form.url).startsWith('data:') ? form.url : ''}
+                      onChange={(e) => set('url')(e.target.value)}
+                      placeholder="หรือวางลิงก์ (Google Drive, Canva, YouTube …)"
+                      autoCapitalize="none"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : f.custom === 'session' ? (
+              <Field key={f.key} label={f.label} className="col-span-2" hint={form.subject ? undefined : 'เลือกวิชาก่อน'}>
+                <select
+                  value={(sessionOptions.find((c) => c.class_date === form.class_date && (c.topic || '') === (form.topic || '')) || sessionOptions.find((c) => c.class_date === form.class_date) || {}).id || ''}
+                  onChange={(e) => {
+                    const c = sessionOptions.find((x) => x.id === e.target.value);
+                    setForm((prev) => ({ ...prev, class_date: c ? c.class_date : '', topic: c ? c.topic || '' : '' }));
+                  }}
+                  disabled={!sessionOptions.length}
+                  className={cx(inputClass, 'pr-8 disabled:opacity-50')}
+                >
+                  <option value="">— ไม่ผูกกับคาบเรียน —</option>
+                  {sessionOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {formatDate(c.class_date, 'medium')}{c.start_time ? ` ${c.start_time}` : ''}{c.session ? ` · ครั้งที่ ${c.session}` : ''}{c.topic ? ` · ${c.topic}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            ) : f.chips ? (
+              <div key={f.key} className="col-span-2">
+                <span className="mb-1.5 block text-[13px] font-medium text-slate-600">{f.label}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {f.chips.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => set(f.key)(form[f.key] === c.value ? '' : c.value)}
+                      aria-pressed={form[f.key] === c.value}
+                      className={cx('h-9 rounded-full px-3.5 text-[13px] font-semibold transition', form[f.key] === c.value ? 'btn-navy text-white' : 'glass text-slate-600')}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : f.options ? (
               // ตัวเลือกแบบปุ่ม: ไม่ห่อด้วย <label> เพื่อไม่ให้แตะที่ชื่อช่องแล้วเลือกปุ่มแรกโดยไม่ตั้งใจ
               <div key={f.key} className="col-span-2">
                 <span className="mb-1.5 block text-[13px] font-medium text-slate-600">{f.label}</span>

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api, blobToBase64, isDemo } from './api';
 import { readStored, writeStored } from './utils';
 import { makeThumb, primePhoto } from './photos';
+import { docMime, MAX_DOC_BYTES } from './docs';
 import { useToast } from '../components/Toast';
 
 // แยกที่เก็บของโหมดตัวอย่างออกจากข้อมูลจริง เพื่อไม่ให้ข้อมูลสมมติค้างมาแสดงหลังเชื่อมต่อฐานข้อมูลแล้ว
@@ -227,8 +228,15 @@ export function StoreProvider({ children }) {
       deleteClass: (id) =>
         mutate('deleteClass', { id }, (prev) => ({ ...prev, classes: removeById(prev.classes, id) })),
       /** ข้อมูลหลักสูตร (เฉพาะแอดมิน): collection = staff | instructors | resources */
-      async saveRecord(collection, item, { photoBlob = null, removePhoto = false } = {}) {
-        const payload = { collection, item, removePhoto };
+      async saveRecord(collection, item, { photoBlob = null, removePhoto = false, file = null, removeFile = false } = {}) {
+        const payload = { collection, item, removePhoto, removeFile: removeFile && !file };
+        // ไฟล์เอกสารประกอบการสอน (เฉพาะงาน/เอกสาร) — เซิร์ฟเวอร์เก็บใน Google Drive แยกโฟลเดอร์ตามวิชา
+        if (file) {
+          const mimeType = docMime(file);
+          if (!mimeType) throw new Error('รองรับไฟล์ PDF, PowerPoint, Word, Excel, รูปภาพ, MP4/MP3 หรือข้อความ');
+          if (file.size > MAX_DOC_BYTES) throw new Error('ไฟล์ใหญ่เกิน 15 MB — วิดีโอหรือไฟล์ใหญ่ให้แชร์จาก Drive/YouTube แล้วใส่เป็นลิงก์');
+          payload.file = { base64: await blobToBase64(file), mimeType, name: file.name };
+        }
         let thumbBlob = null;
         if (photoBlob) {
           payload.photo = { base64: await blobToBase64(photoBlob), mimeType: photoBlob.type || 'image/jpeg' };

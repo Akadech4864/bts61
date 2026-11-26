@@ -161,7 +161,7 @@ function demoResources(today) {
 const COLLECTION_FIELDS = {
   staff: ['sort', 'rank', 'first_name', 'last_name', 'nickname', 'role', 'phone'],
   instructors: ['sort', 'name', 'position', 'kind', 'group_no', 'expertise', 'education', 'subjects', 'profile', 'links', 'phone'],
-  resources: ['sort', 'subject', 'type', 'title', 'detail', 'url', 'due_date', 'due_time'],
+  resources: ['sort', 'subject', 'type', 'title', 'detail', 'url', 'due_date', 'due_time', 'category', 'class_date', 'topic'],
 };
 const REQUIRED = { staff: 'first_name', instructors: 'name', resources: 'title' };
 
@@ -453,6 +453,23 @@ const actions = {
       if (input[f] !== undefined) record[f] = String(input[f]).trim();
     });
     if (record.url && !/^https?:\/\//i.test(record.url)) record.url = `https://${record.url}`;
+    if (p.collection === 'resources') {
+      // โหมดตัวอย่าง: ไม่ได้อัปโหลดจริง เก็บไฟล์เล็กไว้เป็น data URL ในเครื่อง
+      if (p.file) {
+        record.file_id = uid('file');
+        record.file_name = p.file.name;
+        record.file_mime = p.file.mimeType;
+        record.file_size = String(Math.round((p.file.base64.length * 3) / 4));
+        record.url = p.file.base64.length < 400000 ? `data:${p.file.mimeType};base64,${p.file.base64}` : 'https://example.com/demo-file';
+      } else if (p.removeFile) {
+        if (record.url && record.url.startsWith('data:')) record.url = '';
+        record.file_id = '';
+        record.file_name = '';
+        record.file_mime = '';
+        record.file_size = '';
+      }
+      if (record.type === 'link' && !record.url) fail('VALIDATION', 'กรุณาแนบไฟล์ หรือใส่ลิงก์ของเอกสาร');
+    }
     if (!record[REQUIRED[p.collection]]) fail('VALIDATION', 'กรุณากรอกข้อมูลที่จำเป็น');
     if (p.collection !== 'resources') {
       if (p.photo) {

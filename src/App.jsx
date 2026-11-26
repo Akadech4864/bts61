@@ -6,6 +6,7 @@ import { ClassForm, DutyForm } from './components/ScheduleForms';
 import { Sheet } from './components/Sheet';
 import { Button } from './components/ui';
 import { ToastProvider } from './components/Toast';
+import UpdateBanner from './components/UpdateBanner';
 import { StoreProvider, useStore } from './lib/store';
 import { UIContext } from './lib/ui';
 import { readStored, writeStored } from './lib/utils';
@@ -111,6 +112,7 @@ function Shell() {
       <ClassForm state={classForm} onClose={() => setClassForm(null)} />
       <DutyForm state={dutyForm} onClose={() => setDutyForm(null)} />
       <ConfirmDialog request={confirmRequest} onAnswer={answer} />
+      <UpdateBanner />
     </UIContext.Provider>
   );
 }
