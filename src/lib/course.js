@@ -110,5 +110,31 @@ export function detailLines(text) {
 /** ชื่อผู้บรรยายสำหรับจัดกลุ่ม: ตัด "และคณะ" ออก */
 export const speakerKey = (name) => String(name || '').replace(/\s*และคณะ\s*$/, '').trim();
 
+const personKey = (name) => stripTitles(speakerKey(name)).replace(/\s+/g, ' ').trim();
+
+/**
+ * จับคู่ชื่อผู้บรรยาย/เลขาฯวิชาในตารางสอนกับข้อมูลอาจารย์และผู้บริหาร (เทียบชื่อ-สกุลโดยตัดยศ/คำนำหน้า)
+ * คืนฟังก์ชัน (name) => { type: 'instructor' | 'staff', rec } | null
+ * "ผู้อำนวยการหลักสูตร และคณะ" จับคู่กับผู้บริหารที่มีหน้าที่เป็นผู้อำนวยการหลักสูตร
+ */
+export function buildPeopleIndex(instructors, staff) {
+  const map = new Map();
+  (staff || []).forEach((s) => {
+    const k = personKey(`${s.first_name || ''} ${s.last_name || ''}`);
+    if (k) map.set(k, { type: 'staff', rec: s });
+  });
+  (instructors || []).forEach((i) => {
+    const k = personKey(i.name);
+    if (k) map.set(k, { type: 'instructor', rec: i });
+  });
+  const director = [...(staff || [])].sort(bySort).find((s) => /ผู้อำนวยการหลักสูตร/.test(s.role || ''));
+  return (name) => {
+    const raw = String(name || '').trim();
+    if (!raw) return null;
+    if (/^ผู้อำนวยการหลักสูตร/.test(raw)) return director ? { type: 'staff', rec: director } : null;
+    return map.get(personKey(raw)) || null;
+  };
+}
+
 /** รายการในตารางสอนที่ไม่นับเป็นวิชา (ไม่แสดงในรายชื่อผู้บรรยาย) */
 export const NON_SUBJECTS = /^(เวลาผู้บังคับบัญชา|ศึกษาค้นคว้า|รายงานตัว|กิจกรรมผู้เข้ารับการฝึกอบรม|ปฐมนิเทศ|ชี้แจง)/;

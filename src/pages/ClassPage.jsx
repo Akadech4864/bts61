@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, CalendarDays, CalendarSearch, ChevronRight, Clock, MapPin, NotebookPen, Pencil, Plus, StickyNote, UserRound } from 'lucide-react';
+import { BookOpen, CalendarDays, CalendarSearch, ChevronRight, Clock, MapPin, Pencil, Plus, StickyNote, UserRound } from 'lucide-react';
+import { Photo } from '../components/Avatar';
+import InstructorSheet from '../components/InstructorSheet';
 import { Button, EmptyState, PageHeader, Skeleton, TopBarSentinel } from '../components/ui';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import {
   addDays, classStatus, compareClass, cx, daysBetween, formatDate, parseISODate, relativeDay, timeRange, toISODate, useNow,
 } from '../lib/utils';
-import { kindTone } from '../lib/course';
+import { buildPeopleIndex, faceOf, kindTone } from '../lib/course';
 
 const WEEKDAYS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
 const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -97,7 +99,38 @@ function StatusBadge({ status, isNext }) {
   return null;
 }
 
-function ClassCard({ item, status, isNext, onEdit }) {
+/** รูปหน้าอาจารย์/ผู้บริหาร (ถ้าจับคู่ชื่อได้) หรือไอคอนแทน */
+function Face({ match, className, dark = false }) {
+  if (match) return <Photo member={faceOf(match.rec)} width={160} className={cx('shrink-0 rounded-full object-[center_20%]', className)} textClass="text-xs" />;
+  return (
+    <span className={cx('grid shrink-0 place-items-center rounded-full', dark ? 'bg-white/10 text-white/60' : 'bg-slate-500/10 text-slate-400', className)}>
+      <UserRound className="h-1/2 w-1/2" />
+    </span>
+  );
+}
+
+/** แถวผู้บรรยาย / เลขาฯวิชา พร้อมรูป — แตะเพื่อดูข้อมูลอาจารย์ */
+function PersonRow({ name, label, match, onOpen, small = false }) {
+  if (!name) return null;
+  const body = (
+    <>
+      <Face match={match} className={small ? 'h-7 w-7' : 'h-10 w-10'} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] leading-tight text-slate-400">{label}</span>
+        <span className={cx('block leading-snug', small ? 'text-[13px] text-slate-600' : 'text-[14px] font-semibold text-navy-900')}>{name}</span>
+      </span>
+      {match && <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />}
+    </>
+  );
+  if (!match) return <div className="flex items-center gap-2.5">{body}</div>;
+  return (
+    <button type="button" onClick={() => onOpen(match)} className="-mx-1 flex w-[calc(100%+0.5rem)] items-center gap-2.5 rounded-2xl px-1 py-0.5 text-left transition hover:bg-white/60 active:scale-[0.99]">
+      {body}
+    </button>
+  );
+}
+
+function ClassCard({ item, status, isNext, onEdit, findPerson, onPerson }) {
   return (
     <article
       className={cx(
@@ -123,17 +156,13 @@ function ClassCard({ item, status, isNext, onEdit }) {
         </div>
         <h3 className="text-[16px] font-semibold leading-snug text-navy-900">{item.subject}</h3>
         {item.topic && <p className="mt-0.5 text-[14px] leading-snug text-slate-700">{item.topic}</p>}
+        {(item.speaker || item.secretary) && (
+          <div className="mt-2.5 space-y-1.5">
+            <PersonRow name={item.speaker} label="อาจารย์ผู้บรรยาย" match={findPerson(item.speaker)} onOpen={onPerson} />
+            <PersonRow name={item.secretary} label="เลขาฯวิชา" match={findPerson(item.secretary)} onOpen={onPerson} small />
+          </div>
+        )}
         <div className="mt-2 space-y-1 text-[13px] text-slate-600">
-          {item.speaker && (
-            <p className="flex items-start gap-2">
-              <UserRound className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /> <span>{item.speaker}</span>
-            </p>
-          )}
-          {item.secretary && (
-            <p className="flex items-start gap-2">
-              <NotebookPen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /> <span><span className="text-slate-400">เลขาฯวิชา</span> {item.secretary}</span>
-            </p>
-          )}
           {item.location && (
             <p className="flex items-start gap-2">
               <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /> <span>{item.location}</span>
@@ -161,7 +190,7 @@ function ClassCard({ item, status, isNext, onEdit }) {
 }
 
 /** การ์ดเด่นด้านบน: วิชาที่กำลังเรียนอยู่ หรือวิชาถัดไป */
-function HeroCard({ item, live, today, onJump }) {
+function HeroCard({ item, live, today, onJump, findPerson }) {
   return (
     <button
       type="button"
@@ -187,12 +216,16 @@ function HeroCard({ item, live, today, onJump }) {
             <MapPin className="h-3.5 w-3.5" /> {item.location}
           </span>
         )}
-        {item.speaker && (
-          <span className="inline-flex items-center gap-1.5">
-            <UserRound className="h-3.5 w-3.5" /> {item.speaker}
-          </span>
-        )}
       </div>
+      {item.speaker && (
+        <div className="mt-3 flex items-center gap-2.5 border-t border-white/10 pt-3">
+          <Face match={findPerson(item.speaker)} className="h-10 w-10 ring-2 ring-white/20" dark />
+          <span className="min-w-0">
+            <span className="block text-[11px] text-white/60">อาจารย์ผู้บรรยาย</span>
+            <span className="block text-[14px] font-semibold leading-snug">{item.speaker}</span>
+          </span>
+        </div>
+      )}
     </button>
   );
 }
@@ -206,6 +239,9 @@ export default function ClassPage() {
   const [selected, setSelected] = useState(() => (ui.view && ui.view.date) || today);
 
   const classes = useMemo(() => [...data.classes].sort(compareClass), [data.classes]);
+  const findPerson = useMemo(() => buildPeopleIndex(data.instructors, data.staff), [data.instructors, data.staff]);
+  const [sheetIns, setSheetIns] = useState(null);
+  const onPerson = (match) => (match.type === 'instructor' ? setSheetIns(match.rec) : ui.go('about'));
   const statusOf = useMemo(() => new Map(classes.map((c) => [c.id, classStatus(c, now)])), [classes, now]);
   const live = classes.find((c) => statusOf.get(c.id) === 'now');
   const next = classes.find((c) => statusOf.get(c.id) === 'upcoming');
@@ -250,7 +286,7 @@ export default function ClassPage() {
         </div>
       ) : (
         <>
-          {hero && <HeroCard item={hero} live={!!live} today={today} onJump={() => setSelected(hero.class_date)} />}
+          {hero && <HeroCard item={hero} live={!!live} today={today} onJump={() => setSelected(hero.class_date)} findPerson={findPerson} />}
 
           <div className="mt-3" />
           <TopBarSentinel />
@@ -301,12 +337,15 @@ export default function ClassPage() {
                   status={statusOf.get(c.id)}
                   isNext={!!next && next.id === c.id && !live}
                   onEdit={isAdmin ? () => ui.openClassForm(c) : null}
+                  findPerson={findPerson}
+                  onPerson={onPerson}
                 />
               ))}
             </div>
           )}
         </>
       )}
+      <InstructorSheet ins={sheetIns} onClose={() => setSheetIns(null)} />
     </div>
   );
 }
