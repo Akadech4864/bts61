@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarDays, ChevronRight, GraduationCap, Landmark, MapPin, Pencil, Phone, Plus, Users } from 'lucide-react';
 import { Photo } from '../components/Avatar';
-import { Button, EmptyState, Skeleton } from '../components/ui';
+import { Button, EmptyState, FitText, Skeleton } from '../components/ui';
 import RecordForm from '../components/RecordForm';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -92,11 +92,11 @@ export function CourseInfoPanel() {
 
       <section className="glass rounded-3xl p-5">
         <div className="flex items-center gap-4">
-          <img src="./logo.jpg" alt="" className="h-16 w-16 shrink-0 rounded-full bg-white object-cover shadow-[0_6px_16px_-6px_rgb(11_28_54/0.4)] ring-2 ring-white/80" />
-          <div className="min-w-0">
+          <img src="./logo.jpg" alt="" className="h-12 w-12 shrink-0 rounded-full bg-white object-cover shadow-[0_6px_16px_-6px_rgb(11_28_54/0.4)] ring-2 ring-white/80" />
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-gold-600">บตส. {COURSE_BATCH}</p>
-            <h2 className="text-xl font-bold leading-snug text-navy-900">{COURSE_SUBTITLE}</h2>
-            <p className="text-[13px] font-medium text-slate-500">{COURSE_BATCH}</p>
+            {/* ชื่อหลักสูตรบรรทัดเดียว ย่อขนาดให้พอดีจอ */}
+            <FitText as="h2" text={COURSE_SUBTITLE} max={20} min={14} className="font-bold leading-snug text-navy-900" />
           </div>
         </div>
         <dl className="mt-4 space-y-2.5 text-[14px]">
@@ -112,7 +112,9 @@ export function CourseInfoPanel() {
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-navy-500" />
             <div>
               <dt className="sr-only">สถานที่</dt>
-              <dd className="font-medium text-slate-800">{COURSE_ROOM}</dd>
+              {/* ห้องเรียน / สถานที่ แยกบรรทัด ไม่ให้ชื่อสถานที่ขาดกลางคำ */}
+              <dd className="font-medium text-slate-800">{COURSE_ROOM.replace(/\s*วิทยาลัยการตำรวจ$/, '')}</dd>
+              <dd className="text-[12px] text-slate-500">วิทยาลัยการตำรวจ</dd>
             </div>
           </div>
           {counts.all > 0 && (

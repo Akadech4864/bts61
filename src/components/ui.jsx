@@ -258,6 +258,41 @@ export function Segmented({ options, value, onChange, className, size = 'md' }) 
   );
 }
 
+let fitCanvas = null;
+/**
+ * ข้อความบรรทัดเดียวที่ย่อขนาดตัวอักษรให้พอดีความกว้าง (ไม่ขึ้นบรรทัดใหม่ ไม่ล้น)
+ * พ่อแม่ต้องมีความกว้างแน่นอน เช่น min-w-0 flex-1
+ */
+export function FitText({ text, max = 22, min = 13, as: Tag = 'p', className }) {
+  const ref = useRef(null);
+  const [size, setSize] = useState(max);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !el.parentElement) return undefined;
+    const measure = () => {
+      const avail = el.parentElement.clientWidth;
+      if (!avail) return;
+      const style = getComputedStyle(el);
+      fitCanvas = fitCanvas || document.createElement('canvas');
+      const ctx = fitCanvas.getContext('2d');
+      ctx.font = `${style.fontWeight} 100px ${style.fontFamily}`;
+      const width = ctx.measureText(text).width;
+      // เผื่อ 4% สำหรับสระ/วรรณยุกต์ที่วัดได้ไม่แม่น
+      setSize(width ? Math.max(min, Math.min(max, (avail * 0.96 * 100) / width)) : max);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el.parentElement);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    return () => observer.disconnect();
+  }, [text, max, min]);
+  return (
+    <Tag ref={ref} className={cx('overflow-hidden text-ellipsis whitespace-nowrap', className)} style={{ fontSize: size }}>
+      {text}
+    </Tag>
+  );
+}
+
 /** แท็บย่อยเต็มความกว้างใต้หัวหน้า (ใช้แบ่งหมวดในเมนูใหญ่ เช่น ตารางสอน/ตารางเวร) */
 export function SubTabs({ options, value, onChange, label, className }) {
   return (

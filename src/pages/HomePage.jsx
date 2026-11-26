@@ -3,7 +3,7 @@ import { AlarmClock, ArrowLeftRight, CalendarDays, ChevronRight, ClipboardList, 
 import { Photo } from '../components/Avatar';
 import MoreMenuButton from '../components/MoreMenu';
 import InstructorSheet from '../components/InstructorSheet';
-import { Skeleton } from '../components/ui';
+import { FitText, Skeleton } from '../components/ui';
 import { COURSE_TITLE_SHORT } from '../config';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -17,6 +17,13 @@ import { firstNameShort, swapMarks } from '../components/DutySwap';
 import DutyHero from '../components/DutyHero';
 
 const ROLE_ORDER = ['เวรทั่วไป', 'เวรรับอาจารย์'];
+
+/** "วันพฤหัสบดีที่ 26 พ.ย. 2569" */
+function headerDate(d) {
+  const weekday = new Intl.DateTimeFormat('th-TH', { weekday: 'long' }).format(d);
+  const month = new Intl.DateTimeFormat('th-TH', { month: 'short' }).format(d);
+  return `${weekday.startsWith('วัน') ? weekday : `วัน${weekday}`}ที่ ${d.getDate()} ${month} ${d.getFullYear() + 543}`;
+}
 
 /** "1 ชม. 20 นาที" / "25 นาที" */
 function durationLabel(ms) {
@@ -291,9 +298,10 @@ export default function HomePage() {
           <MoreMenuButton />
         </div>
         <div className="flex items-end justify-between gap-3 pb-1 pt-2">
-          <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-gold-600">{courseLine || 'วันนี้'}</p>
-            <h1 className="text-[22px] font-bold leading-tight tracking-tight text-navy-900">{formatDate(today, 'long')}</h1>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-semibold text-gold-600">{courseLine || 'วันนี้'}</p>
+            {/* วันที่บรรทัดเดียว (ชื่อเดือนแบบย่อ) ย่อขนาดให้พอดีกับพื้นที่ข้างนาฬิกา */}
+            <FitText as="h1" text={headerDate(now)} max={22} min={15} className="font-bold leading-tight tracking-tight text-navy-900" />
           </div>
           <p className="shrink-0 text-[34px] font-bold leading-none tracking-tight text-navy-900 tabular-nums" aria-label={`เวลา ${clock} น.`}>{clock}</p>
         </div>
