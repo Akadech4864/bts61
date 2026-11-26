@@ -13,7 +13,8 @@ import {
 } from '../lib/utils';
 import { buildPeopleIndex, faceOf, FEATURED_SUBJECT, NON_SUBJECTS } from '../lib/course';
 import { isCourseSubject, subjectKey } from '../lib/docs';
-import { firstNameShort } from '../components/DutySwap';
+import { firstNameShort, swapMarks } from '../components/DutySwap';
+import DutyHero from '../components/DutyHero';
 
 const ROLE_ORDER = ['เวรทั่วไป', 'เวรรับอาจารย์'];
 
@@ -253,6 +254,22 @@ export default function HomePage() {
     [data.duty, data.members, memberById, dutyDate],
   );
   const pendingSwaps = (data.swaps || []).filter((s) => s.status === 'pending').length;
+  const dutyMarks = useMemo(() => swapMarks(data.swaps), [data.swaps]);
+  // จัดกลุ่มตามหน้าที่สำหรับการ์ดเด่น
+  const dutyGroups = [];
+  dutyToday.forEach((e) => {
+    let g = dutyGroups.find((x) => x.role === e.role);
+    if (!g) dutyGroups.push((g = { role: e.role, entries: [] }));
+    g.entries.push(e);
+  });
+  const dutyNextDate = dutyDates.find((x) => x > dutyDate) || '';
+  const dutyNext = dutyNextDate
+    ? {
+      date: dutyNextDate,
+      names: data.duty.filter((d) => d.duty_date === dutyNextDate)
+        .flatMap((d) => resolveDuty(d, memberById, data.members).members.map(nickOf)).join(' / '),
+    }
+    : null;
 
   // งานที่ต้องส่ง: เอกสารศึกษาแสดงเป็นการ์ดเตือนแยก วิชาอื่นแสดงในรายการด้านล่าง
   const isStudy = (r) => subjectKey(r.subject) === subjectKey(FEATURED_SUBJECT);
@@ -343,25 +360,15 @@ export default function HomePage() {
           )}
 
           {dutyToday.length > 0 && (
-            <Section icon={ShieldCheck} title={dutyDate === today ? 'เวรวันนี้' : `เวรถัดไป · ${relativeDay(dutyDate, today)}`} action="ตารางเวร" onAction={() => ui.go('duty')}>
-              <div className="grid grid-cols-2 gap-2.5">
-                {dutyToday.map(({ item, role, people }) => (
-                  <div key={item.id} className="glass rounded-3xl p-3">
-                    <p className="mb-2 truncate text-[12px] font-semibold text-slate-500">{role}</p>
-                    {people.members.map((m) => (
-                      <button key={m.id} type="button" onClick={() => ui.openProfile(m.id)} className="flex w-full items-center gap-2.5 rounded-2xl text-left transition active:scale-[0.98]">
-                        <Photo member={m} width={160} className="h-12 w-12 shrink-0 rounded-full object-[center_20%] ring-2 ring-white" textClass="text-sm" />
-                        <span className="min-w-0">
-                          <span className="block truncate text-[15px] font-bold leading-tight text-navy-900">{nickOf(m)}</span>
-                          <span className="block truncate text-[12px] text-slate-500">{firstNameShort(m)}</span>
-                        </span>
-                      </button>
-                    ))}
-                    {people.extras.map((name) => <p key={name} className="text-[13px] text-slate-700">{name}</p>)}
-                    {!people.members.length && !people.extras.length && <p className="text-[13px] leading-snug text-slate-500">{item.note || 'ยังไม่ระบุ'}</p>}
-                  </div>
-                ))}
-              </div>
+            <Section icon={ShieldCheck} title="เวร" action="ตารางเวร" onAction={() => ui.go('duty')}>
+              <DutyHero
+                date={dutyDate}
+                today={today}
+                groups={dutyGroups}
+                marks={dutyMarks}
+                onOpen={ui.openProfile}
+                next={dutyNext}
+              />
               {pendingSwaps > 0 && (
                 <button type="button" onClick={() => ui.go('duty')} className="mt-2 flex w-full items-center gap-2 rounded-2xl bg-amber-400/20 px-3 py-2 text-left text-[13px] font-semibold text-amber-800">
                   <ArrowLeftRight className="h-4 w-4" /> มีคำขอสลับเวรรออนุมัติ {pendingSwaps} รายการ{isAdmin ? ' · แตะเพื่อพิจารณา' : ''}

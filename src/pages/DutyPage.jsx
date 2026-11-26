@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MissingMarks } from '../components/MissingMarks';
+import DutyHero from '../components/DutyHero';
 import { ArrowLeftRight, CalendarClock, ChevronUp, History, Pencil, Plus, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
 import MoreMenuButton from '../components/MoreMenu';
 import { Photo } from '../components/Avatar';
@@ -104,7 +105,13 @@ function RoleCard({ role, entries, mineId, onOpen, onEdit, marks }) {
 
 /** ตารางเวรแบบการ์ดรายวัน (เหมือน "เวรวันนี้" ในหน้าแรก): 1 การ์ด = 1 วัน แบ่งช่องตามหน้าที่ */
 function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit, marks }) {
-  const anchor = (weeks.flatMap((w) => w.days).find((d) => d.date >= today) || {}).date;
+  const allDays = weeks.flatMap((w) => w.days);
+  const anchor = (allDays.find((d) => d.date >= today) || {}).date;
+  // เวรวันถัดไปหลังการ์ดเด่น (แสดงท้ายการ์ด)
+  const nextDay = anchor ? allDays.find((d) => d.date > anchor) : null;
+  const nextInfo = nextDay
+    ? { date: nextDay.date, names: roles.flatMap((r) => (nextDay.byRole[r] || []).flatMap((e) => e.people.members.map(nickOf))).join(' / ') }
+    : null;
   return (
     <div className="space-y-5">
       {weeks.map((w) => (
@@ -114,10 +121,26 @@ function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit, marks }) {
             {w.days.map((day) => {
               const d = parseISODate(day.date);
               const isToday = day.date === today;
+              if (day.date === anchor) {
+                // วันนี้ (หรือวันเวรถัดไป) แสดงเป็นการ์ดเด่น แบบเดียวกับวิชาที่กำลังเรียน
+                return (
+                  <div key={day.date} data-duty-anchor="true">
+                    <DutyHero
+                      date={day.date}
+                      today={today}
+                      groups={roles.map((r) => ({ role: r, entries: day.byRole[r] || [] }))}
+                      marks={marks}
+                      mineId={mineId}
+                      onOpen={onOpen}
+                      onEdit={onEdit}
+                      next={nextInfo}
+                    />
+                  </div>
+                );
+              }
               return (
                 <article
                   key={day.date}
-                  data-duty-anchor={day.date === anchor ? 'true' : undefined}
                   className={cx('glass rounded-3xl p-3', isToday && 'ring-2 ring-gold-400', day.date < today && 'opacity-55')}
                 >
                   <div className="mb-2 flex items-center gap-2 px-1">
