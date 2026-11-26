@@ -124,6 +124,15 @@ function demoStaff() {
   }));
 }
 
+const DEMO_PROFILE = [
+  '# ข้อมูลทั่วไป', 'ตำแหน่งปัจจุบัน: อาจารย์ (ตัวอย่าง)', 'สังกัด: หน่วยงานตัวอย่าง',
+  '# ข้อมูลการติดต่อ', 'อีเมล: demo.instructor@example.com',
+  '# ประวัติการศึกษา', 'ปริญญาเอก: ปรัชญาดุษฎีบัณฑิต มหาวิทยาลัยตัวอย่าง', 'ปริญญาโท: นิติศาสตรมหาบัณฑิต มหาวิทยาลัยตัวอย่าง',
+  '# ประวัติการฝึกอบรม', 'หลักสูตรตัวอย่าง รุ่นที่ 1', 'หลักสูตรตัวอย่าง รุ่นที่ 2', 'หลักสูตรตัวอย่าง รุ่นที่ 3', 'หลักสูตรตัวอย่าง รุ่นที่ 4',
+  'หลักสูตรตัวอย่าง รุ่นที่ 5', 'หลักสูตรตัวอย่าง รุ่นที่ 6', 'หลักสูตรตัวอย่าง รุ่นที่ 7', 'หลักสูตรตัวอย่าง รุ่นที่ 8',
+  '# ประสบการณ์การเป็นวิทยากร', 'หัวข้อตัวอย่าง — หน่วยงานตัวอย่าง',
+].join('\n');
+
 function demoInstructors() {
   return [
     [1, 'e', 'ผศ.ดร.ตัวอย่าง วิชาการ', 'อาจารย์มหาวิทยาลัยตัวอย่าง', ['1.3 สัมมนากลุ่มวิชาบริหารจัดการ|อาจารย์พิเศษ', '5 วิชาเอกสารศึกษา|อาจารย์พิเศษ']],
@@ -132,7 +141,8 @@ function demoInstructors() {
     [2, 'p', 'พ.ต.ต.หญิง สาธิต ใจดี', 'อาจารย์ (สบ 2) ตัวอย่าง', ['2.3 สัมมนาปัญหาการบริหารงานจราจร|อาจารย์ประจำ', '5 วิชาเอกสารศึกษา|อาจารย์ประจำ']],
   ].map((x, i) => ({
     id: uid('i'), sort: String(i + 1), group_no: String(x[0]), kind: x[1], name: x[2], position: x[3], subjects: x[4].join('\n'),
-    expertise: 'หัวข้อตัวอย่าง', education: 'ป.เอก (ตัวอย่าง)', links: '', phone: '', photo_url: '', photo_file_id: '', updated_at: now(),
+    expertise: 'หัวข้อตัวอย่าง', education: 'ป.เอก (ตัวอย่าง)', links: i === 0 ? 'ไฟล์ประวัติส่วนบุคคล|https://www.example.com/' : '', phone: '',
+    profile: i === 0 ? DEMO_PROFILE : '', photo_url: '', photo_file_id: '', updated_at: now(),
   }));
 }
 
@@ -150,7 +160,7 @@ function demoResources(today) {
 
 const COLLECTION_FIELDS = {
   staff: ['sort', 'rank', 'first_name', 'last_name', 'nickname', 'role', 'phone'],
-  instructors: ['sort', 'name', 'position', 'kind', 'group_no', 'expertise', 'education', 'subjects', 'links', 'phone'],
+  instructors: ['sort', 'name', 'position', 'kind', 'group_no', 'expertise', 'education', 'subjects', 'profile', 'links', 'phone'],
   resources: ['sort', 'subject', 'type', 'title', 'detail', 'url', 'due_date', 'due_time'],
 };
 const REQUIRED = { staff: 'first_name', instructors: 'name', resources: 'title' };

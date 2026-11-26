@@ -107,6 +107,26 @@ export function detailLines(text) {
     });
 }
 
+/**
+ * ประวัติวิทยากร: บรรทัด "# หัวข้อ" เริ่มหัวข้อใหม่ บรรทัดอื่นเป็นรายการในหัวข้อนั้น
+ * คืน [{ title, items: [{ label, text }] }]
+ */
+export function parseProfile(text) {
+  const out = [];
+  String(text || '').split(/\r?\n/).forEach((raw) => {
+    const line = raw.trim();
+    if (!line) return;
+    const h = /^#+\s*(.+)$/.exec(line);
+    if (h) {
+      out.push({ title: h[1].trim(), items: [] });
+      return;
+    }
+    if (!out.length) out.push({ title: 'ประวัติ', items: [] });
+    out[out.length - 1].items.push(...detailLines(line));
+  });
+  return out.filter((s) => s.items.length);
+}
+
 /** ชื่อผู้บรรยายสำหรับจัดกลุ่ม: ตัด "และคณะ" ออก */
 export const speakerKey = (name) => String(name || '').replace(/\s*และคณะ\s*$/, '').trim();
 

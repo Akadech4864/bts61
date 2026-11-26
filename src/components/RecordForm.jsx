@@ -34,7 +34,7 @@ const CONFIG = {
   instructors: {
     titles: ['เพิ่มอาจารย์', 'แก้ไขข้อมูลอาจารย์'],
     photo: true,
-    blank: { name: '', position: '', kind: 'p', group_no: '', sort: '', expertise: '', education: '', subjects: '', links: '', phone: '' },
+    blank: { name: '', position: '', kind: 'p', group_no: '', sort: '', expertise: '', education: '', subjects: '', profile: '', links: '', phone: '' },
     required: ['name', 'กรุณากรอกชื่ออาจารย์'],
     fields: [
       { key: 'name', label: 'ยศ ชื่อ-สกุล', required: true, placeholder: 'เช่น พ.ต.อ.ดร.สมชาย ใจดี' },
@@ -48,7 +48,12 @@ const CONFIG = {
         key: 'subjects', label: 'วิชาที่สอนในหลักสูตร', textarea: true, rows: 5,
         placeholder: '5 วิชาเอกสารศึกษา | อาจารย์ประจำ', hint: 'บรรทัดละ 1 วิชา — ชื่อวิชา | บทบาท',
       },
-      { key: 'links', label: 'ไฟล์ประวัติ / ลิงก์', textarea: true, placeholder: 'ไฟล์ประวัติส่วนบุคคล | https://…', hint: 'บรรทัดละ 1 รายการ — ชื่อ | ลิงก์' },
+      {
+        key: 'profile', label: 'ประวัติวิทยากร (โดยละเอียด)', textarea: true, rows: 10,
+        placeholder: '# ประวัติการศึกษา\nปริญญาโท: นิติศาสตรมหาบัณฑิต …\n# ประวัติการทำงาน\nพนักงานสอบสวน …',
+        hint: 'บรรทัดที่ขึ้นต้นด้วย # คือหัวข้อ · บรรทัดอื่นคือรายการในหัวข้อนั้น · "หัวข้อย่อย: รายละเอียด" จะแสดงหัวข้อย่อยเป็นตัวหนา',
+      },
+      { key: 'links', label: 'ไฟล์ต้นฉบับ / ลิงก์', textarea: true, placeholder: 'ไฟล์ประวัติส่วนบุคคล | https://…', hint: 'บรรทัดละ 1 รายการ — ชื่อ | ลิงก์' },
       { key: 'phone', label: 'เบอร์โทรศัพท์', type: 'tel' },
     ],
   },
