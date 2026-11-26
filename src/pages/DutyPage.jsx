@@ -2,15 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MissingMarks } from '../components/MissingMarks';
 import DutyHero from '../components/DutyHero';
 import DutyScanSheet from '../components/DutyScanSheet';
-import { ArrowLeftRight, CalendarClock, ChevronUp, History, Pencil, Plus, ScanText, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
+import { DateStrip, buildStrip } from './ClassPage';
+import { ArrowLeftRight, CalendarClock, ChevronLeft, ChevronRight, ChevronUp, History, Pencil, Plus, ScanText, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
-import { Button, EmptyState, PageHeader, Skeleton, TopBarSentinel } from '../components/ui';
+import { Button, EmptyState, PageHeader, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import { SwapDot, SwapForm, SwapHistory, firstNameShort, markOf, swapMarks } from '../components/DutySwap';
 import MemberSuggest from '../components/MemberSuggest';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import {
-  addDays, cx, daysBetween, fullName, guessMembers, nickOf, normalize, parseISODate, queryTokens, relativeDay, resolveDuty,
+  addDays, cx, daysBetween, readStored, writeStored, fullName, guessMembers, nickOf, normalize, parseISODate, queryTokens, relativeDay, resolveDuty,
   thCompare, toISODate, useNow, usePersistentState,
 } from '../lib/utils';
 
@@ -18,6 +19,11 @@ const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.'
 const WEEKDAYS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
 // คอลัมน์ที่ขึ้นก่อน (หน้าที่อื่นเรียงตามที่พบในข้อมูล)
 const ROLE_ORDER = ['เวรทั่วไป', 'เวรรับอาจารย์'];
+const DUTY_VIEWS = [
+  { value: 'day', label: 'รายวัน' },
+  { value: 'week', label: 'รายสัปดาห์' },
+  { value: 'all', label: 'ทั้งหมด' },
+];
 
 /** วันจันทร์ของสัปดาห์ที่มีวันนั้น */
 function mondayOf(iso) {
@@ -231,17 +237,18 @@ export default function DutyPage({ switcher }) {
   const visible = entries.filter(
     (e) => (!mine || e.people.members.some((m) => m.id === mine.id)) && tokens.every((t) => e.text.includes(t)),
   );
-  // เริ่มที่เวรวันนี้ (หรือวันเวรถัดไป) เสมอ — วันที่ผ่านมาแล้วซ่อนไว้ กด "ดูวันที่ผ่านมา" เพื่อดูทั้งหมด
-  const [showPast, setShowPast] = useState(false);
-  const hasUpcoming = visible.some((e) => e.item.duty_date >= today);
-  const shown = showPast || !hasUpcoming ? visible : visible.filter((e) => e.item.duty_date >= today);
-  const pastDays = new Set(visible.filter((e) => e.item.duty_date < today).map((e) => e.item.duty_date)).size;
-  useEffect(() => {
-    // เปิดดูวันที่ผ่านมาแล้ว ให้แถววันนี้ยังอยู่บนสุดของจอ (ใต้แถบค้นหา) — เลื่อนขึ้นเองเพื่อดูวันก่อนหน้า
-    if (!showPast) return;
-    const row = document.querySelector('[data-duty-anchor]');
-    if (row) window.scrollTo(0, row.getBoundingClientRect().top + window.scrollY - 150);
-  }, [showPast]);
+  const shown = visible;
+  // มุมมอง: รายวัน / รายสัปดาห์ / ทั้งหมด (จำไว้ในเครื่อง) — เปิดมาที่เวรวันนี้เสมอ
+  const [mode, setModeState] = useState(() => {
+    const v = readStored('bts61:duty-view', 'all');
+    return DUTY_VIEWS.some((o) => o.value === v) ? v : 'all';
+  });
+  const setMode = (m) => {
+    setModeState(m);
+    writeStored('bts61:duty-view', m);
+  };
+  const [selected, setSelected] = useState(today);
+  const [weekKey, setWeekKey] = useState(() => mondayOf(today));
 
   const roles = useMemo(() => {
     const found = [...new Set(entries.map((e) => e.role))];
@@ -271,6 +278,31 @@ export default function DutyPage({ switcher }) {
     });
     return [...out.values()];
   }, [shown, courseMonday]);
+
+  const weekIndex = Math.max(0, weeks.findIndex((w) => w.key === weekKey) === -1
+    ? weeks.findIndex((w) => w.key >= mondayOf(today))
+    : weeks.findIndex((w) => w.key === weekKey));
+  const stripDays = useMemo(() => buildStrip(shown.map((e) => ({ class_date: e.item.duty_date })), today, selected), [shown, today, selected]);
+  const selectedDay = weeks.flatMap((w) => w.days.map((day) => ({ week: w, day }))).find((x) => x.day.date === selected);
+  const viewWeeks = mode === 'all' ? weeks
+    : mode === 'week' ? (weeks[weekIndex] ? [weeks[weekIndex]] : [])
+      : selectedDay ? [{ ...selectedDay.week, days: [selectedDay.day] }] : [];
+  const scrollToToday = () => {
+    setTimeout(() => {
+      const el = document.querySelector('[data-duty-anchor]');
+      window.scrollTo(0, el && mode !== 'day' ? Math.max(0, el.getBoundingClientRect().top + window.scrollY - 150) : 0);
+    }, 120);
+  };
+  /** กลับมาที่วันนี้ */
+  const goToday = () => {
+    setSelected(today);
+    setWeekKey(mondayOf(today));
+    scrollToToday();
+  };
+  // เปลี่ยนมุมมอง (และตอนเปิดหน้า) ให้เริ่มที่เวรวันนี้
+  useEffect(() => {
+    if (status !== 'loading') scrollToToday();
+  }, [mode, status === 'loading']); // eslint-disable-line react-hooks/exhaustive-deps
 
   const marks = useMemo(() => swapMarks(data.swaps), [data.swaps]);
   const pendingSwaps = (data.swaps || []).filter((x) => x.status === 'pending').length;
@@ -320,8 +352,7 @@ export default function DutyPage({ switcher }) {
       </PageHeader>
 
       {/* ค้นหาเวรของตัวเอง: พิมพ์ชื่อแล้วแตะเลือก ระบบจะจำไว้ในเครื่องนี้ */}
-      <TopBarSentinel />
-      <div className="topbar sticky-glass sticky top-0 z-20 -mx-4 px-4 py-2">
+      <div>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <input
@@ -383,22 +414,49 @@ export default function DutyPage({ switcher }) {
         <EmptyState icon={ShieldCheck} title="ยังไม่มีตารางเวรในระบบ" description="ผู้ดูแลระบบเพิ่มตารางเวรได้จากเมนู ตั้งค่า/แอดมิน" />
       ) : (
         <>
-          {weeks.length === 0 ? (
+          <div className="mt-2" />
+          <TopBarSentinel />
+          <div className="topbar sticky-glass sticky top-0 z-20 -mx-4 space-y-2 px-4 py-2">
+            <div className="flex items-center gap-2">
+              <Segmented size="sm" value={mode} onChange={setMode} options={DUTY_VIEWS} className="min-w-0 flex-1 [&>button]:flex-1" />
+              <button
+                type="button"
+                onClick={goToday}
+                className="btn-gold h-10 shrink-0 rounded-full px-3.5 text-[13px] font-semibold text-white transition active:scale-95"
+              >
+                วันนี้
+              </button>
+            </div>
+            {mode === 'day' && <DateStrip days={stripDays} selected={selected} today={today} onSelect={setSelected} />}
+            {mode === 'week' && weeks.length > 0 && (
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={weekIndex <= 0} onClick={() => setWeekKey(weeks[weekIndex - 1].key)} aria-label="สัปดาห์ก่อนหน้า" className="glass grid h-10 w-10 shrink-0 place-items-center rounded-full text-navy-700 disabled:opacity-35">
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <p className="min-w-0 flex-1 truncate text-center text-[13.5px] font-bold text-navy-900">{weeks[weekIndex].label}</p>
+                <button type="button" disabled={weekIndex >= weeks.length - 1} onClick={() => setWeekKey(weeks[weekIndex + 1].key)} aria-label="สัปดาห์ถัดไป" className="glass grid h-10 w-10 shrink-0 place-items-center rounded-full text-navy-700 disabled:opacity-35">
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="mt-2" />
+
+          {viewWeeks.length === 0 ? (
             <EmptyState
               icon={mine || query ? UserRoundSearch : CalendarClock}
-              title="ไม่พบรายการเวร"
-              description={mine || query ? 'ลองล้างคำค้น หรือกด "ดูทั้งหมด" เพื่อดูเวรของทุกคน' : undefined}
+              title={mode === 'day' ? 'ไม่มีเวรในวันนี้' : 'ไม่พบรายการเวร'}
+              description={mine || query ? 'ลองล้างคำค้น หรือกด "ดูทั้งหมด" เพื่อดูเวรของทุกคน' : mode === 'day' ? 'เลือกวันอื่นจากแถบวันที่ (วันที่มีจุดสีทองคือวันที่มีเวร)' : undefined}
             />
           ) : (
             <DutyTable
-              weeks={weeks}
+              weeks={viewWeeks}
               roles={roles}
               today={today}
               mineId={mine && mine.id}
               onOpen={ui.openProfile}
               onEdit={isAdmin ? ui.openDutyForm : null}
               marks={marks}
-              pastToggle={hasUpcoming && pastDays > 0 ? { count: pastDays, open: showPast, onToggle: () => setShowPast((v) => !v) } : null}
             />
           )}
           <p className="mt-4 px-2 text-center text-xs leading-relaxed text-slate-400">

@@ -15,7 +15,7 @@ const WEEKDAYS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
 const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
 /** วันที่ในแถบเลือกวัน: ต่อเนื่องตลอดช่วงหลักสูตร (ถ้าช่วงยาวเกินไปจะแสดงเฉพาะวันที่มีเรียน) */
-function buildStrip(classes, today, selected) {
+export function buildStrip(classes, today, selected) {
   const withClass = new Set(classes.map((c) => c.class_date).filter(Boolean));
   const all = [...new Set([...withClass, today, selected])].sort();
   const first = all[0];
@@ -32,7 +32,7 @@ function buildStrip(classes, today, selected) {
   return days.map((iso) => ({ iso, has: withClass.has(iso) }));
 }
 
-function DateStrip({ days, selected, today, onSelect }) {
+export function DateStrip({ days, selected, today, onSelect }) {
   const scroller = useRef(null);
   const activeRef = useRef(null);
 
@@ -418,6 +418,15 @@ export default function ClassPage({ switcher }) {
     window.scrollTo(0, 0);
   };
   const openSubject = (subject) => ui.go('course', { tab: 'docs', subject });
+  /** กลับมาที่วันนี้: รายวัน = เลือกวันนี้, รายสัปดาห์ = สัปดาห์นี้, แล้วเลื่อนไปที่การ์ดวันนี้ */
+  const goToday = () => {
+    setSelected(today);
+    setWeekKey(mondayOfDate(today));
+    setTimeout(() => {
+      const el = mode === 'day' ? null : document.querySelector('[data-week-today]');
+      window.scrollTo(0, el ? Math.max(0, el.getBoundingClientRect().top + window.scrollY - 140) : 0);
+    }, 80);
+  };
   const nextId = next && !live ? next.id : '';
   // รายสัปดาห์ / ทั้งหลักสูตร: เปิดมาที่การ์ดวันนี้ก่อน (เว้นที่ให้แถบลอยด้านบน)
   useEffect(() => {
@@ -449,18 +458,6 @@ export default function ClassPage({ switcher }) {
         title="ตาราง"
         right={
           <div className="flex shrink-0 items-center gap-2">
-            {(mode === 'day' ? selected !== today : mode === 'week' && weekKey !== mondayOfDate(today)) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelected(today);
-                  setWeekKey(mondayOfDate(today));
-                }}
-                className="btn-gold h-10 rounded-full px-3.5 text-sm font-semibold text-white transition active:scale-95"
-              >
-                วันนี้
-              </button>
-            )}
             <label className="glass relative grid h-11 w-11 cursor-pointer place-items-center rounded-full text-navy-700" title="เลือกวันที่">
               <CalendarSearch className="h-5 w-5" />
               <input
@@ -504,7 +501,16 @@ export default function ClassPage({ switcher }) {
           <div className="mt-3" />
           <TopBarSentinel />
           <div className="topbar sticky-glass sticky top-0 z-20 -mx-4 space-y-2 px-4 py-2">
-            <Segmented size="sm" value={mode} onChange={setMode} options={VIEW_OPTIONS} className="w-full [&>button]:flex-1" />
+            <div className="flex items-center gap-2">
+              <Segmented size="sm" value={mode} onChange={setMode} options={VIEW_OPTIONS} className="min-w-0 flex-1 [&>button]:flex-1" />
+              <button
+                type="button"
+                onClick={goToday}
+                className="btn-gold h-10 shrink-0 rounded-full px-3.5 text-[13px] font-semibold text-white transition active:scale-95"
+              >
+                วันนี้
+              </button>
+            </div>
             {mode === 'day' && <DateStrip days={days} selected={selected} today={today} onSelect={setSelected} />}
             {mode === 'week' && weeks.length > 0 && (
               <div className="flex items-center gap-2">
