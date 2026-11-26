@@ -318,7 +318,7 @@ export default function ClassPage({ switcher }) {
         </div>
       ) : (
         <>
-          {hero && hero.class_date !== selected && <HeroCard item={hero} live={!!live} today={today} onJump={() => setSelected(hero.class_date)} findPerson={findPerson} />}
+          {hero && <HeroCard item={hero} live={!!live} today={today} onJump={() => setSelected(hero.class_date)} findPerson={findPerson} />}
 
           <div className="mt-3" />
           <TopBarSentinel />
