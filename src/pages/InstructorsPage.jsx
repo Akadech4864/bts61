@@ -95,7 +95,7 @@ function SubjectsView({ instructors, subjects, selected, onOpen, onAdd }) {
 
 /* ------------------------------ มุมมอง: อาจารย์ประจำกลุ่ม ------------------------------ */
 
-function GroupsView({ instructors, members, onOpen }) {
+export function GroupsView({ instructors, members, onOpen, bare = false }) {
   const groups = useMemo(() => {
     const map = new Map();
     instructors.forEach((ins) => {
@@ -120,7 +120,7 @@ function GroupsView({ instructors, members, onOpen }) {
   }
   return (
     <div className="space-y-3">
-      <div className="glass-dark rounded-3xl p-4">
+      <div className={cx('glass-dark rounded-3xl p-4', bare && 'hidden')}>
         <p className="text-xs font-semibold text-gold-300">วิชาเอกสารศึกษา</p>
         <h2 className="mt-0.5 text-lg font-bold leading-snug">อาจารย์ประจำกลุ่ม</h2>
         <p className="mt-1 text-[13px] text-white/70">{groups.length} กลุ่ม · กลุ่มละ {Math.max(...groups.map(([, list]) => list.length))} ท่าน</p>

@@ -5,10 +5,12 @@ import {
 } from 'lucide-react';
 import { EmptyState, Skeleton } from '../components/ui';
 import RecordForm from '../components/RecordForm';
+import InstructorSheet from '../components/InstructorSheet';
+import { GroupsView } from './InstructorsPage';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { cx, daysBetween, formatDate, normalize, queryTokens, timeRange, toISODate, useNow } from '../lib/utils';
-import { detailLines, FEATURED_SUBJECT, kindTone, safeHref } from '../lib/course';
+import { bySort, detailLines, FEATURED_SUBJECT, kindTone, safeHref } from '../lib/course';
 import { buildSubjects, categoryLabel, DOC_CATEGORIES, docCategory, fileSizeLabel, hostOf, subjectKey } from '../lib/docs';
 
 function SectionTitle({ icon: Icon, children, right }) {
@@ -242,25 +244,31 @@ function InfoCard({ item, onEdit }) {
 }
 
 /** หน้ารายวิชา: เอกสาร/สื่อการสอน งานที่ต้องส่ง คาบเรียน และข้อมูลประกอบของวิชานั้น */
-function SubjectDetail({ subject, today, onBack, onEdit, onAttach }) {
+function SubjectDetail({ subject, today, onBack, onEdit, onAttach, study = false }) {
   const { data } = useStore();
+  const [openIns, setOpenIns] = useState(null);
   const ui = useUI();
   const { name, docs, tasks, infos, sessions } = subject;
   const nextTask = tasks.find((t) => t.due_date && t.due_date >= today);
   const nextSession = sessions.find((c) => c.class_date >= today);
-  const hasGroups = name === FEATURED_SUBJECT && (data.instructors || []).some((i) => i.group_no);
+  const hasGroups = subjectKey(name) === subjectKey(FEATURED_SUBJECT) && (data.instructors || []).some((i) => i.group_no);
+  const instructors = useMemo(() => [...(data.instructors || [])].sort(bySort), [data.instructors]);
   const docsByDate = {};
   docs.forEach((d) => { if (d.class_date) docsByDate[d.class_date] = (docsByDate[d.class_date] || 0) + 1; });
 
   return (
     <div>
-      <button type="button" onClick={onBack} className="mb-2 inline-flex h-9 items-center gap-1.5 rounded-full pr-3 text-[14px] font-semibold text-navy-700 transition active:opacity-70">
-        <ArrowLeft className="h-[18px] w-[18px]" /> วิชาทั้งหมด
-      </button>
+      {onBack && (
+        <button type="button" onClick={onBack} className="mb-2 inline-flex h-9 items-center gap-1.5 rounded-full pr-3 text-[14px] font-semibold text-navy-700 transition active:opacity-70">
+          <ArrowLeft className="h-[18px] w-[18px]" /> วิชาทั้งหมด
+        </button>
+      )}
 
       <section className="glass-dark relative overflow-hidden rounded-3xl p-5">
         <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gold-400/10" />
-        <p className="text-xs font-semibold text-gold-300">{sessions.length ? `${sessions.length} คาบ · เริ่ม ${formatDate(subject.first, 'medium')}` : 'วิชา'}</p>
+        <p className="text-xs font-semibold text-gold-300">
+          {study ? 'งานเขียนรายงานเชิงวิชาการรายบุคคล' : sessions.length ? `${sessions.length} คาบ · เริ่ม ${formatDate(subject.first, 'medium')}` : 'วิชา'}
+        </p>
         <h2 className="mt-1 text-2xl font-bold leading-tight">{name}</h2>
         {(nextTask || nextSession) && (
           <div className="mt-3 space-y-1.5 text-[13px] text-white/85">
@@ -282,7 +290,7 @@ function SubjectDetail({ subject, today, onBack, onEdit, onAttach }) {
             )}
           </div>
         )}
-        {hasGroups && (
+        {hasGroups && !study && (
           <button
             type="button"
             onClick={() => ui.go('course', { tab: 'instructors', mode: 'groups' })}
@@ -293,35 +301,56 @@ function SubjectDetail({ subject, today, onBack, onEdit, onAttach }) {
         )}
       </section>
 
-      <SectionTitle icon={Presentation} right={onAttach && <AddButton onClick={() => onAttach(name)} />}>เอกสาร / สื่อการสอน</SectionTitle>
-      {docs.length ? (
-        <DocList docs={sortDocs(docs)} onEdit={onEdit} />
-      ) : (
-        <p className="glass rounded-3xl px-4 py-5 text-center text-[13px] text-slate-500">ยังไม่มีเอกสารของวิชานี้</p>
-      )}
-
-      {tasks.length > 0 && (
-        <>
-          <SectionTitle icon={ClipboardList}>กำหนดส่งงาน</SectionTitle>
-          <TaskList tasks={tasks} today={today} onEdit={onEdit} />
-        </>
-      )}
-
-      {sessions.length > 0 && (
-        <>
-          <SectionTitle icon={CalendarCheck2}>คาบเรียน</SectionTitle>
-          <SessionList sessions={sessions} today={today} docsByDate={docsByDate} onOpen={(date) => ui.go('classes', { date })} />
-        </>
-      )}
-
-      {infos.length > 0 && (
-        <>
-          <SectionTitle icon={Info}>ข้อมูลประกอบ</SectionTitle>
-          <div className="space-y-3">
-            {infos.map((item) => <InfoCard key={item.id} item={item} onEdit={onEdit} />)}
-          </div>
-        </>
-      )}
+      {(study ? ['tasks', 'groups', 'docs', 'infos', 'sessions'] : ['docs', 'tasks', 'sessions', 'infos']).map((part) => {
+        if (part === 'docs') {
+          return (
+            <div key={part}>
+              <SectionTitle icon={Presentation} right={onAttach && <AddButton onClick={() => onAttach(name)} />}>{study ? 'เอกสาร / แบบฟอร์ม / ตัวอย่าง' : 'เอกสาร / สื่อการสอน'}</SectionTitle>
+              {docs.length ? (
+                <DocList docs={sortDocs(docs)} onEdit={onEdit} />
+              ) : (
+                <p className="glass rounded-3xl px-4 py-5 text-center text-[13px] text-slate-500">ยังไม่มีเอกสาร</p>
+              )}
+            </div>
+          );
+        }
+        if (part === 'tasks' && tasks.length) {
+          return (
+            <div key={part}>
+              <SectionTitle icon={ClipboardList}>{study ? 'ขั้นตอน / กำหนดส่งงาน' : 'กำหนดส่งงาน'}</SectionTitle>
+              <TaskList tasks={tasks} today={today} onEdit={onEdit} />
+            </div>
+          );
+        }
+        if (part === 'groups' && hasGroups) {
+          return (
+            <div key={part}>
+              <SectionTitle icon={Users}>อาจารย์ประจำกลุ่ม</SectionTitle>
+              <GroupsView instructors={instructors} members={data.members} onOpen={setOpenIns} bare />
+            </div>
+          );
+        }
+        if (part === 'sessions' && sessions.length) {
+          return (
+            <div key={part}>
+              <SectionTitle icon={CalendarCheck2}>{study ? 'คาบพบอาจารย์ / นำเสนอ' : 'คาบเรียน'}</SectionTitle>
+              <SessionList sessions={sessions} today={today} docsByDate={docsByDate} onOpen={(date) => ui.go('classes', { date })} />
+            </div>
+          );
+        }
+        if (part === 'infos' && infos.length) {
+          return (
+            <div key={part}>
+              <SectionTitle icon={Info}>{study ? 'แนวทางการเขียน / เกณฑ์' : 'ข้อมูลประกอบ'}</SectionTitle>
+              <div className="space-y-3">
+                {infos.map((item) => <InfoCard key={item.id} item={item} onEdit={onEdit} />)}
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })}
+      <InstructorSheet ins={instructors.find((x) => x.id === openIns) || null} onClose={() => setOpenIns(null)} />
     </div>
   );
 }
@@ -339,7 +368,10 @@ export function DocsPanel() {
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState('all');
 
-  const subjects = useMemo(() => buildSubjects(data.classes, data.resources || []), [data.classes, data.resources]);
+  const subjects = useMemo(
+    () => buildSubjects(data.classes, data.resources || []).filter((x) => x.key !== subjectKey(FEATURED_SUBJECT)),
+    [data.classes, data.resources],
+  );
   const allDocs = useMemo(() => subjects.flatMap((x) => x.docs), [subjects]);
   const catCounts = useMemo(() => {
     const out = {};
@@ -476,6 +508,37 @@ export function DocsPanel() {
   return (
     <div>
       {body}
+      <RecordForm state={form} onClose={() => setForm(null)} />
+    </div>
+  );
+}
+
+/** แท็บ "เอกสารศึกษา": งานเขียนรายงานเชิงวิชาการรายบุคคล (คล้ายวิทยานิพนธ์) แยกจากวิชาปกติ */
+export function StudyPanel() {
+  const { data, status, isAdmin } = useStore();
+  const today = toISODate(useNow(60000));
+  const [form, setForm] = useState(null);
+  const subject = useMemo(() => {
+    const found = buildSubjects(data.classes, data.resources || []).find((x) => x.key === subjectKey(FEATURED_SUBJECT));
+    return found || { key: subjectKey(FEATURED_SUBJECT), name: FEATURED_SUBJECT, sessions: [], docs: [], tasks: [], infos: [], first: '' };
+  }, [data.classes, data.resources]);
+  if (status === 'loading') {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-40 w-full rounded-3xl" />
+        <Skeleton className="h-32 w-full rounded-3xl" />
+      </div>
+    );
+  }
+  return (
+    <div>
+      <SubjectDetail
+        study
+        subject={subject}
+        today={today}
+        onEdit={isAdmin ? (item) => setForm({ key: Date.now(), collection: 'resources', item }) : null}
+        onAttach={isAdmin ? (name) => setForm({ key: Date.now(), collection: 'resources', item: { subject: name, type: 'link' } }) : null}
+      />
       <RecordForm state={form} onClose={() => setForm(null)} />
     </div>
   );

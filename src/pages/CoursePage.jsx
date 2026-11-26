@@ -4,19 +4,24 @@ import { PageHeader, SubTabs } from '../components/ui';
 import { useUI } from '../lib/ui';
 import { CourseInfoPanel } from './AboutPage';
 import { InstructorsPanel } from './InstructorsPage';
-import { DocsPanel } from './DocsPage';
+import { DocsPanel, StudyPanel } from './DocsPage';
+import { FEATURED_SUBJECT } from '../lib/course';
+import { subjectKey } from '../lib/docs';
 
 const SUBTABS = [
   { value: 'info', label: 'ข้อมูล' },
   { value: 'instructors', label: 'อาจารย์' },
   { value: 'docs', label: 'วิชา' },
+  { value: 'study', label: 'เอกสารศึกษา' },
 ];
 
-/** หมวดหลักสูตร: ข้อมูลหลักสูตร / อาจารย์ (รวมประวัติ) / วิชา (เอกสาร สไลด์ ลิงก์ประกอบการสอนของแต่ละวิชา) */
+/** หมวดหลักสูตร: ข้อมูลหลักสูตร / อาจารย์ (รวมประวัติ) / วิชา (เอกสารประกอบการสอน) / เอกสารศึกษา (งานเขียนรายบุคคล) */
 export default function CoursePage() {
   const ui = useUI();
   // แท็บประวัติเดิมรวมอยู่ในแท็บอาจารย์แล้ว
-  const asked = ui.view && (ui.view.tab === 'profiles' ? 'instructors' : ui.view.tab);
+  // แท็บประวัติเดิมรวมอยู่ในแท็บอาจารย์ / วิชาเอกสารศึกษาเปิดที่แท็บของตัวเอง
+  let asked = ui.view && (ui.view.tab === 'profiles' ? 'instructors' : ui.view.tab);
+  if (asked === 'docs' && ui.view.subject && subjectKey(ui.view.subject) === subjectKey(FEATURED_SUBJECT)) asked = 'study';
   const initial = SUBTABS.some((s) => s.value === asked) ? asked : 'info';
   const [tab, setTab] = useState(initial);
   const [mode, setMode] = useState((ui.view && ui.view.mode) || '');
@@ -35,6 +40,7 @@ export default function CoursePage() {
       {tab === 'info' && <CourseInfoPanel />}
       {tab === 'instructors' && <InstructorsPanel key={mode || 'default'} initialMode={mode} />}
       {tab === 'docs' && <DocsPanel key={(ui.view && ui.view.subject) || 'all'} />}
+      {tab === 'study' && <StudyPanel />}
     </div>
   );
 }

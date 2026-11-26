@@ -277,7 +277,8 @@ export function SubTabs({ options, value, onChange, label, className }) {
             aria-selected={active}
             onClick={() => onChange(o.value)}
             className={cx(
-              'h-9 min-w-0 truncate rounded-xl px-1.5 text-[13.5px] font-semibold transition active:scale-[0.97]',
+              'h-9 min-w-0 truncate rounded-xl font-semibold transition active:scale-[0.97]',
+              options.length > 3 ? 'px-1 text-[13px]' : 'px-1.5 text-[13.5px]',
               active ? 'btn-navy text-white' : 'text-slate-600 hover:bg-white/60 hover:text-navy-800',
             )}
           >
