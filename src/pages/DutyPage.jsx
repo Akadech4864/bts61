@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { MissingMarks } from '../components/MissingMarks';
 import { ArrowLeftRight, CalendarClock, History, Pencil, Plus, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
 import MoreMenuButton from '../components/MoreMenu';
 import { Photo } from '../components/Avatar';
@@ -28,29 +29,33 @@ const shortDate = (iso) => {
 };
 const beYear = (iso) => String(parseISODate(iso).getFullYear() + 543).slice(2);
 
-/** ผู้เข้าเวร: รูปหน้าตรง + ชื่อเล่น + ชื่อจริงฯ + ลำดับที่ (จุดเหลือง = รออนุมัติสลับ, เขียว = สลับแล้ว) แตะเพื่อเปิดข้อมูล */
+/**
+ * ผู้เข้าเวร: การ์ดรูปแบบเดียวกับหน้าทำเนียบรุ่น — รูป 3:4, ลำดับที่ + สัญลักษณ์ข้อมูลไม่ครบ มุมบนซ้าย,
+ * ไอคอนสลับเวร (เหลือง = รออนุมัติ, เขียว = สลับแล้ว), ชื่อเล่น + ชื่อจริงฯ บนแถบไล่สีด้านล่าง แตะเพื่อเปิดข้อมูล
+ */
 function DutyPerson({ member, highlight, onOpen, mark }) {
   return (
     <button
       type="button"
       onClick={() => onOpen(member.id)}
       className={cx(
-        'flex w-full min-w-0 items-center gap-2.5 rounded-2xl p-1 text-left transition active:scale-[0.98]',
-        highlight ? 'bg-gold-300/45 ring-1 ring-inset ring-gold-400' : 'hover:bg-white/60',
+        'group relative block w-full overflow-hidden rounded-2xl bg-white/40 text-left shadow-[0_10px_24px_-12px_rgb(11_28_54/0.45)] transition active:scale-[0.97]',
+        highlight ? 'ring-[3px] ring-gold-400' : 'ring-1 ring-white/70',
       )}
     >
-      <span className="relative shrink-0">
-        <Photo member={member} width={160} className="h-14 w-14 rounded-full object-[center_20%] ring-2 ring-white shadow-sm" textClass="text-base" />
-        <SwapDot mark={mark} className="absolute -left-1 -top-1" />
+      <Photo member={member} width={320} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass="text-4xl" />
+      <span className="absolute inset-x-1.5 top-1.5 flex flex-wrap items-center gap-1">
         {member.seq && (
-          <span className="absolute -bottom-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-navy-900 px-1 text-[10px] font-bold tabular-nums leading-none text-white ring-2 ring-white">
+          <span title={`ลำดับที่ ${member.seq}`} className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-navy-950/60 px-1 text-[11px] font-semibold tabular-nums leading-none text-white ring-1 ring-inset ring-white/30">
             {member.seq}
           </span>
         )}
+        <SwapDot mark={mark} />
+        <MissingMarks member={member} size={20} />
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[16px] font-bold leading-tight text-navy-900">{nickOf(member)}</span>
-        <span className="mt-0.5 block truncate text-[13px] leading-tight text-slate-600">{firstNameShort(member)}</span>
+      <span className="name-fade absolute inset-x-0 bottom-0 block px-2.5 pb-2 pt-9">
+        <span className="block truncate text-[15px] font-bold leading-tight text-white drop-shadow">{nickOf(member)}</span>
+        <span className="block truncate text-[12px] leading-tight text-white/85">{firstNameShort(member)}</span>
       </span>
     </button>
   );
@@ -59,14 +64,18 @@ function DutyPerson({ member, highlight, onOpen, mark }) {
 function DutyCell({ entries, mineId, onOpen, onEdit, marks }) {
   if (!entries || !entries.length) return <span className="block px-1 text-center text-slate-300">—</span>;
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {entries.map(({ item, people }) => {
         const nobody = !people.members.length && !people.extras.length;
         return (
           <div key={item.id} className="relative">
-            {people.members.map((m) => (
-              <DutyPerson key={m.id} member={m} highlight={m.id === mineId} onOpen={onOpen} mark={markOf(marks, item.id, m.id)} />
-            ))}
+            {people.members.length > 0 && (
+              <div className="space-y-2">
+                {people.members.map((m) => (
+                  <DutyPerson key={m.id} member={m} highlight={m.id === mineId} onOpen={onOpen} mark={markOf(marks, item.id, m.id)} />
+                ))}
+              </div>
+            )}
             {people.extras.map((name) => (
               <p key={name} className="px-1 text-[14px] font-medium leading-snug text-slate-700">{name}</p>
             ))}
@@ -81,7 +90,7 @@ function DutyCell({ entries, mineId, onOpen, onEdit, marks }) {
                 onClick={() => onEdit(item)}
                 aria-label="แก้ไขรายการนี้ (แอดมิน)"
                 title="แก้ไข (เฉพาะแอดมิน)"
-                className="absolute -right-1 -top-1 grid h-7 w-7 place-items-center rounded-full bg-white/80 text-slate-400 shadow-sm ring-1 ring-white hover:text-navy-800"
+                className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-white/85 text-slate-500 shadow-sm ring-1 ring-white hover:text-navy-800"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -95,10 +104,10 @@ function DutyCell({ entries, mineId, onOpen, onEdit, marks }) {
 
 /** ตารางเวรรายสัปดาห์: 1 แถว = 1 วัน, 1 คอลัมน์ = 1 หน้าที่ */
 function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit, marks }) {
-  const dateCol = 62;
+  const dateCol = 58;
   return (
     <div className="glass overflow-x-auto rounded-3xl">
-      <table className="w-full table-fixed border-collapse text-left" style={{ minWidth: dateCol + roles.length * 140 }}>
+      <table className="w-full table-fixed border-collapse text-left" style={{ minWidth: dateCol + roles.length * 132 }}>
         <colgroup>
           <col style={{ width: dateCol }} />
           {roles.map((r) => <col key={r} />)}
@@ -123,14 +132,14 @@ function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit, marks }) {
               const isToday = day.date === today;
               return (
                 <tr key={day.date} className={cx(isToday ? 'bg-gold-300/25' : '', day.date < today && 'opacity-55')}>
-                  <td className="px-1 py-3 text-center align-middle">
+                  <td className="px-1 py-3 text-center align-top">
                     <p className="text-[12px] font-semibold leading-none text-slate-500">{WEEKDAYS[d.getDay()]}</p>
                     <p className="mt-1 text-[26px] font-bold leading-none text-navy-900 tabular-nums">{d.getDate()}</p>
                     <p className="mt-1 text-[11px] leading-none text-slate-500">{MONTHS[d.getMonth()]}</p>
                     {isToday && <span className="mt-1.5 inline-block rounded-full bg-gold-400 px-2 text-[10px] font-bold leading-5 text-navy-950">วันนี้</span>}
                   </td>
                   {roles.map((r) => (
-                    <td key={r} className="px-2 py-2.5 align-middle">
+                    <td key={r} className="px-1.5 py-2 align-top">
                       <DutyCell entries={day.byRole[r]} mineId={mineId} onOpen={onOpen} onEdit={onEdit} marks={marks} />
                     </td>
                   ))}
