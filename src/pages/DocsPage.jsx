@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, BookOpen, GraduationCap, UserRound, CalendarCheck2, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, ExternalLink, FileText, FolderOpen,
   Info, Link2, Paperclip, Pencil, PlayCircle, Plus, Presentation, Search, Users, X,
@@ -452,6 +452,8 @@ export function DocsPanel() {
   const edit = isAdmin ? (item) => setForm({ key: Date.now(), collection: 'resources', item }) : null;
   const attach = isAdmin ? (subject) => setForm({ key: Date.now(), collection: 'resources', item: { subject: subject || '', type: 'link' } }) : null;
   const open = subjects.find((x) => x.key === openKey) || null;
+  // จำว่ากำลังเปิดวิชาไหน (ย้อนกลับจากหน้าอื่นจะกลับมาที่วิชาเดิม)
+  useEffect(() => { ui.remember({ tab: 'docs', subject: open ? open.name : '' }); }, [open && open.name]); // eslint-disable-line react-hooks/exhaustive-deps
   const tokens = queryTokens(query);
   const filtering = tokens.length > 0 || cat !== 'all';
 

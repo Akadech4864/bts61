@@ -282,6 +282,8 @@ export default function ClassPage({ switcher }) {
   // เปิดจากหน้าอื่นพร้อมวันที่ (เช่น แตะวันที่ของวิชาในหน้าอาจารย์/เอกสาร)
   const [selected, setSelected] = useState(() => (ui.view && ui.view.date) || today);
 
+  // จำวันที่ที่เลือกไว้ กดย้อนกลับจากหน้าอื่นจะกลับมาที่วันเดิม
+  useEffect(() => { ui.remember({ sub: 'classes', date: selected }); }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
   const classes = useMemo(() => [...data.classes].sort(compareClass), [data.classes]);
   const findPerson = useMemo(() => buildPeopleIndex(data.instructors, data.staff), [data.instructors, data.staff]);
   const [sheetIns, setSheetIns] = useState(null);

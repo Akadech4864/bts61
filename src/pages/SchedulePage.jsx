@@ -24,6 +24,7 @@ export default function SchedulePage() {
       label="ประเภทตาราง"
       onChange={(next) => {
         setSub(next);
+        ui.remember({ sub: next });
         window.scrollTo(0, 0);
       }}
     />

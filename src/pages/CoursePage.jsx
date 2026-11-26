@@ -28,6 +28,7 @@ export default function CoursePage() {
   const go = (next, nextMode = '') => {
     setMode(nextMode);
     setTab(next);
+    ui.remember({ tab: next, mode: nextMode, subject: '' });
     window.scrollTo(0, 0);
   };
 
