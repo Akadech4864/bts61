@@ -3,7 +3,6 @@ import { MissingMarks } from '../components/MissingMarks';
 import DutyHero from '../components/DutyHero';
 import DutyScanSheet from '../components/DutyScanSheet';
 import { ArrowLeftRight, CalendarClock, ChevronUp, History, Pencil, Plus, ScanText, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
-import MoreMenuButton from '../components/MoreMenu';
 import { Photo } from '../components/Avatar';
 import { Button, EmptyState, PageHeader, Skeleton, TopBarSentinel } from '../components/ui';
 import { SwapDot, SwapForm, SwapHistory, firstNameShort, markOf, swapMarks } from '../components/DutySwap';
@@ -314,7 +313,6 @@ export default function DutyPage({ switcher }) {
                 </Button>
               </>
             )}
-            <MoreMenuButton />
           </div>
         }
       >

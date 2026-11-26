@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { LayoutGrid, MessageCircle, MessageSquareWarning, Phone } from 'lucide-react';
-import { MORE_TABS } from './BottomNav';
 import ReportSheet from './ReportSheet';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -8,10 +7,10 @@ import { cx } from '../lib/utils';
 import { DEVELOPER, developerLine, developerTel, versionLabel } from '../lib/about';
 
 /**
- * ปุ่ม "เมนูอื่น" บนหัวของทุกหน้า: ตั้งค่า/แอดมิน, แจ้งปัญหา, เวอร์ชันแอป และผู้พัฒนาระบบ
- * จุดสีทองบนปุ่ม = เข้าสู่ระบบแอดมินอยู่
+ * ปุ่ม "เมนูอื่น" ที่เมนูด้านล่าง (ช่องขวาสุด): ตั้งค่า/แอดมิน, แจ้งปัญหา, ผู้พัฒนาระบบ และเวอร์ชันแอป
+ * tabs = เมนูที่ไม่อยู่บนแถบล่าง (เช่น ตั้งค่า) | จุดสีทอง = เข้าสู่ระบบแอดมินอยู่
  */
-export default function MoreMenuButton() {
+export default function MoreMenuDock({ tabs = [], activeTab, onGo }) {
   const ui = useUI();
   const { isAdmin } = useStore();
   const [open, setOpen] = useState(false);
@@ -32,32 +31,31 @@ export default function MoreMenuButton() {
     };
   }, [open]);
 
-  const onMorePage = MORE_TABS.some((t) => t.id === ui.tab);
-  const itemClass = 'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-[14px] font-medium text-navy-900 transition hover:bg-white/70';
+  const onMorePage = tabs.some((t) => t.id === activeTab);
+  const itemClass = 'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-[14px] font-medium text-navy-900 transition hover:bg-navy-500/5';
 
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div ref={ref} className="relative min-w-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="เมนูอื่น"
-        title="เมนูอื่น"
         aria-haspopup="menu"
         aria-expanded={open}
         className={cx(
-          'relative grid h-11 w-11 place-items-center rounded-full transition active:scale-95',
-          onMorePage || open ? 'btn-navy text-white' : 'glass text-navy-700',
+          'relative flex h-[54px] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-[20px] transition-all duration-200 active:scale-95',
+          onMorePage || open ? 'btn-navy text-white' : 'text-slate-600 hover:bg-white/60 hover:text-navy-800',
         )}
       >
-        <LayoutGrid className="h-5 w-5" />
-        {isAdmin && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-gold-400 ring-2 ring-white" />}
+        <LayoutGrid className="h-[21px] w-[21px]" strokeWidth={onMorePage || open ? 2.2 : 1.9} />
+        <span className="max-w-full truncate px-0.5 text-[11px] font-medium leading-none">เมนูอื่น</span>
+        {isAdmin && <span className="absolute left-1/2 top-2 ml-3 h-2.5 w-2.5 rounded-full bg-gold-400 ring-2 ring-white" />}
       </button>
+
       {open && (
-        <div role="menu" aria-label="เมนูอื่น" className="absolute right-0 top-full z-40 mt-2 w-[17rem] animate-pop rounded-2xl bg-white/95 p-1.5 shadow-[0_16px_40px_-12px_rgba(11,28,54,0.45)] ring-1 ring-black/5 backdrop-blur-xl">
-          <p className="px-2.5 pb-1 pt-1 text-[11px] font-semibold text-slate-500">เมนูอื่น</p>
-          {MORE_TABS.map((t) => {
+        <div role="menu" aria-label="เมนูอื่น" className="absolute bottom-full right-0 mb-3 w-[17rem] animate-pop rounded-2xl bg-white/95 p-1.5 shadow-[0_16px_40px_-12px_rgba(11,28,54,0.45)] ring-1 ring-black/5 backdrop-blur-xl">
+          {tabs.map((t) => {
             const Icon = t.icon;
-            const active = t.id === ui.tab;
             return (
               <button
                 key={t.id}
@@ -65,9 +63,9 @@ export default function MoreMenuButton() {
                 role="menuitem"
                 onClick={() => {
                   setOpen(false);
-                  ui.go(t.id);
+                  (onGo || ui.go)(t.id);
                 }}
-                className={cx(itemClass, active && 'bg-navy-500/10')}
+                className={cx(itemClass, t.id === activeTab && 'bg-navy-500/10')}
               >
                 <Icon className="h-[18px] w-[18px] text-navy-600" />
                 <span className="flex-1">{t.label}</span>

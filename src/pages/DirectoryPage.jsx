@@ -1,11 +1,10 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Camera, CircleAlert, CircleCheck, Grid2x2, IdCard, Info, LayoutGrid, Phone, Plus, RefreshCw, Search, SlidersHorizontal, Table2, Tag, UserPlus, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
-import { SocialInline, SocialMarks } from '../components/Social';
+import { SocialInline, SocialMarks, platformsOf } from '../components/Social';
 import { EmptyState, Marquee, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import MemberSuggest from '../components/MemberSuggest';
 import { MISSING_ICONS, MissingMark, MissingMarks } from '../components/MissingMarks';
-import MoreMenuButton from '../components/MoreMenu';
 import FilterSheet, { SORT_OPTIONS } from '../components/FilterSheet';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -100,10 +99,13 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
   // โลโก้โซเชียลบนรูป: ขนาดวงกลมตามความหนาแน่น และจำนวนที่วางได้พอดีความกว้างการ์ด (การ์ดเล็กมากไม่แสดง)
   const markSize = [22, 17, 13, 0][dense];
   const markGap = Math.max(2, Math.round(markSize / 6));
-  const markMax = markSize ? Math.floor((cardWidth - [28, 20, 12, 8][dense] + markGap) / (markSize + markGap)) : 0;
+  // โลโก้เรียงแนวตั้งมุมขวาบน: ใช้ได้ราวครึ่งบนของการ์ด (การ์ดสูง 4:3 ของความกว้าง)
+  const markMaxV = markSize ? Math.max(1, Math.floor((cardWidth * (4 / 3) * 0.5 + markGap) / (markSize + markGap))) : 0;
   return (
     <div ref={gridRef} className="photo-grid" style={{ '--cols': cols, '--gap': dense >= 2 ? '6px' : '10px' }}>
-      {members.map((m) => (
+      {members.map((m) => {
+        const hasSocial = markSize > 0 && platformsOf(m).length > 0;
+        return (
         <button
           key={m.id}
           type="button"
@@ -116,7 +118,10 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
           <Photo member={m} width={width} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass={['text-6xl', 'text-4xl', 'text-3xl', 'text-2xl'][dense]} />
           {/* มุมบนซ้าย: ลำดับที่ ตามด้วยสัญลักษณ์ของข้อมูลที่ยังขาด (ไอคอนมีกากบาททับ) */}
           {(m.seq || flagMissing) && (
-            <span className={cx('absolute flex flex-wrap items-center', dense >= 2 ? 'inset-x-1 top-1 gap-0.5' : 'inset-x-1.5 top-1.5 gap-1')}>
+            <span
+              className={cx('absolute flex flex-wrap items-center', dense >= 2 ? 'left-1 top-1 gap-0.5' : 'left-1.5 top-1.5 gap-1')}
+              style={{ right: hasSocial ? markSize + (dense >= 2 ? 8 : 12) : dense >= 2 ? 4 : 6 }}
+            >
               {m.seq && (
                 <span
                   title={`ลำดับที่ ${m.seq}`}
@@ -131,18 +136,22 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
               {flagMissing && <MissingMarks member={m} size={[28, 22, 18, 13][dense]} />}
             </span>
           )}
+          {/* มุมขวาบน: โลโก้โซเชียลมีเดียเรียงลงมาด้านล่าง */}
+          {hasSocial && (
+            <SocialMarks member={m} size={markSize} max={markMaxV} vertical className={cx('absolute', dense >= 2 ? 'right-1 top-1' : 'right-1.5 top-1.5')} />
+          )}
           <div className={cx('absolute', label)}>
-            {/* ชื่อเล่นตัวใหญ่ + ยศ ชื่อจริงฯ (ยาวเกินการ์ดจะวิ่งไปกลับช้า ๆ) แล้วตามด้วยโลโก้โซเชียลมีเดีย */}
+            {/* ชื่อเล่นตัวใหญ่ + ยศ ชื่อจริงฯ (ยาวเกินการ์ดจะวิ่งไปกลับช้า ๆ) */}
             <p className={cx('truncate font-bold leading-tight text-white drop-shadow', nickSize)}>{nickOf(m)}</p>
             <Marquee
               text={shortName(m)}
               measureKey={`${dense}:${Math.round(cardWidth)}`}
               className={cx('leading-tight text-white/85', ['mt-0.5 text-sm', 'text-[12px]', 'text-[10px]', 'text-[9px]'][dense])}
             />
-            {markSize > 0 && <SocialMarks member={m} size={markSize} max={markMax} className={dense ? 'mt-1' : 'mt-1.5'} />}
           </div>
         </button>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -477,7 +486,6 @@ export default function DirectoryPage() {
           >
             <RefreshCw className={cx('h-5 w-5', syncing && 'animate-spin')} />
           </button>
-          <MoreMenuButton />
         </div>
       </header>
 

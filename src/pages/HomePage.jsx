@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AlarmClock, ArrowLeftRight, CalendarDays, ChevronRight, ClipboardList, Clock, MapPin, ShieldCheck, UserRound } from 'lucide-react';
 import { Photo } from '../components/Avatar';
-import MoreMenuButton from '../components/MoreMenu';
 import InstructorSheet from '../components/InstructorSheet';
 import { FitText, Skeleton } from '../components/ui';
 import { COURSE_TITLE_SHORT } from '../config';
@@ -106,7 +105,7 @@ function PersonLine({ label, name, match, onOpen, small = false }) {
 }
 
 /** การ์ดเด่น: วิชาที่กำลังเรียน (มีแถบเวลาที่ผ่านไป) หรือวิชาถัดไป (นับถอยหลัง) — เปลี่ยนเองเมื่อหมดเวลา */
-function NowCard({ item, live, now, today, after, classes, findPerson, onOpen, onPerson }) {
+function NowCard({ item, live, now, today, after, classes, findPerson, onOpen, onPerson, onAll }) {
   const start = startOf(item);
   const end = endOf(item);
   const progress = live ? Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100)) : 0;
@@ -165,6 +164,18 @@ function NowCard({ item, live, now, today, after, classes, findPerson, onOpen, o
         <p className="mt-3 border-t border-white/10 pt-2.5 text-[12.5px] text-white/70">
           ต่อจากนี้ <span className="font-semibold text-white">{after.start_time}</span> · {after.subject}
         </p>
+      )}
+      {onAll && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAll();
+          }}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-white/10 py-2.5 text-[13.5px] font-semibold text-white ring-1 ring-inset ring-white/15 transition active:bg-white/15"
+        >
+          <CalendarDays className="h-4 w-4" /> ดูตารางสอนทั้งหมด <ChevronRight className="h-4 w-4 text-white/60" />
+        </button>
       )}
     </div>
   );
@@ -295,7 +306,6 @@ export default function HomePage() {
         <div className="flex items-center gap-3 pb-2 pt-5">
           <img src="./logo.jpg" alt="" className="h-11 w-11 shrink-0 rounded-full bg-white object-cover shadow-[0_6px_16px_-6px_rgb(11_28_54/0.4)] ring-2 ring-white/80" />
           <p className="min-w-0 flex-1 truncate text-[15px] font-bold text-navy-900">{COURSE_TITLE_SHORT}</p>
-          <MoreMenuButton />
         </div>
         <div className="flex items-end justify-between gap-3 pb-1 pt-2">
           <div className="min-w-0 flex-1">
@@ -325,6 +335,7 @@ export default function HomePage() {
                 after={after}
                 findPerson={findPerson}
                 classes={classes}
+                onAll={() => ui.go('classes', { mode: 'week', date: today })}
                 onPerson={(match) => (match.type === 'instructor' ? setOpenIns(match.rec.id) : ui.go('course', { tab: 'info' }))}
                 onOpen={() => (isCourseSubject(hero.subject) ? ui.go('course', { tab: 'docs', subject: hero.subject }) : ui.go('classes', { date: hero.class_date }))}
               />

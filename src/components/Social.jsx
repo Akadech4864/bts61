@@ -39,7 +39,7 @@ export function SocialBadge({ type, className }) {
 }
 
 /** แพลตฟอร์มที่สมาชิกมี (ไม่ซ้ำ) เรียงตามที่กรอก */
-function platformsOf(member) {
+export function platformsOf(member) {
   const seen = new Set();
   return memberSocials(member).map((s) => platformOf(s.type)).filter((p) => !seen.has(p.key) && seen.add(p.key));
 }
@@ -48,7 +48,7 @@ function platformsOf(member) {
  * โลโก้แพลตฟอร์มที่สมาชิกมี วางบนรูปถ่ายในกริด — คุมโทนเดียว (โลโก้ขาวบนวงกลมกรมท่าโปร่งแสง)
  * size = เส้นผ่านศูนย์กลางของวงกลม (px), max = จำนวนสูงสุดที่วางได้ในแถวเดียว
  */
-export function SocialMarks({ member, size = 20, max = 5, className }) {
+export function SocialMarks({ member, size = 20, max = 5, className, vertical = false }) {
   const list = platformsOf(member);
   if (!list.length || max < 1) return null;
   const shown = list.length > max ? list.slice(0, Math.max(1, max - 1)) : list;
@@ -56,7 +56,7 @@ export function SocialMarks({ member, size = 20, max = 5, className }) {
   const dot = { width: size, height: size };
   const chip = 'grid shrink-0 place-items-center rounded-full bg-navy-950/55 text-white ring-1 ring-inset ring-white/30';
   return (
-    <span className={cx('flex items-center', className)} style={{ gap: Math.max(2, Math.round(size / 6)) }} title={list.map((p) => p.label).join(' · ')}>
+    <span className={cx('flex items-center', vertical && 'flex-col', className)} style={{ gap: Math.max(2, Math.round(size / 6)) }} title={list.map((p) => p.label).join(' · ')}>
       {shown.map((p) => (
         <span key={p.key} className={chip} style={dot}>
           <BrandIcon type={p.key} className={BRAND_MASKS[p.key] ? 'h-[82%] w-[82%]' : 'h-[58%] w-[58%]'} />

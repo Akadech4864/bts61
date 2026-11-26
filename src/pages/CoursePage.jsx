@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import MoreMenuButton from '../components/MoreMenu';
 import { PageHeader, SubTabs } from '../components/ui';
 import { useUI } from '../lib/ui';
 import { CourseInfoPanel } from './AboutPage';
@@ -34,7 +33,7 @@ export default function CoursePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 page-bottom">
-      <PageHeader title="หลักสูตร" right={<MoreMenuButton />}>
+      <PageHeader title="หลักสูตร">
         <SubTabs options={SUBTABS} value={tab} onChange={(v) => go(v)} label="หัวข้อในเมนูหลักสูตร" />
       </PageHeader>
 

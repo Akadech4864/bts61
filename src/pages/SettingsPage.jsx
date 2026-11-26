@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   BookOpen, CalendarDays, Eye, EyeOff, FlaskConical, FolderOpen, GraduationCap, KeyRound, Landmark, Lock, LogOut, RefreshCw, ShieldCheck, TriangleAlert, Users,
 } from 'lucide-react';
-import MoreMenuButton from '../components/MoreMenu';
 import AiKeyCard from '../components/AiKeyCard';
 import { Button, Card, PageHeader, Switch, TextInput } from '../components/ui';
 import { ManageSheet, MenuRow, PasswordResetSheet } from '../components/AdminSheets';
@@ -161,7 +160,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 page-bottom">
-      <PageHeader title={isAdmin ? 'แผงควบคุมแอดมิน' : 'ตั้งค่า / แอดมิน'} right={<MoreMenuButton />} />
+      <PageHeader title={isAdmin ? 'แผงควบคุมแอดมิน' : 'ตั้งค่า / แอดมิน'} />
 
       {isDemo && (
         <div className="glass mb-4 flex items-start gap-3 rounded-2xl p-4 ring-1 ring-inset ring-gold-300">

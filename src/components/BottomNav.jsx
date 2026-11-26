@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CalendarDays, GraduationCap, House, Settings, Users } from 'lucide-react';
 import { cx } from '../lib/utils';
+import MoreMenuDock from './MoreMenu';
 
 /**
  * เมนูหลักของแอพ จัดเป็น 3 หมวดใหญ่ที่เมนูด้านล่าง (ที่เหลืออยู่ในปุ่ม "เมนูอื่น" บนหัวของทุกหน้า)
@@ -69,7 +70,7 @@ export default function BottomNav({ tab, onChange, adminActive, dots }) {
     <nav className="dock" data-hidden={hidden ? 'true' : 'false'} aria-label="เมนูหลัก">
       <div
         className="grid gap-1 glass rounded-[28px] p-1.5 shadow-[0_16px_40px_-12px_rgba(11,28,54,0.45)]"
-        style={{ gridTemplateColumns: `repeat(${DOCK_TABS.length}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `repeat(${DOCK_TABS.length + (MORE_TABS.length ? 1 : 0)}, minmax(0, 1fr))` }}
       >
         {DOCK_TABS.map((t) => {
           const active = t.id === tab;
@@ -93,6 +94,7 @@ export default function BottomNav({ tab, onChange, adminActive, dots }) {
             </button>
           );
         })}
+        {MORE_TABS.length > 0 && <MoreMenuDock tabs={MORE_TABS} activeTab={tab} onGo={onChange} />}
       </div>
     </nav>
   );
