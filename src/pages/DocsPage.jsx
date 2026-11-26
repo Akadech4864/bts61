@@ -3,7 +3,7 @@ import {
   ArrowLeft, BookOpen, GraduationCap, UserRound, CalendarCheck2, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, ExternalLink, FileText, FolderOpen,
   Info, Link2, Paperclip, Pencil, PlayCircle, Plus, Presentation, Search, Users, X,
 } from 'lucide-react';
-import { EmptyState, Skeleton } from '../components/ui';
+import { EmptyState, Skeleton, SubTabs } from '../components/ui';
 import RecordForm from '../components/RecordForm';
 import InstructorSheet from '../components/InstructorSheet';
 import { GroupsView } from './InstructorsPage';
@@ -319,6 +319,28 @@ function SubjectDetail({ subject, today, onBack, onEdit, onAttach, study = false
   const docsByDate = {};
   docs.forEach((d) => { if (d.class_date) docsByDate[d.class_date] = (docsByDate[d.class_date] || 0) + 1; });
 
+  // แท็บย่อย: แสดงเฉพาะหัวข้อที่มีข้อมูล (เอกสารแสดงเสมอเพื่อให้แนบได้) — หน้าเดียวไม่ยาวเกินไป
+  const parts = (study
+    ? [
+      { value: 'tasks', label: 'กำหนดส่ง', show: tasks.length > 0 },
+      { value: 'groups', label: 'อาจารย์', show: hasGroups },
+      { value: 'docs', label: 'เอกสาร', show: true },
+      { value: 'infos', label: 'แนวทาง', show: infos.length > 0 },
+      { value: 'sessions', label: 'คาบพบ', show: sessions.length > 0 },
+    ]
+    : [
+      { value: 'teachers', label: 'อาจารย์', show: true },
+      { value: 'docs', label: 'เอกสาร', show: true },
+      { value: 'sessions', label: 'คาบเรียน', show: sessions.length > 0 },
+      { value: 'tasks', label: 'งาน', show: tasks.length > 0 },
+      { value: 'infos', label: 'ข้อมูล', show: infos.length > 0 },
+    ]).filter((x) => x.show);
+  const [active, setActive] = useState(() => {
+    const asked = ui.view && ui.view.part;
+    return parts.some((x) => x.value === asked) ? asked : parts[0].value;
+  });
+  const current = parts.some((x) => x.value === active) ? active : parts[0].value;
+
   return (
     <div>
       {onBack && (
@@ -364,7 +386,18 @@ function SubjectDetail({ subject, today, onBack, onEdit, onAttach, study = false
         )}
       </section>
 
-      {(study ? ['tasks', 'groups', 'docs', 'infos', 'sessions'] : ['teachers', 'docs', 'tasks', 'sessions', 'infos']).map((part) => {
+      <SubTabs
+        className="mt-4"
+        options={parts.map(({ value, label }) => ({ value, label }))}
+        value={current}
+        label="หัวข้อของวิชา"
+        onChange={(v) => {
+          setActive(v);
+          ui.remember({ part: v });
+        }}
+      />
+
+      {[current].map((part) => {
         if (part === 'teachers') {
           return (
             <div key={part}>
