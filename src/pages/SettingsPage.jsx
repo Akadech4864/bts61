@@ -234,7 +234,7 @@ export default function SettingsPage() {
             <MenuRow icon={Users} title="รายชื่อผู้เข้าอบรม" description={`${data.members.length} คน · เพิ่ม แก้ไข ลบ`} onClick={() => setManage('members')} />
             <MenuRow icon={BookOpen} title="ตารางสอน" description={`${data.classes.length} รายการ · เพิ่ม แก้ไข ลบ`} onClick={() => setManage('classes')} />
             <MenuRow icon={CalendarDays} title="ตารางเวร" description={`${data.duty.length} รายการ · เพิ่ม แก้ไข ลบ`} onClick={() => setManage('duty')} />
-            <MenuRow icon={GraduationCap} title="อาจารย์" description={`${(data.instructors || []).length} ท่าน · แก้ไขได้ที่เมนูหลักสูตร > รายชื่ออาจารย์`} onClick={() => ui.go('course', { tab: 'instructors' })} />
+            <MenuRow icon={GraduationCap} title="อาจารย์" description={`${(data.instructors || []).length} ท่าน · แก้ไขได้ที่เมนูหลักสูตร > อาจารย์`} onClick={() => ui.go('course', { tab: 'instructors' })} />
             <MenuRow icon={FolderOpen} title="งาน / เอกสาร" description={`${(data.resources || []).length} รายการ · แก้ไขได้ที่เมนูหลักสูตร > เอกสาร`} onClick={() => ui.go('course', { tab: 'docs' })} />
             <MenuRow icon={Landmark} title="ผู้บริหารหลักสูตร" description={`${(data.staff || []).length} ท่าน · แก้ไขได้ที่เมนูหลักสูตร > ข้อมูลหลักสูตร`} onClick={() => ui.go('course', { tab: 'info' })} />
           </Card>

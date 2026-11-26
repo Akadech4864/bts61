@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { BookOpen, GraduationCap, Plus, UserRound, Users } from 'lucide-react';
+import { BookOpen, ChevronRight, GraduationCap, Plus, UserRound, Users } from 'lucide-react';
 import { Photo } from '../components/Avatar';
 import InstructorSheet from '../components/InstructorSheet';
-import { Button, EmptyState, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
+import { EmptyState, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import RecordForm from '../components/RecordForm';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -27,7 +27,11 @@ function Badge({ tone = 'slate', children }) {
   return <span className={cx('inline-flex shrink-0 items-center rounded-full px-2 py-px text-[11px] font-semibold leading-5', tones[tone])}>{children}</span>;
 }
 
+/** มีประวัติวิทยากรแบบละเอียดหรือไม่ (แสดงลูกศรให้รู้ว่าแตะดูประวัติได้) */
+const hasProfile = (ins) => !!String(ins.profile || '').trim();
+
 function InstructorRow({ ins, role, onOpen, compact = false }) {
+  const full = hasProfile(ins);
   return (
     <button
       type="button"
@@ -44,19 +48,31 @@ function InstructorRow({ ins, role, onOpen, compact = false }) {
           {!compact && ins.group_no && <Badge>ประจำกลุ่ม {ins.group_no}</Badge>}
         </span>
       </span>
+      {full && <ChevronRight className="h-5 w-5 shrink-0 text-navy-400" aria-label="ดูประวัติ" />}
     </button>
   );
 }
 
 /* ------------------------------ มุมมอง: รายวิชา ------------------------------ */
 
-function SubjectsView({ instructors, subjects, selected, onOpen }) {
+function SubjectsView({ instructors, subjects, selected, onOpen, onAdd }) {
   if (selected === 'all') {
+    const full = instructors.filter(hasProfile).length;
     return (
       <div className="space-y-2.5">
-        <p className="px-1 text-[13px] text-slate-500">อาจารย์ทั้งหมด {instructors.length} ท่าน · แตะชื่อวิชาด้านบนเพื่อดูอาจารย์ของแต่ละวิชา</p>
+        <div className="flex items-center justify-between gap-2 px-1">
+          <p className="flex min-w-0 items-center gap-1 text-[13px] text-slate-500">
+            <span className="truncate">อาจารย์ {instructors.length} ท่าน · มีประวัติ {full} ท่าน</span>
+            {full > 0 && <ChevronRight className="h-4 w-4 shrink-0 text-navy-400" aria-hidden="true" />}
+          </p>
+          {onAdd && (
+            <button type="button" onClick={onAdd} className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-navy-500/10 px-3 text-[13px] font-semibold text-navy-800 transition active:scale-95">
+              <Plus className="h-4 w-4" /> เพิ่ม
+            </button>
+          )}
+        </div>
         {instructors.map((ins) => (
-          <InstructorRow key={ins.id} ins={ins} onOpen={onOpen} role={ins.subjectList.length ? `สอน ${ins.subjectList.length} วิชา` : ''} />
+          <InstructorRow key={ins.id} ins={ins} onOpen={onOpen} />
         ))}
       </div>
     );
@@ -197,7 +213,7 @@ function SpeakersView({ classes, onDate }) {
 
 /* ------------------------------ หน้าอาจารย์ ------------------------------ */
 
-/** รายชื่ออาจารย์ (ใช้ในเมนูหลักสูตร > รายชื่ออาจารย์) */
+/** อาจารย์ (เมนูหลักสูตร > อาจารย์): รายชื่อ + ประวัติ (แถวที่มีลูกศร = มีประวัติวิทยากร แตะเพื่อดู) */
 export function InstructorsPanel({ initialMode }) {
   const { data, status, isAdmin } = useStore();
   const ui = useUI();
@@ -227,14 +243,6 @@ export function InstructorsPanel({ initialMode }) {
 
   return (
     <div>
-      {isAdmin && (
-        <div className="mb-2 flex justify-end">
-          <Button size="sm" icon={Plus} onClick={() => setForm({ key: Date.now(), collection: 'instructors', item: null })}>
-            เพิ่มอาจารย์
-          </Button>
-        </div>
-      )}
-
       <TopBarSentinel />
       <div className="topbar sticky-glass sticky top-0 z-20 -mx-4 px-4 py-2">
         <Segmented value={mode} onChange={setMode} options={MODES} className="w-full [&>button]:flex-1" />
@@ -275,7 +283,7 @@ export function InstructorsPanel({ initialMode }) {
         ) : mode === 'groups' ? (
           <GroupsView instructors={instructors} members={data.members} onOpen={setOpenId} />
         ) : (
-          <SubjectsView instructors={instructors} subjects={subjects} selected={showSubject} onOpen={setOpenId} />
+          <SubjectsView instructors={instructors} subjects={subjects} selected={showSubject} onOpen={setOpenId} onAdd={isAdmin ? () => setForm({ key: Date.now(), collection: 'instructors', item: null }) : null} />
         )}
       </div>
 
