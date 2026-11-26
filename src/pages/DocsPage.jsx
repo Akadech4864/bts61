@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, BookOpen, GraduationCap, UserRound, CalendarCheck2, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, ExternalLink, FileText, FolderOpen,
-  Info, Link2, Paperclip, Pencil, PlayCircle, Plus, Presentation, Search, Users, X,
+  Info, Link2, Paperclip, Pencil, PlayCircle, Plus, Presentation, Search, Trash2, Users, X,
 } from 'lucide-react';
 import { EmptyState, Skeleton, SubTabs } from '../components/ui';
+import { useToast } from '../components/Toast';
 import RecordForm from '../components/RecordForm';
 import InstructorSheet from '../components/InstructorSheet';
 import { GroupsView } from './InstructorsPage';
@@ -150,7 +151,7 @@ const CAT_TONES = {
 const CAT_ORDER = DOC_CATEGORIES.map((c) => c.value);
 
 /** เอกสาร/สื่อการสอน: ไอคอนตามหมวด, ชื่อ, หมวด · ขนาดไฟล์หรือเว็บไซต์ · คาบเรียน แตะเพื่อเปิด */
-function DocList({ docs, onEdit, canEdit, showSubject = false }) {
+function DocList({ docs, onEdit, onDelete, canEdit, showSubject = false }) {
   return (
     <div className="glass rounded-3xl px-2 py-1.5">
       {docs.map((d, i) => {
@@ -182,6 +183,16 @@ function DocList({ docs, onEdit, canEdit, showSubject = false }) {
               </a>
             ) : (
               <div className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2.5">{body}</div>
+            )}
+            {onDelete && (!canEdit || canEdit(d)) && (
+              <button
+                type="button"
+                onClick={() => onDelete(d)}
+                aria-label="ลบเอกสารนี้"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             )}
             {onEdit && (!canEdit || canEdit(d)) && <EditButton onClick={() => onEdit(d)} />}
           </div>
@@ -307,7 +318,7 @@ function TeacherList({ sessions, findPerson, onOpenIns, onDate }) {
 }
 
 /** หน้ารายวิชา: เอกสาร/สื่อการสอน งานที่ต้องส่ง คาบเรียน และข้อมูลประกอบของวิชานั้น */
-function SubjectDetail({ subject, today, onBack, onEdit, onAttach, onEditDoc, canEditDoc, study = false }) {
+function SubjectDetail({ subject, today, onBack, onEdit, onAttach, onEditDoc, onDeleteDoc, canEditDoc, study = false }) {
   const { data } = useStore();
   const [openIns, setOpenIns] = useState(null);
   const ui = useUI();
@@ -412,7 +423,7 @@ function SubjectDetail({ subject, today, onBack, onEdit, onAttach, onEditDoc, ca
             <div key={part}>
               <SectionTitle icon={Presentation} right={onAttach && <AddButton onClick={() => onAttach(name)} />}>{study ? 'เอกสาร / แบบฟอร์ม / ตัวอย่าง' : 'เอกสาร / สื่อการสอน'}</SectionTitle>
               {docs.length ? (
-                <DocList docs={sortDocs(docs)} onEdit={onEditDoc} canEdit={canEditDoc} />
+                <DocList docs={sortDocs(docs)} onEdit={onEditDoc} onDelete={onDeleteDoc} canEdit={canEditDoc} />
               ) : (
                 <p className="glass rounded-3xl px-4 py-5 text-center text-[13px] text-slate-500">ยังไม่มีเอกสาร</p>
               )}
@@ -467,9 +478,22 @@ function SubjectDetail({ subject, today, onBack, onEdit, onAttach, onEditDoc, ca
  */
 /** สิทธิ์จัดการเอกสาร: แอดมิน = ทุกรายการ, ผู้เข้าอบรม = แนบใหม่ + แก้ไข/ลบของเครื่องตัวเอง */
 function useDocActions(setForm) {
-  const { isAdmin, myDocs } = useStore();
+  const { isAdmin, myDocs, deleteRecord } = useStore();
+  const ui = useUI();
+  const toast = useToast();
   const mine = new Set(myDocs || []);
   return {
+    deleteDoc: async (d) => {
+      const what = d.file_id ? 'ไฟล์' : 'ลิงก์';
+      const ok = await ui.confirm({ title: `ลบ${what}นี้?`, message: d.title, confirmText: `ลบ${what}`, danger: true });
+      if (!ok) return;
+      try {
+        await deleteRecord('resources', d.id);
+        toast.success(`ลบ${what}เรียบร้อย`);
+      } catch (err) {
+        toast.error(err.message);
+      }
+    },
     edit: isAdmin ? (item) => setForm({ key: Date.now(), collection: 'resources', item }) : null,
     editDoc: (item) => setForm({ key: Date.now(), collection: 'resources', item, public: !isAdmin }),
     canEditDoc: (d) => isAdmin || mine.has(d.id),
@@ -496,7 +520,7 @@ export function DocsPanel() {
     allDocs.forEach((d) => { const c = docCategory(d); out[c] = (out[c] || 0) + 1; });
     return out;
   }, [allDocs]);
-  const { edit, editDoc, canEditDoc, attach } = useDocActions(setForm);
+  const { edit, editDoc, deleteDoc, canEditDoc, attach } = useDocActions(setForm);
   const open = subjects.find((x) => x.key === openKey) || null;
   // จำว่ากำลังเปิดวิชาไหน (ย้อนกลับจากหน้าอื่นจะกลับมาที่วิชาเดิม)
   useEffect(() => { ui.remember({ tab: 'docs', subject: open ? open.name : '' }); }, [open && open.name]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -520,6 +544,7 @@ export function DocsPanel() {
         onEdit={edit}
         onAttach={attach}
         onEditDoc={editDoc}
+        onDeleteDoc={deleteDoc}
         canEditDoc={canEditDoc}
         onBack={() => {
           setOpenKey('');
@@ -579,7 +604,7 @@ export function DocsPanel() {
         </div>
 
         {filtering && (docHits.length ? (
-          <DocList docs={docHits} onEdit={editDoc} canEdit={canEditDoc} showSubject />
+          <DocList docs={docHits} onEdit={editDoc} onDelete={deleteDoc} canEdit={canEditDoc} showSubject />
         ) : (
           <p className="glass rounded-3xl px-4 py-5 text-center text-[13px] text-slate-500">ไม่พบเอกสารที่ตรงกับคำค้น</p>
         ))}
@@ -639,7 +664,7 @@ export function StudyPanel() {
   const { data, status } = useStore();
   const today = toISODate(useNow(60000));
   const [form, setForm] = useState(null);
-  const { edit, editDoc, canEditDoc, attach } = useDocActions(setForm);
+  const { edit, editDoc, deleteDoc, canEditDoc, attach } = useDocActions(setForm);
   const subject = useMemo(() => {
     const found = buildSubjects(data.classes, data.resources || []).find((x) => x.key === subjectKey(FEATURED_SUBJECT));
     return found || { key: subjectKey(FEATURED_SUBJECT), name: FEATURED_SUBJECT, sessions: [], docs: [], tasks: [], infos: [], first: '' };
@@ -661,6 +686,7 @@ export function StudyPanel() {
         onEdit={edit}
         onAttach={attach}
         onEditDoc={editDoc}
+        onDeleteDoc={deleteDoc}
         canEditDoc={canEditDoc}
       />
       <RecordForm state={form} onClose={() => setForm(null)} />
