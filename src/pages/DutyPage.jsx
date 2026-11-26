@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MissingMarks } from '../components/MissingMarks';
 import DutyHero from '../components/DutyHero';
 import { ArrowLeftRight, CalendarClock, ChevronUp, History, Pencil, Plus, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
@@ -104,7 +104,7 @@ function RoleCard({ role, entries, mineId, onOpen, onEdit, marks }) {
 }
 
 /** ตารางเวรแบบการ์ดรายวัน (เหมือน "เวรวันนี้" ในหน้าแรก): 1 การ์ด = 1 วัน แบ่งช่องตามหน้าที่ */
-function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit, marks }) {
+function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit, marks, pastToggle }) {
   const allDays = weeks.flatMap((w) => w.days);
   const anchor = (allDays.find((d) => d.date >= today) || {}).date;
   // เวรวันถัดไปหลังการ์ดเด่น (แสดงท้ายการ์ด)
@@ -114,9 +114,22 @@ function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit, marks }) {
     : null;
   return (
     <div className="space-y-5">
-      {weeks.map((w) => (
+      {weeks.map((w, wi) => (
         <section key={w.key}>
-          <p className="mb-2 px-1 text-[13px] font-bold text-navy-800">{w.label}</p>
+          <div className="mb-2 flex items-center justify-between gap-2 px-1">
+            <p className="min-w-0 truncate text-[13px] font-bold text-navy-800">{w.label}</p>
+            {wi === 0 && pastToggle && (
+              <button
+                type="button"
+                onClick={pastToggle.onToggle}
+                aria-expanded={pastToggle.open}
+                className="inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-1 text-[12px] font-semibold text-navy-600 transition active:opacity-70"
+              >
+                <ChevronUp className={cx('h-3.5 w-3.5 transition-transform', pastToggle.open && 'rotate-180')} />
+                {pastToggle.open ? 'ซ่อนวันที่ผ่านมา' : `วันที่ผ่านมา (${pastToggle.count})`}
+              </button>
+            )}
+          </div>
           <div className="space-y-2.5">
             {w.days.map((day) => {
               const d = parseISODate(day.date);
@@ -179,6 +192,16 @@ export default function DutyPage({ switcher }) {
   const [focused, setFocused] = useState(false);
   const [swapForm, setSwapForm] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
+  const fabRef = useRef(null);
+  useEffect(() => {
+    if (!fabOpen) return undefined;
+    const onDown = (e) => {
+      if (fabRef.current && !fabRef.current.contains(e.target)) setFabOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [fabOpen]);
   const [mineId, setMineId] = usePersistentState('bts61:duty-me', '');
   const mine = mineId ? memberById.get(mineId) : null;
 
@@ -348,37 +371,6 @@ export default function DutyPage({ switcher }) {
         <EmptyState icon={ShieldCheck} title="ยังไม่มีตารางเวรในระบบ" description="ผู้ดูแลระบบเพิ่มตารางเวรได้จากเมนู ตั้งค่า/แอดมิน" />
       ) : (
         <>
-          {/* ขอสลับเวร / ประวัติการสลับเวร */}
-          <div className="mb-2.5 mt-2 flex items-center gap-2">
-            <Button size="sm" variant="soft" icon={ArrowLeftRight} onClick={() => openSwapForm(null)}>
-              ขอสลับเวร
-            </Button>
-            <button
-              type="button"
-              onClick={() => setHistoryOpen(true)}
-              className="relative inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-medium text-navy-700 hover:bg-white/60"
-            >
-              <History className="h-4 w-4" /> ประวัติการสลับ
-              {pendingSwaps > 0 && (
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 text-[11px] font-bold tabular-nums text-navy-950" title="คำขอที่รออนุมัติ">
-                  {pendingSwaps}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {hasUpcoming && pastDays > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowPast((v) => !v)}
-              aria-expanded={showPast}
-              className="mb-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-2xl bg-white/50 text-[13px] font-semibold text-navy-700 ring-1 ring-inset ring-white/70 transition active:scale-[0.99]"
-            >
-              <ChevronUp className={cx('h-4 w-4 transition-transform', !showPast && 'rotate-180')} />
-              {showPast ? 'ซ่อนวันที่ผ่านมา · เริ่มที่วันนี้' : `ดูทั้งหมด (รวมวันที่ผ่านมา ${pastDays} วัน)`}
-            </button>
-          )}
-
           {weeks.length === 0 ? (
             <EmptyState
               icon={mine || query ? UserRoundSearch : CalendarClock}
@@ -394,16 +386,68 @@ export default function DutyPage({ switcher }) {
               onOpen={ui.openProfile}
               onEdit={isAdmin ? ui.openDutyForm : null}
               marks={marks}
+              pastToggle={hasUpcoming && pastDays > 0 ? { count: pastDays, open: showPast, onToggle: () => setShowPast((v) => !v) } : null}
             />
           )}
           <p className="mt-4 px-2 text-center text-xs leading-relaxed text-slate-400">
-            แตะชื่อเพื่อดูเบอร์โทร · หากลาหรือติดภารกิจในวันเวร ให้ขอสลับเวรกับเพื่อน แล้วรอแอดมินอนุมัติ
+            แตะชื่อเพื่อดูเบอร์โทร · ลาหรือติดภารกิจ กดปุ่ม "สลับเวร" มุมขวาล่าง แล้วรอแอดมินอนุมัติ
           </p>
-          <p className="mt-2 flex items-center justify-center gap-3 text-[11.5px] text-slate-400">
+          <p className="mb-16 mt-2 flex items-center justify-center gap-3 text-[11.5px] text-slate-400">
             <span className="inline-flex items-center gap-1"><SwapDot mark="pending" /> รออนุมัติสลับ</span>
             <span className="inline-flex items-center gap-1"><SwapDot mark="swapped" /> สลับเวรแล้ว</span>
           </p>
         </>
+      )}
+
+      {!loading && entries.length > 0 && (
+        <div ref={fabRef} className="fab">
+          {fabOpen && (
+            <div role="menu" className="absolute bottom-full right-0 mb-2 w-60 animate-pop rounded-2xl bg-white/95 p-1.5 shadow-[0_16px_40px_-12px_rgba(11,28,54,0.45)] ring-1 ring-black/5 backdrop-blur-xl">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setFabOpen(false);
+                  openSwapForm(null);
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-[14.5px] font-semibold text-navy-900 hover:bg-navy-500/5"
+              >
+                <ArrowLeftRight className="h-[18px] w-[18px] text-navy-600" /> ขอสลับเวร
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setFabOpen(false);
+                  setHistoryOpen(true);
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-[14.5px] font-semibold text-navy-900 hover:bg-navy-500/5"
+              >
+                <History className="h-[18px] w-[18px] text-navy-600" />
+                <span className="flex-1">ประวัติการสลับ</span>
+                {pendingSwaps > 0 && (
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 text-[11px] font-bold tabular-nums text-navy-950">{pendingSwaps}</span>
+                )}
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setFabOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={fabOpen}
+            aria-label="สลับเวร"
+            className="btn-navy relative inline-flex h-14 items-center gap-2 rounded-full px-5 text-[15px] font-semibold text-white ring-1 ring-white/30 shadow-[0_14px_30px_-12px_rgba(11,28,54,0.7)] transition active:scale-95"
+          >
+            {fabOpen ? <X className="h-5 w-5" /> : <ArrowLeftRight className="h-5 w-5" />}
+            สลับเวร
+            {pendingSwaps > 0 && !fabOpen && (
+              <span className="absolute -right-1 -top-1 grid h-6 min-w-6 place-items-center rounded-full bg-amber-400 px-1.5 text-[12px] font-bold tabular-nums text-navy-950 ring-2 ring-white" title="คำขอที่รออนุมัติ">
+                {pendingSwaps}
+              </span>
+            )}
+          </button>
+        </div>
       )}
 
       <SwapForm state={swapForm} onClose={() => setSwapForm(null)} />
