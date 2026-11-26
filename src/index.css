@@ -192,14 +192,6 @@
 .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 14px); }
 .page-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 112px); }
 
-/* ---------- แถบ "เมนูอื่น" ด้านบน (เมนูที่เกินจากเมนูด้านล่าง 5 รายการ) ---------- */
-.morebar {
-  padding-top: calc(env(safe-area-inset-top) + 10px);
-}
-/* แถบเมนูอื่นเว้นพื้นที่ notch ให้แล้ว หัวหน้าของแต่ละหน้าจึงไม่ต้องเว้นซ้ำ */
-.morebar ~ main .pt-safe { padding-top: 0; }
-.morebar ~ main .pt-safe > :first-child { padding-top: 0.75rem; }
-
 /* ---------- Floating bottom navigation (ซ่อนเมื่อเลื่อนลง) ---------- */
 .dock {
   position: fixed;

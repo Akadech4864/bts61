@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { BookOpen, GraduationCap, Plus, UserRound, Users } from 'lucide-react';
 import { Photo } from '../components/Avatar';
 import InstructorSheet from '../components/InstructorSheet';
-import { Button, EmptyState, PageHeader, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
+import { Button, EmptyState, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import RecordForm from '../components/RecordForm';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -197,10 +197,11 @@ function SpeakersView({ classes, onDate }) {
 
 /* ------------------------------ หน้าอาจารย์ ------------------------------ */
 
-export default function InstructorsPage() {
+/** รายชื่ออาจารย์ (ใช้ในเมนูหลักสูตร > รายชื่ออาจารย์) */
+export function InstructorsPanel({ initialMode }) {
   const { data, status, isAdmin } = useStore();
   const ui = useUI();
-  const [mode, setMode] = useState(() => (ui.view && MODES.some((m) => m.value === ui.view.mode) ? ui.view.mode : 'subjects'));
+  const [mode, setMode] = useState(() => (MODES.some((m) => m.value === initialMode) ? initialMode : 'subjects'));
   const [selected, setSelected] = useState('all');
   const [openId, setOpenId] = useState(null);
   const [form, setForm] = useState(null);
@@ -225,18 +226,14 @@ export default function InstructorsPage() {
   const showSubject = selected !== 'all' && subjects.some((s) => s.name === selected) ? selected : 'all';
 
   return (
-    <div className="mx-auto max-w-3xl px-4 page-bottom">
-      <PageHeader
-        eyebrow="Instructors"
-        title="อาจารย์"
-        right={
-          isAdmin ? (
-            <Button size="sm" icon={Plus} onClick={() => setForm({ key: Date.now(), collection: 'instructors', item: null })} className="shrink-0">
-              เพิ่มอาจารย์
-            </Button>
-          ) : null
-        }
-      />
+    <div>
+      {isAdmin && (
+        <div className="mb-2 flex justify-end">
+          <Button size="sm" icon={Plus} onClick={() => setForm({ key: Date.now(), collection: 'instructors', item: null })}>
+            เพิ่มอาจารย์
+          </Button>
+        </div>
+      )}
 
       <TopBarSentinel />
       <div className="topbar sticky-glass sticky top-0 z-20 -mx-4 px-4 py-2">

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarDays, ChevronRight, GraduationCap, Landmark, MapPin, Pencil, Phone, Plus, Users } from 'lucide-react';
 import { Photo } from '../components/Avatar';
-import { Button, EmptyState, PageHeader, Skeleton } from '../components/ui';
+import { Button, EmptyState, Skeleton } from '../components/ui';
 import RecordForm from '../components/RecordForm';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -74,7 +74,8 @@ function StaffCard({ person, onEdit }) {
   );
 }
 
-export default function AboutPage() {
+/** ข้อมูลหลักสูตร + ผู้บริหาร (ใช้ในเมนูหลักสูตร > ข้อมูลหลักสูตร) */
+export function CourseInfoPanel({ onTab }) {
   const { data, status, isAdmin } = useStore();
   const ui = useUI();
   const [form, setForm] = useState(null);
@@ -88,8 +89,7 @@ export default function AboutPage() {
   const loading = status === 'loading';
 
   return (
-    <div className="mx-auto max-w-3xl px-4 page-bottom">
-      <PageHeader eyebrow="About the Course" title="เกี่ยวกับหลักสูตร" />
+    <div>
 
       <section className="glass rounded-3xl p-5">
         <div className="flex items-center gap-4">
@@ -163,7 +163,7 @@ export default function AboutPage() {
 
       <div className="glass mt-6 divide-y divide-white/70 rounded-3xl px-4">
         {[
-          { icon: GraduationCap, title: 'อาจารย์ประจำกลุ่ม (วิชาเอกสารศึกษา)', go: () => ui.go('instructors', { mode: 'groups' }) },
+          { icon: GraduationCap, title: 'อาจารย์ประจำกลุ่ม (วิชาเอกสารศึกษา)', go: () => onTab('instructors', 'groups') },
           { icon: CalendarDays, title: 'ตารางการฝึกอบรม', go: () => ui.go('classes') },
         ].map((row) => (
           <button key={row.title} type="button" onClick={row.go} className="flex w-full items-center gap-3 py-3 text-left transition active:opacity-70">

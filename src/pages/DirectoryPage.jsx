@@ -4,6 +4,7 @@ import { Photo } from '../components/Avatar';
 import { SocialInline, SocialMarks } from '../components/Social';
 import { EmptyState, Marquee, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import MemberSuggest from '../components/MemberSuggest';
+import MoreMenuButton from '../components/MoreMenu';
 import FilterSheet, { SORT_OPTIONS } from '../components/FilterSheet';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -512,6 +513,7 @@ export default function DirectoryPage() {
           >
             <RefreshCw className={cx('h-5 w-5', syncing && 'animate-spin')} />
           </button>
+          <MoreMenuButton />
         </div>
       </header>
 

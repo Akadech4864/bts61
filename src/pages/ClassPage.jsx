@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, CalendarDays, CalendarSearch, ChevronRight, Clock, MapPin, Pencil, Plus, StickyNote, UserRound } from 'lucide-react';
+import MoreMenuButton from '../components/MoreMenu';
 import { Photo } from '../components/Avatar';
 import InstructorSheet from '../components/InstructorSheet';
 import { Button, EmptyState, PageHeader, Skeleton, TopBarSentinel } from '../components/ui';
@@ -241,7 +242,7 @@ export default function ClassPage() {
   const classes = useMemo(() => [...data.classes].sort(compareClass), [data.classes]);
   const findPerson = useMemo(() => buildPeopleIndex(data.instructors, data.staff), [data.instructors, data.staff]);
   const [sheetIns, setSheetIns] = useState(null);
-  const onPerson = (match) => (match.type === 'instructor' ? setSheetIns(match.rec) : ui.go('about'));
+  const onPerson = (match) => (match.type === 'instructor' ? setSheetIns(match.rec) : ui.go('course', { tab: 'info' }));
   const statusOf = useMemo(() => new Map(classes.map((c) => [c.id, classStatus(c, now)])), [classes, now]);
   const live = classes.find((c) => statusOf.get(c.id) === 'now');
   const next = classes.find((c) => statusOf.get(c.id) === 'upcoming');
@@ -273,6 +274,7 @@ export default function ClassPage() {
                 className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
               />
             </label>
+            <MoreMenuButton />
           </div>
         }
       />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import BottomNav, { MoreBar, TABS } from './components/BottomNav';
+import BottomNav, { TAB_ALIASES, TABS } from './components/BottomNav';
 import ProfileSheet from './components/ProfileSheet';
 import MemberForm from './components/MemberForm';
 import { ClassForm, DutyForm } from './components/ScheduleForms';
@@ -13,13 +13,10 @@ import DirectoryPage from './pages/DirectoryPage';
 import ClassPage from './pages/ClassPage';
 import DutyPage from './pages/DutyPage';
 import SettingsPage from './pages/SettingsPage';
-import InstructorsPage from './pages/InstructorsPage';
 import DocsPage from './pages/DocsPage';
-import AboutPage from './pages/AboutPage';
+import CoursePage from './pages/CoursePage';
 
-const PAGES = {
-  directory: DirectoryPage, classes: ClassPage, duty: DutyPage, instructors: InstructorsPage, docs: DocsPage, about: AboutPage, settings: SettingsPage,
-};
+const PAGES = { directory: DirectoryPage, classes: ClassPage, duty: DutyPage, docs: DocsPage, course: CoursePage, settings: SettingsPage };
 const TAB_KEY = 'bts61:tab';
 
 function ConfirmDialog({ request, onAnswer }) {
@@ -45,7 +42,8 @@ function ConfirmDialog({ request, onAnswer }) {
 function Shell() {
   const { isAdmin } = useStore();
   const [tab, setTab] = useState(() => {
-    const saved = readStored(TAB_KEY, 'directory');
+    const stored = readStored(TAB_KEY, 'directory');
+    const saved = TAB_ALIASES[stored] || stored;
     return TABS.some((t) => t.id === saved) ? saved : 'directory';
   });
   const [view, setView] = useState(null); // ส่งต่อมุมมองย่อยเมื่อเปลี่ยนหน้า เช่น { mode: 'groups' } หรือ { date: '2026-12-01' }
@@ -100,7 +98,6 @@ function Shell() {
   return (
     <UIContext.Provider value={ui}>
       <div className="app-bg" aria-hidden="true" />
-      <MoreBar tab={tab} onChange={go} adminActive={isAdmin} />
       <main key={tab} className="animate-fade-in">
         <Page />
       </main>

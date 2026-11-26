@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   CalendarCheck2, ChevronRight, ClipboardList, ExternalLink, FileText, FolderOpen, Info, Pencil, Plus, Users,
 } from 'lucide-react';
+import MoreMenuButton from '../components/MoreMenu';
 import { Button, EmptyState, PageHeader, Skeleton } from '../components/ui';
 import RecordForm from '../components/RecordForm';
 import { useStore } from '../lib/store';
@@ -229,11 +230,14 @@ export default function DocsPage() {
         eyebrow="Assignments & Documents"
         title="งาน / เอกสาร"
         right={
-          isAdmin ? (
-            <Button size="sm" icon={Plus} onClick={() => setForm({ key: Date.now(), collection: 'resources', item: { subject: subject || '' } })} className="shrink-0">
-              เพิ่ม
-            </Button>
-          ) : null
+          <div className="flex shrink-0 items-center gap-2">
+            {isAdmin && (
+              <Button size="sm" icon={Plus} onClick={() => setForm({ key: Date.now(), collection: 'resources', item: { subject: subject || '' } })} className="shrink-0">
+                เพิ่ม
+              </Button>
+            )}
+            <MoreMenuButton />
+          </div>
         }
       />
 
@@ -306,7 +310,7 @@ export default function DocsPage() {
             {hasGroups && (
               <button
                 type="button"
-                onClick={() => ui.go('instructors', { mode: 'groups' })}
+                onClick={() => ui.go('course', { tab: 'instructors', mode: 'groups' })}
                 className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-white/12 px-4 text-sm font-semibold ring-1 ring-inset ring-white/25 transition active:scale-95"
               >
                 <Users className="h-4 w-4" /> อาจารย์ประจำกลุ่ม <ChevronRight className="h-4 w-4 text-white/60" />

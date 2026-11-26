@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, FolderOpen, GraduationCap, Landmark, LayoutGrid, Settings, ShieldCheck, Users } from 'lucide-react';
+import { CalendarDays, FolderOpen, GraduationCap, Settings, ShieldCheck, Users } from 'lucide-react';
 import { cx } from '../lib/utils';
 
-/** เมนูทั้งหมดของแอพ — 5 รายการแรกอยู่ที่เมนูด้านล่าง ที่เหลืออยู่ในแถบ "เมนูอื่น" ด้านบน */
+/** เมนูทั้งหมดของแอพ — 5 รายการแรกอยู่ที่เมนูด้านล่าง ที่เหลืออยู่ในปุ่ม "เมนูอื่น" บนหัวของทุกหน้า */
 export const TABS = [
   { id: 'directory', label: 'ทำเนียบรุ่น', icon: Users },
   { id: 'classes', label: 'ตารางสอน', icon: CalendarDays },
   { id: 'duty', label: 'ตารางเวร', icon: ShieldCheck },
-  { id: 'instructors', label: 'อาจารย์', icon: GraduationCap },
   { id: 'docs', label: 'เอกสาร', title: 'งาน / เอกสาร', icon: FolderOpen },
-  { id: 'about', label: 'เกี่ยวกับหลักสูตร', icon: Landmark },
+  { id: 'course', label: 'หลักสูตร', icon: GraduationCap },
   { id: 'settings', label: 'ตั้งค่า', icon: Settings },
 ];
+/** ชื่อเมนูเดิมที่ย้ายไปรวมกัน (ใช้กับแท็บที่จำไว้ในเครื่อง) */
+export const TAB_ALIASES = { about: 'course', instructors: 'course' };
 export const DOCK_LIMIT = 5;
 export const DOCK_TABS = TABS.slice(0, DOCK_LIMIT);
 export const MORE_TABS = TABS.slice(DOCK_LIMIT);
@@ -49,45 +50,6 @@ function useHideOnScroll() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   return hidden;
-}
-
-/**
- * แถบ "เมนูอื่น" ด้านบนสุดของทุกหน้า: รวมเมนูที่เกินจากเมนูด้านล่าง (เกิน 5 รายการ)
- * ไอคอนตารางที่หัวแถบบอกว่ายังมีเมนูอื่นอยู่ตรงนี้
- */
-export function MoreBar({ tab, onChange, adminActive }) {
-  if (!MORE_TABS.length) return null;
-  return (
-    <nav className="morebar" aria-label="เมนูอื่น">
-      <div className="mx-auto flex max-w-6xl items-center gap-2 px-4">
-        <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-slate-500">
-          <LayoutGrid className="h-3.5 w-3.5" /> เมนูอื่น
-        </span>
-        <div className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-0.5">
-          {MORE_TABS.map((t) => {
-            const active = t.id === tab;
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => onChange(t.id)}
-                aria-current={active ? 'page' : undefined}
-                className={cx(
-                  'relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition active:scale-95',
-                  active ? 'btn-navy text-white' : 'glass text-navy-800',
-                )}
-              >
-                <Icon className="h-[15px] w-[15px]" strokeWidth={active ? 2.3 : 2} />
-                {t.label}
-                {t.id === 'settings' && adminActive && <span className="h-1.5 w-1.5 rounded-full bg-gold-400" aria-label="เข้าสู่ระบบแอดมินอยู่" />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </nav>
-  );
 }
 
 export default function BottomNav({ tab, onChange, adminActive }) {

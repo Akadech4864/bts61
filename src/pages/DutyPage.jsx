@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CalendarClock, Pencil, Plus, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
+import MoreMenuButton from '../components/MoreMenu';
 import { Photo } from '../components/Avatar';
 import { Button, EmptyState, PageHeader, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import MemberSuggest from '../components/MemberSuggest';
@@ -214,11 +215,14 @@ export default function DutyPage() {
         eyebrow="Duty Roster"
         title="ตารางเวร"
         right={
-          isAdmin ? (
-            <Button size="sm" icon={Plus} onClick={() => ui.openDutyForm(null)} className="shrink-0">
-              เพิ่มเวร
-            </Button>
-          ) : null
+          <div className="flex shrink-0 items-center gap-2">
+            {isAdmin && (
+              <Button size="sm" icon={Plus} onClick={() => ui.openDutyForm(null)} className="shrink-0">
+                เพิ่มเวร
+              </Button>
+            )}
+            <MoreMenuButton />
+          </div>
         }
       />
 

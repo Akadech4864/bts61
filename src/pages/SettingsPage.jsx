@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   BookOpen, CalendarDays, Eye, EyeOff, FlaskConical, FolderOpen, GraduationCap, KeyRound, Landmark, Lock, LogOut, RefreshCw, ShieldCheck, TriangleAlert, Users,
 } from 'lucide-react';
+import MoreMenuButton from '../components/MoreMenu';
 import { Button, Card, PageHeader, Switch, TextInput } from '../components/ui';
 import { ManageSheet, MenuRow, PasswordResetSheet } from '../components/AdminSheets';
 import { useToast } from '../components/Toast';
@@ -159,7 +160,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 page-bottom">
-      <PageHeader eyebrow={isAdmin ? 'Admin Control Panel' : 'Settings'} title={isAdmin ? 'แผงควบคุมแอดมิน' : 'ตั้งค่า / แอดมิน'} />
+      <PageHeader eyebrow={isAdmin ? 'Admin Control Panel' : 'Settings'} title={isAdmin ? 'แผงควบคุมแอดมิน' : 'ตั้งค่า / แอดมิน'} right={<MoreMenuButton />} />
 
       {isDemo && (
         <div className="glass mb-4 flex items-start gap-3 rounded-2xl p-4 ring-1 ring-inset ring-gold-300">
@@ -233,9 +234,9 @@ export default function SettingsPage() {
             <MenuRow icon={Users} title="รายชื่อผู้เข้าอบรม" description={`${data.members.length} คน · เพิ่ม แก้ไข ลบ`} onClick={() => setManage('members')} />
             <MenuRow icon={BookOpen} title="ตารางสอน" description={`${data.classes.length} รายการ · เพิ่ม แก้ไข ลบ`} onClick={() => setManage('classes')} />
             <MenuRow icon={CalendarDays} title="ตารางเวร" description={`${data.duty.length} รายการ · เพิ่ม แก้ไข ลบ`} onClick={() => setManage('duty')} />
-            <MenuRow icon={GraduationCap} title="อาจารย์" description={`${(data.instructors || []).length} ท่าน · แก้ไขได้ที่หน้าอาจารย์`} onClick={() => ui.go('instructors')} />
+            <MenuRow icon={GraduationCap} title="อาจารย์" description={`${(data.instructors || []).length} ท่าน · แก้ไขได้ที่เมนูหลักสูตร > รายชื่ออาจารย์`} onClick={() => ui.go('course', { tab: 'instructors' })} />
             <MenuRow icon={FolderOpen} title="งาน / เอกสาร" description={`${(data.resources || []).length} รายการ · แก้ไขได้ที่หน้างาน/เอกสาร`} onClick={() => ui.go('docs')} />
-            <MenuRow icon={Landmark} title="ผู้บริหารหลักสูตร" description={`${(data.staff || []).length} ท่าน · แก้ไขได้ที่หน้าเกี่ยวกับหลักสูตร`} onClick={() => ui.go('about')} />
+            <MenuRow icon={Landmark} title="ผู้บริหารหลักสูตร" description={`${(data.staff || []).length} ท่าน · แก้ไขได้ที่เมนูหลักสูตร > ข้อมูลหลักสูตร`} onClick={() => ui.go('course', { tab: 'info' })} />
           </Card>
 
           <SectionTitle>ความปลอดภัย</SectionTitle>
