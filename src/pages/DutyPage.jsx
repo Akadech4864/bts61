@@ -27,21 +27,29 @@ const shortDate = (iso) => {
 };
 const beYear = (iso) => String(parseISODate(iso).getFullYear() + 543).slice(2);
 
-/** ผู้เข้าเวรแบบย่อ: รูป + ชื่อเล่น + ชื่อจริง แตะเพื่อเปิดข้อมูลในทำเนียบรุ่น */
+/** ผู้เข้าเวร: รูปหน้าตรง + ชื่อเล่น + ชื่อ-สกุล + ลำดับที่ แตะเพื่อเปิดข้อมูลในทำเนียบรุ่น */
 function DutyPerson({ member, highlight, onOpen }) {
   return (
     <button
       type="button"
       onClick={() => onOpen(member.id)}
       className={cx(
-        'flex w-full min-w-0 items-center gap-1.5 rounded-xl p-0.5 pr-1 text-left transition active:scale-[0.98]',
+        'flex w-full min-w-0 items-center gap-2.5 rounded-2xl p-1 text-left transition active:scale-[0.98]',
         highlight ? 'bg-gold-300/45 ring-1 ring-inset ring-gold-400' : 'hover:bg-white/60',
       )}
     >
-      <Photo member={member} width={96} className="h-9 w-9 shrink-0 rounded-full" textClass="text-xs" />
+      <span className="relative shrink-0">
+        <Photo member={member} width={160} className="h-14 w-14 rounded-full object-[center_20%] ring-2 ring-white shadow-sm" textClass="text-base" />
+        {member.seq && (
+          <span className="absolute -bottom-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-navy-900 px-1 text-[10px] font-bold tabular-nums leading-none text-white ring-2 ring-white">
+            {member.seq}
+          </span>
+        )}
+      </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-semibold leading-tight text-navy-900">{nickOf(member)}</span>
-        <span className="block truncate text-[11px] leading-tight text-slate-500">{member.nickname ? member.first_name : member.last_name}</span>
+        <span className="block truncate text-[16px] font-bold leading-tight text-navy-900">{nickOf(member)}</span>
+        <span className="mt-0.5 block truncate text-[13px] leading-tight text-slate-700">{member.first_name}</span>
+        {member.last_name && <span className="block truncate text-[12px] leading-tight text-slate-500">{member.last_name}</span>}
       </span>
     </button>
   );
@@ -50,27 +58,29 @@ function DutyPerson({ member, highlight, onOpen }) {
 function DutyCell({ entries, mineId, onOpen, onEdit }) {
   if (!entries || !entries.length) return <span className="block px-1 text-center text-slate-300">—</span>;
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {entries.map(({ item, people }) => {
         const nobody = !people.members.length && !people.extras.length;
         return (
-          <div key={item.id} className={cx('relative', onEdit && 'pr-5')}>
+          <div key={item.id} className="relative">
             {people.members.map((m) => (
               <DutyPerson key={m.id} member={m} highlight={m.id === mineId} onOpen={onOpen} />
             ))}
             {people.extras.map((name) => (
-              <p key={name} className="px-1 text-[13px] font-medium leading-snug text-slate-700">{name}</p>
+              <p key={name} className="px-1 text-[14px] font-medium leading-snug text-slate-700">{name}</p>
             ))}
             {item.note && (
-              <p className={cx('px-1 leading-snug', nobody ? 'text-[12px] text-slate-600' : 'mt-0.5 text-[11px] text-gold-700')}>{item.note}</p>
+              <p className={cx('px-1 leading-snug', nobody ? 'py-1 text-[13px] text-slate-600' : 'mt-1 text-[12px] text-gold-700')}>{item.note}</p>
             )}
-            {nobody && !item.note && <p className="px-1 text-[12px] text-slate-400">ยังไม่ระบุ</p>}
+            {nobody && !item.note && <p className="px-1 py-1 text-[13px] text-slate-400">ยังไม่ระบุ</p>}
             {onEdit && (
+              // ปุ่มแก้ไขเห็นเฉพาะแอดมิน — วางมุมขวาบนแบบเล็ก ไม่กินพื้นที่ชื่อ
               <button
                 type="button"
                 onClick={() => onEdit(item)}
-                aria-label="แก้ไขรายการนี้"
-                className="absolute -right-0.5 top-0 grid h-6 w-6 place-items-center rounded-full text-slate-400 hover:bg-white/70 hover:text-navy-800"
+                aria-label="แก้ไขรายการนี้ (แอดมิน)"
+                title="แก้ไข (เฉพาะแอดมิน)"
+                className="absolute -right-1 -top-1 grid h-7 w-7 place-items-center rounded-full bg-white/80 text-slate-400 shadow-sm ring-1 ring-white hover:text-navy-800"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -84,19 +94,19 @@ function DutyCell({ entries, mineId, onOpen, onEdit }) {
 
 /** ตารางเวรรายสัปดาห์: 1 แถว = 1 วัน, 1 คอลัมน์ = 1 หน้าที่ */
 function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit }) {
-  const dateCol = 58;
+  const dateCol = 62;
   return (
     <div className="glass overflow-x-auto rounded-3xl">
-      <table className="w-full table-fixed border-collapse text-left" style={{ minWidth: dateCol + roles.length * 128 }}>
+      <table className="w-full table-fixed border-collapse text-left" style={{ minWidth: dateCol + roles.length * 140 }}>
         <colgroup>
           <col style={{ width: dateCol }} />
           {roles.map((r) => <col key={r} />)}
         </colgroup>
         <thead className="bg-white/55 text-[12px] text-slate-500">
           <tr>
-            <th scope="col" className="px-2 py-2 text-center font-semibold">วันที่</th>
+            <th scope="col" className="px-2 py-2.5 text-center font-semibold">วันที่</th>
             {roles.map((r) => (
-              <th key={r} scope="col" className="px-2 py-2 font-semibold text-navy-800">{r}</th>
+              <th key={r} scope="col" className="px-2.5 py-2.5 text-[13px] font-bold text-navy-800">{r}</th>
             ))}
           </tr>
         </thead>
@@ -112,14 +122,14 @@ function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit }) {
               const isToday = day.date === today;
               return (
                 <tr key={day.date} className={cx(isToday ? 'bg-gold-300/25' : '', day.date < today && 'opacity-55')}>
-                  <td className="px-1 py-2 text-center align-top">
-                    <p className="text-[10px] font-medium leading-none text-slate-500">{WEEKDAYS[d.getDay()]}</p>
-                    <p className="mt-0.5 text-lg font-bold leading-none text-navy-900 tabular-nums">{d.getDate()}</p>
-                    <p className="mt-0.5 text-[10px] leading-none text-slate-500">{MONTHS[d.getMonth()]}</p>
-                    {isToday && <span className="mt-1 inline-block rounded-full bg-gold-400 px-1.5 text-[9px] font-bold leading-4 text-navy-950">วันนี้</span>}
+                  <td className="px-1 py-3 text-center align-middle">
+                    <p className="text-[12px] font-semibold leading-none text-slate-500">{WEEKDAYS[d.getDay()]}</p>
+                    <p className="mt-1 text-[26px] font-bold leading-none text-navy-900 tabular-nums">{d.getDate()}</p>
+                    <p className="mt-1 text-[11px] leading-none text-slate-500">{MONTHS[d.getMonth()]}</p>
+                    {isToday && <span className="mt-1.5 inline-block rounded-full bg-gold-400 px-2 text-[10px] font-bold leading-5 text-navy-950">วันนี้</span>}
                   </td>
                   {roles.map((r) => (
-                    <td key={r} className="px-1.5 py-1.5 align-top">
+                    <td key={r} className="px-2 py-2.5 align-middle">
                       <DutyCell entries={day.byRole[r]} mineId={mineId} onOpen={onOpen} onEdit={onEdit} />
                     </td>
                   ))}
