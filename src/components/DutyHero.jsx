@@ -1,7 +1,7 @@
 import { ChevronRight, Pencil } from 'lucide-react';
 import { Photo } from './Avatar';
-import { SwapDot, firstNameShort, markOf } from './DutySwap';
-import { cx, formatDate, nickOf, relativeDay } from '../lib/utils';
+import { SwapDot, markOf } from './DutySwap';
+import { cx, formatDate, nickOf, relativeDay, shortName } from '../lib/utils';
 
 /**
  * การ์ดเด่นของเวร (แบบเดียวกับการ์ด "กำลังเรียนอยู่ตอนนี้"): ผู้เข้าเวรวันนี้ หรือวันเวรถัดไป
@@ -50,7 +50,8 @@ export default function DutyHero({ date, today, groups, marks, mineId, onOpen, o
                         {marks && <SwapDot mark={markOf(marks, item.id, m.id)} className="absolute -left-1 -top-1 ring-navy-900" />}
                       </span>
                       <span className="block w-full truncate text-[17px] font-bold leading-tight">{nickOf(m)}</span>
-                      <span className="-mt-1 block w-full truncate text-[12.5px] text-white/70">{firstNameShort(m)}</span>
+                      {/* ยศ/คำนำหน้า + ชื่อจริงฯ */}
+                      <span className="-mt-1 block w-full truncate text-[12.5px] text-white/70">{shortName(m)}</span>
                     </button>
                   ))}
                   {people.extras.map((name) => <p key={name} className="text-[14px] font-medium text-white/90">{name}</p>)}

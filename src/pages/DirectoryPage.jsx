@@ -132,14 +132,14 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
             </span>
           )}
           <div className={cx('absolute', label)}>
-            {/* ชื่อเล่นตัวใหญ่ + ยศ ชื่อจริงฯ (ยาวเกินการ์ดจะวิ่งไปกลับช้า ๆ) */}
-            {markSize > 0 && <SocialMarks member={m} size={markSize} max={markMax} className={dense ? 'mb-1' : 'mb-1.5'} />}
+            {/* ชื่อเล่นตัวใหญ่ + ยศ ชื่อจริงฯ (ยาวเกินการ์ดจะวิ่งไปกลับช้า ๆ) แล้วตามด้วยโลโก้โซเชียลมีเดีย */}
             <p className={cx('truncate font-bold leading-tight text-white drop-shadow', nickSize)}>{nickOf(m)}</p>
             <Marquee
               text={shortName(m)}
               measureKey={`${dense}:${Math.round(cardWidth)}`}
               className={cx('leading-tight text-white/85', ['mt-0.5 text-sm', 'text-[12px]', 'text-[10px]', 'text-[9px]'][dense])}
             />
+            {markSize > 0 && <SocialMarks member={m} size={markSize} max={markMax} className={dense ? 'mt-1' : 'mt-1.5'} />}
           </div>
         </button>
       ))}
