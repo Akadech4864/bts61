@@ -88,7 +88,7 @@ function RecordFormInner({ collection, initial, onClose }) {
   const [photo, setPhoto] = useState(null); // { blob, url } รูปใหม่ที่ครอปแล้ว
   const [removePhoto, setRemovePhoto] = useState(false);
   const [cropSrc, setCropSrc] = useState(null);
-  const [docFile, setDocFile] = useState(null); // ไฟล์เอกสารใหม่ที่จะอัปโหลด
+  const [docFiles, setDocFiles] = useState([]); // ไฟล์เอกสารใหม่ที่จะอัปโหลด (เพิ่มใหม่เลือกได้หลายไฟล์ แต่ละไฟล์เป็น 1 รายการ)
   const [removeFile, setRemoveFile] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -110,7 +110,7 @@ function RecordFormInner({ collection, initial, onClose }) {
       : []),
     [collection, data.classes, form.subject],
   );
-  const hasFile = !!docFile || (!!form.file_id && !removeFile);
+  const hasFile = docFiles.length > 0 || (!!form.file_id && !removeFile);
 
   function onFile(e) {
     const file = e.target.files && e.target.files[0];
@@ -136,7 +136,8 @@ function RecordFormInner({ collection, initial, onClose }) {
   async function submit(e) {
     e.preventDefault();
     if (saving) return;
-    if (!String(form[cfg.required[0]] || '').trim()) {
+    const many = form.type === 'link' && docFiles.length > 1;
+    if (!many && !String(form[cfg.required[0]] || '').trim()) {
       toast.error(cfg.required[1]);
       return;
     }
@@ -162,7 +163,19 @@ function RecordFormInner({ collection, initial, onClose }) {
           return;
         }
       }
-      await saveRecord(collection, item, { photoBlob: photo && photo.blob, removePhoto, file: form.type === 'link' ? docFile : null, removeFile });
+      if (many) {
+        // หลายไฟล์: บันทึกทีละไฟล์ ชื่อเอกสาร = ชื่อที่กรอก (ลำดับ) หรือชื่อไฟล์
+        const base = String(form.title || '').trim();
+        for (let i = 0; i < docFiles.length; i += 1) {
+          const f = docFiles[i];
+          const title = base ? `${base} (${i + 1})` : f.name.replace(/\.[^.]+$/, '');
+          await saveRecord(collection, { ...item, id: '', title }, { file: f });
+        }
+        toast.success(`แนบเอกสาร ${docFiles.length} ไฟล์เรียบร้อย`);
+        onClose();
+        return;
+      }
+      await saveRecord(collection, item, { photoBlob: photo && photo.blob, removePhoto, file: form.type === 'link' ? docFiles[0] || null : null, removeFile });
       toast.success(isNew ? 'เพิ่มข้อมูลเรียบร้อย' : 'บันทึกข้อมูลเรียบร้อย');
       onClose();
     } catch (err) {
@@ -251,45 +264,51 @@ function RecordFormInner({ collection, initial, onClose }) {
             {visible.map((f) => (f.custom === 'file' ? (
               <div key={f.key} className="col-span-2">
                 <span className="mb-1.5 block text-[13px] font-medium text-slate-600">{f.label}</span>
-                {hasFile ? (
-                  <div className="flex items-center gap-3 rounded-2xl bg-white/70 p-2.5 ring-1 ring-inset ring-slate-200">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy-500/10 text-navy-700"><FileText className="h-5 w-5" /></span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14px] font-semibold text-navy-900">{docFile ? docFile.name : form.file_name}</span>
-                      <span className="block text-[12px] text-slate-500">{fileSizeLabel(docFile ? docFile.size : form.file_size)}{docFile ? ' · จะอัปโหลดเมื่อกดบันทึก' : ' · เก็บใน Google Drive'}</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDocFile(null);
-                        setRemoveFile(!!form.file_id);
-                      }}
-                      className="shrink-0 rounded-lg px-2 py-1 text-[13px] font-semibold text-rose-600"
-                    >
-                      เอาออก
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
+                <div className="space-y-2">
+                  {(docFiles.length ? docFiles.map((file, idx) => ({ key: `${file.name}-${idx}`, name: file.name, size: file.size, idx })) : form.file_id && !removeFile ? [{ key: 'current', name: form.file_name, size: form.file_size, idx: -1 }] : []).map((row) => (
+                    <div key={row.key} className="flex items-center gap-3 rounded-2xl bg-white/70 p-2.5 ring-1 ring-inset ring-slate-200">
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy-500/10 text-navy-700"><FileText className="h-5 w-5" /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-semibold text-navy-900">{row.name}</span>
+                        <span className="block text-[12px] text-slate-500">{fileSizeLabel(row.size)}{row.idx >= 0 ? ' · จะอัปโหลดเมื่อกดบันทึก' : ' · เก็บใน Google Drive'}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (row.idx >= 0) setDocFiles((list) => list.filter((_, k) => k !== row.idx));
+                          else setRemoveFile(true);
+                        }}
+                        className="shrink-0 rounded-lg px-2 py-1 text-[13px] font-semibold text-rose-600"
+                      >
+                        เอาออก
+                      </button>
+                    </div>
+                  ))}
+                  {(isNew || !hasFile) && (
                     <label className={pickClass + ' w-full'}>
-                      <Paperclip className="h-[18px] w-[18px]" /> แนบไฟล์ (PDF, สไลด์, Word, รูป ไม่เกิน 15 MB)
+                      <Paperclip className="h-[18px] w-[18px]" />
+                      {hasFile ? 'แนบไฟล์เพิ่ม' : isNew ? 'แนบไฟล์ (เลือกได้หลายไฟล์ ไฟล์ละไม่เกิน 15 MB)' : 'แนบไฟล์ (ไม่เกิน 15 MB)'}
                       <input
                         type="file"
                         accept={DOC_ACCEPT}
+                        multiple={isNew}
                         className="sr-only"
                         onChange={(e) => {
-                          const file = e.target.files && e.target.files[0];
+                          const picked = Array.from(e.target.files || []);
                           e.target.value = '';
-                          if (!file) return;
-                          if (file.size > 15 * 1024 * 1024) {
-                            toast.error('ไฟล์ใหญ่เกิน 15 MB — ให้แชร์จาก Drive/YouTube แล้ววางลิงก์แทน');
-                            return;
-                          }
-                          setDocFile(file);
-                          if (!String(form.title || '').trim()) set('title')(file.name.replace(/\.[^.]+$/, ''));
+                          if (!picked.length) return;
+                          const tooBig = picked.filter((file) => file.size > 15 * 1024 * 1024);
+                          if (tooBig.length) toast.error(`${tooBig.map((file) => file.name).join(', ')} ใหญ่เกิน 15 MB — ให้แชร์จาก Drive/YouTube แล้ววางลิงก์แทน`);
+                          const ok = picked.filter((file) => file.size <= 15 * 1024 * 1024);
+                          if (!ok.length) return;
+                          setRemoveFile(false);
+                          setDocFiles((list) => (isNew ? [...list, ...ok] : ok.slice(0, 1)));
+                          if (!String(form.title || '').trim() && ok.length === 1 && !docFiles.length) set('title')(ok[0].name.replace(/\.[^.]+$/, ''));
                         }}
                       />
                     </label>
+                  )}
+                  {!hasFile && (
                     <TextInput
                       type="url"
                       value={form.url && !String(form.url).startsWith('data:') ? form.url : ''}
@@ -297,8 +316,11 @@ function RecordFormInner({ collection, initial, onClose }) {
                       placeholder="หรือวางลิงก์ (Google Drive, Canva, YouTube …)"
                       autoCapitalize="none"
                     />
-                  </div>
-                )}
+                  )}
+                  {docFiles.length > 1 && (
+                    <p className="px-1 text-[12px] text-slate-500">จะบันทึกเป็น {docFiles.length} รายการ — ชื่อเอกสารใช้ชื่อไฟล์ หรือชื่อที่กรอกตามด้วยลำดับ</p>
+                  )}
+                </div>
               </div>
             ) : f.custom === 'session' ? (
               <Field key={f.key} label={f.label} className="col-span-2" hint={form.subject ? undefined : 'เลือกวิชาก่อน'}>

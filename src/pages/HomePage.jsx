@@ -11,7 +11,7 @@ import {
   timeRange, toISODate, useNow,
 } from '../lib/utils';
 import { buildPeopleIndex, faceOf, FEATURED_SUBJECT, NON_SUBJECTS } from '../lib/course';
-import { subjectKey } from '../lib/docs';
+import { isCourseSubject, subjectKey } from '../lib/docs';
 import { firstNameShort } from '../components/DutySwap';
 
 const ROLE_ORDER = ['เวรทั่วไป', 'เวรรับอาจารย์'];
@@ -73,7 +73,13 @@ function NowCard({ item, live, now, today, after, findPerson, onOpen }) {
         </span>
         <ChevronRight className="h-5 w-5 text-white/50" />
       </div>
-      <h2 className="mt-3 text-[22px] font-bold leading-snug">{item.subject}</h2>
+      {(item.kind || item.session) && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {item.kind && <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[12px] font-semibold text-white">{item.kind}</span>}
+          {item.session && <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[12px] font-semibold text-white">ครั้งที่ {item.session}</span>}
+        </div>
+      )}
+      <h2 className="mt-2 text-[22px] font-bold leading-snug">{item.subject}</h2>
       {item.topic && <p className="mt-1 text-[14px] leading-snug text-white/85">{item.topic}</p>}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-white/80">
         <span className="inline-flex items-center gap-1.5">
@@ -100,6 +106,15 @@ function NowCard({ item, live, now, today, after, findPerson, onOpen }) {
           <span className="min-w-0">
             <span className="block text-[11px] text-white/60">อาจารย์ผู้บรรยาย</span>
             <span className="block text-[14px] font-semibold leading-snug">{item.speaker}</span>
+          </span>
+        </div>
+      )}
+      {item.secretary && (
+        <div className={cx('flex items-center gap-2.5', item.speaker ? 'mt-2' : 'mt-3 border-t border-white/10 pt-3')}>
+          <Face match={findPerson(item.secretary)} className="h-8 w-8 ring-2 ring-white/20" />
+          <span className="min-w-0">
+            <span className="block text-[11px] text-white/60">เลขาฯวิชา</span>
+            <span className="block text-[13px] font-medium leading-snug text-white/90">{item.secretary}</span>
           </span>
         </div>
       )}
@@ -248,7 +263,7 @@ export default function HomePage() {
                 today={today}
                 after={after}
                 findPerson={findPerson}
-                onOpen={() => ui.go('classes', { date: hero.class_date })}
+                onOpen={() => (isCourseSubject(hero.subject) ? ui.go('course', { tab: 'docs', subject: hero.subject }) : ui.go('classes', { date: hero.class_date }))}
               />
             ) : (
               <div className="glass rounded-3xl p-5 text-center text-[14px] text-slate-500">ไม่มีวิชาที่กำลังจะมาถึง</div>

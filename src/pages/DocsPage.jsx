@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  ArrowLeft, BookOpen, CalendarCheck2, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, ExternalLink, FileText, FolderOpen,
+  ArrowLeft, BookOpen, GraduationCap, UserRound, CalendarCheck2, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, ExternalLink, FileText, FolderOpen,
   Info, Link2, Paperclip, Pencil, PlayCircle, Plus, Presentation, Search, Users, X,
 } from 'lucide-react';
 import { EmptyState, Skeleton } from '../components/ui';
@@ -10,7 +10,8 @@ import { GroupsView } from './InstructorsPage';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { cx, daysBetween, formatDate, normalize, queryTokens, timeRange, toISODate, useNow } from '../lib/utils';
-import { bySort, detailLines, FEATURED_SUBJECT, kindTone, safeHref } from '../lib/course';
+import { buildPeopleIndex, bySort, detailLines, faceOf, FEATURED_SUBJECT, kindTone, safeHref, speakerKey } from '../lib/course';
+import { Photo } from '../components/Avatar';
 import { buildSubjects, categoryLabel, DOC_CATEGORIES, docCategory, fileSizeLabel, hostOf, subjectKey } from '../lib/docs';
 
 function SectionTitle({ icon: Icon, children, right }) {
@@ -121,6 +122,8 @@ function SessionList({ sessions, today, onOpen, docsByDate = {} }) {
                 {c.kind && <span className={cx('ml-1.5 rounded-full px-1.5 py-px text-[11px] font-semibold', kindTone(c.kind))}>{c.kind}</span>}
               </span>
               {c.topic && <span className="mt-0.5 block text-[13px] leading-snug text-slate-600">{c.topic}</span>}
+              {c.speaker && <span className="mt-0.5 block text-[12.5px] leading-snug text-navy-700">ผู้บรรยาย: {c.speaker}</span>}
+              {c.secretary && <span className="block text-[12px] leading-snug text-slate-500">เลขาฯวิชา: {c.secretary}</span>}
             </span>
             {docsByDate[c.class_date] > 0 && (
               <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-navy-500/10 px-2 py-0.5 text-[11px] font-semibold text-navy-700" title="เอกสารของคาบนี้">
@@ -243,6 +246,65 @@ function InfoCard({ item, onEdit }) {
   );
 }
 
+/** อาจารย์ผู้สอนของวิชา: ผู้บรรยายแต่ละท่านพร้อมวันที่สอน และเลขาฯวิชา (แตะเพื่อดูประวัติ) */
+function TeacherList({ sessions, findPerson, onOpenIns, onDate }) {
+  const speakers = [];
+  const byKey = new Map();
+  sessions.forEach((c) => {
+    if (!c.speaker) return;
+    const key = speakerKey(c.speaker);
+    if (!byKey.has(key)) {
+      const entry = { key, name: c.speaker, match: findPerson(c.speaker), dates: [] };
+      byKey.set(key, entry);
+      speakers.push(entry);
+    }
+    const entry = byKey.get(key);
+    if (!entry.dates.includes(c.class_date)) entry.dates.push(c.class_date);
+  });
+  const secretaries = [...new Set(sessions.map((c) => c.secretary).filter(Boolean))];
+  if (!speakers.length && !secretaries.length) {
+    return <p className="glass rounded-3xl px-4 py-5 text-center text-[13px] text-slate-500">ยังไม่ประกาศชื่อผู้บรรยาย — จะแสดงเมื่อมีตารางรายสัปดาห์</p>;
+  }
+  return (
+    <div className="glass rounded-3xl px-2 py-1.5">
+      {speakers.map((sp, i) => {
+        const ins = sp.match && sp.match.type === 'instructor' ? sp.match.rec : null;
+        const face = sp.match ? (
+          <Photo member={faceOf(sp.match.rec)} width={160} className="h-11 w-11 shrink-0 rounded-full object-[center_20%]" textClass="text-xs" />
+        ) : (
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-500/10 text-slate-400"><UserRound className="h-5 w-5" /></span>
+        );
+        return (
+          <div key={sp.key} className={cx('flex items-start gap-3 px-2 py-2.5', i > 0 && 'border-t border-white/60')}>
+            {ins ? <button type="button" onClick={() => onOpenIns(ins.id)} aria-label={`ประวัติ ${sp.name}`}>{face}</button> : face}
+            <div className="min-w-0 flex-1">
+              {ins ? (
+                <button type="button" onClick={() => onOpenIns(ins.id)} className="text-left text-[14.5px] font-semibold leading-snug text-navy-900">
+                  {sp.name} <ChevronRight className="inline h-4 w-4 align-[-3px] text-navy-400" />
+                </button>
+              ) : (
+                <p className="text-[14.5px] font-semibold leading-snug text-navy-900">{sp.name}</p>
+              )}
+              <div className="mt-1 flex flex-wrap gap-1">
+                {sp.dates.map((d) => (
+                  <button key={d} type="button" onClick={() => onDate(d)} className="rounded-full bg-navy-500/10 px-2 py-0.5 text-[11.5px] font-medium text-navy-700 transition active:scale-95">
+                    {formatDate(d, 'medium')}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      {secretaries.length > 0 && (
+        <p className={cx('px-2 py-2.5 text-[12.5px] leading-snug text-slate-600', speakers.length && 'border-t border-white/60')}>
+          <span className="font-semibold text-slate-700">เลขาฯวิชา:</span> {secretaries.join(' · ')}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** หน้ารายวิชา: เอกสาร/สื่อการสอน งานที่ต้องส่ง คาบเรียน และข้อมูลประกอบของวิชานั้น */
 function SubjectDetail({ subject, today, onBack, onEdit, onAttach, study = false }) {
   const { data } = useStore();
@@ -253,6 +315,7 @@ function SubjectDetail({ subject, today, onBack, onEdit, onAttach, study = false
   const nextSession = sessions.find((c) => c.class_date >= today);
   const hasGroups = subjectKey(name) === subjectKey(FEATURED_SUBJECT) && (data.instructors || []).some((i) => i.group_no);
   const instructors = useMemo(() => [...(data.instructors || [])].sort(bySort), [data.instructors]);
+  const findPerson = useMemo(() => buildPeopleIndex(data.instructors, data.staff), [data.instructors, data.staff]);
   const docsByDate = {};
   docs.forEach((d) => { if (d.class_date) docsByDate[d.class_date] = (docsByDate[d.class_date] || 0) + 1; });
 
@@ -301,7 +364,15 @@ function SubjectDetail({ subject, today, onBack, onEdit, onAttach, study = false
         )}
       </section>
 
-      {(study ? ['tasks', 'groups', 'docs', 'infos', 'sessions'] : ['docs', 'tasks', 'sessions', 'infos']).map((part) => {
+      {(study ? ['tasks', 'groups', 'docs', 'infos', 'sessions'] : ['teachers', 'docs', 'tasks', 'sessions', 'infos']).map((part) => {
+        if (part === 'teachers') {
+          return (
+            <div key={part}>
+              <SectionTitle icon={GraduationCap}>อาจารย์ผู้สอน</SectionTitle>
+              <TeacherList sessions={sessions} findPerson={findPerson} onOpenIns={setOpenIns} onDate={(date) => ui.go('classes', { date })} />
+            </div>
+          );
+        }
         if (part === 'docs') {
           return (
             <div key={part}>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Paperclip, BookOpen, CalendarDays, CalendarSearch, ChevronRight, Clock, MapPin, Pencil, Plus, StickyNote, UserRound } from 'lucide-react';
-import { subjectKey } from '../lib/docs';
+import { isCourseSubject, subjectKey } from '../lib/docs';
 import MoreMenuButton from '../components/MoreMenu';
 import { Photo } from '../components/Avatar';
 import InstructorSheet from '../components/InstructorSheet';
@@ -170,7 +170,12 @@ function ClassCard({ item, status, isNext, onEdit, findPerson, onPerson, mainRoo
           )}
         </div>
         <h3 className={cx('leading-snug', minor ? 'text-[14.5px] font-medium text-slate-700' : 'text-[16px] font-semibold text-navy-900')}>
-          {item.subject}
+          {onDocs && isCourseSubject(item.subject) ? (
+            <button type="button" onClick={onDocs} className="text-left transition hover:text-navy-700 active:opacity-70" title="ดูรายละเอียดวิชา อาจารย์ และเอกสาร">
+              {item.subject}
+              <ChevronRight className="ml-0.5 inline h-4 w-4 align-[-2px] text-slate-400" />
+            </button>
+          ) : item.subject}
           {minor && item.end_time && <span className="ml-1.5 text-[12.5px] font-normal tabular-nums text-slate-400">ถึง {item.end_time}</span>}
         </h3>
         {item.topic && <p className="mt-0.5 text-[14px] leading-snug text-slate-700">{item.topic}</p>}
@@ -208,7 +213,7 @@ function ClassCard({ item, status, isNext, onEdit, findPerson, onPerson, mainRoo
 }
 
 /** การ์ดเด่นด้านบน: วิชาที่กำลังเรียนอยู่ หรือวิชาถัดไป */
-function HeroCard({ item, live, today, onJump, findPerson }) {
+function HeroCard({ item, live, today, onJump, findPerson, docCount = 0 }) {
   return (
     <button
       type="button"
@@ -220,8 +225,19 @@ function HeroCard({ item, live, today, onJump, findPerson }) {
         <span className={cx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold', live ? 'bg-emerald-500 text-white' : 'bg-gold-400 text-navy-950')}>
           {live ? <><span className="pulse-dot" /> กำลังเรียนอยู่ตอนนี้</> : 'วิชาถัดไป'}
         </span>
-        <ChevronRight className="h-5 w-5 text-white/50" />
+        <span className="inline-flex items-center gap-0.5 text-[12px] font-medium text-white/60">รายละเอียดวิชา <ChevronRight className="h-4 w-4" /></span>
       </div>
+      {(item.kind || item.session || docCount > 0) && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {item.kind && <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[12px] font-semibold text-white">{item.kind}</span>}
+          {item.session && <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[12px] font-semibold text-white">ครั้งที่ {item.session}</span>}
+          {docCount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gold-400/25 px-2.5 py-0.5 text-[12px] font-semibold text-gold-200">
+              <Paperclip className="h-3 w-3" /> เอกสาร {docCount}
+            </span>
+          )}
+        </div>
+      )}
       <h2 className="mt-3 text-xl font-bold leading-snug">{item.subject}</h2>
       {item.topic && <p className="mt-1 text-[14px] leading-snug text-white/85">{item.topic}</p>}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-white/80">
@@ -244,6 +260,16 @@ function HeroCard({ item, live, today, onJump, findPerson }) {
           </span>
         </div>
       )}
+      {item.secretary && (
+        <div className={cx('flex items-center gap-2.5', item.speaker ? 'mt-2' : 'mt-3 border-t border-white/10 pt-3')}>
+          <Face match={findPerson(item.secretary)} className="h-8 w-8 ring-2 ring-white/20" dark />
+          <span className="min-w-0">
+            <span className="block text-[11px] text-white/60">เลขาฯวิชา</span>
+            <span className="block text-[13px] font-medium leading-snug text-white/90">{item.secretary}</span>
+          </span>
+        </div>
+      )}
+      {item.note && <p className="mt-3 border-t border-white/10 pt-2.5 text-[12.5px] text-gold-200">{item.note}</p>}
     </button>
   );
 }
@@ -318,7 +344,16 @@ export default function ClassPage({ switcher }) {
         </div>
       ) : (
         <>
-          {hero && <HeroCard item={hero} live={!!live} today={today} onJump={() => setSelected(hero.class_date)} findPerson={findPerson} />}
+          {hero && (
+            <HeroCard
+              item={hero}
+              live={!!live}
+              today={today}
+              findPerson={findPerson}
+              docCount={docCounts[subjectKey(hero.subject)] || 0}
+              onJump={() => (isCourseSubject(hero.subject) ? ui.go('course', { tab: 'docs', subject: hero.subject }) : setSelected(hero.class_date))}
+            />
+          )}
 
           <div className="mt-3" />
           <TopBarSentinel />
