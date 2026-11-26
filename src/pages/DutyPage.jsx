@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MissingMarks } from '../components/MissingMarks';
 import DutyHero from '../components/DutyHero';
 import DutyScanSheet from '../components/DutyScanSheet';
+import { scrollToY } from '../lib/scroll';
 import { DateStrip, buildStrip } from './ClassPage';
 import { ArrowLeftRight, CalendarClock, ChevronLeft, ChevronRight, ChevronUp, History, Pencil, Plus, ScanText, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
@@ -290,7 +291,7 @@ export default function DutyPage({ switcher }) {
   const scrollToToday = () => {
     setTimeout(() => {
       const el = document.querySelector('[data-duty-anchor]');
-      window.scrollTo(0, el && mode !== 'day' ? Math.max(0, el.getBoundingClientRect().top + window.scrollY - 150) : 0);
+      scrollToY(el && mode !== 'day' ? el.getBoundingClientRect().top + window.scrollY - 150 : 0);
     }, 120);
   };
   /** กลับมาที่วันนี้ */

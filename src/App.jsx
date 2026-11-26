@@ -8,6 +8,7 @@ import { Sheet } from './components/Sheet';
 import { Button } from './components/ui';
 import { ToastProvider } from './components/Toast';
 import UpdateBanner from './components/UpdateBanner';
+import { scrollToY } from './lib/scroll';
 import { StoreProvider, useStore } from './lib/store';
 import { UIContext } from './lib/ui';
 import { readStored, writeStored } from './lib/utils';
@@ -98,7 +99,7 @@ function Shell() {
     setNavSeq((n) => n + 1); // เปิดหน้าใหม่ทุกครั้ง แม้อยู่หมวดเดิม (เช่น เอกสาร → อาจารย์ประจำกลุ่ม)
     writeStored(TAB_KEY, { tab: next, at: Date.now() });
     window.scrollTo(0, 0);
-    if (scroll) setTimeout(() => window.scrollTo(0, scroll), 60);
+    if (scroll) setTimeout(() => scrollToY(scroll), 60);
   }, []);
 
   const go = useCallback((requested, nextView = null) => {

@@ -195,6 +195,7 @@ const fail = (code, message, extra) => {
 };
 
 const isAdmin = (token) => !!token && load().tokens.includes(token);
+const PUBLIC_DOC_FIELDS = ['subject', 'title', 'detail', 'url', 'category', 'class_date', 'topic'];
 const requireAdmin = (p) => isAdmin(p.token) || fail('UNAUTHORIZED', 'เซสชันแอดมินหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง');
 
 function newSession() {
@@ -475,17 +476,32 @@ const actions = {
     return remove(db.classes, p.id);
   },
   saveRecord(p) {
-    requireAdmin(p);
+    // เอกสาร: ผู้เข้าอบรมแนบเองได้ (ขึ้นทันที) แก้ไข/ลบได้เฉพาะของเครื่องตัวเอง
+    const admin = isAdmin(p.token);
+    const publicDoc = !admin && p.collection === 'resources';
+    if (!publicDoc) requireAdmin(p);
+    if (publicDoc && String(p.key || '').length < 16) fail('BAD_REQUEST', 'ไม่พบรหัสของเครื่อง กรุณารีเฟรชแล้วลองใหม่');
     const fields = COLLECTION_FIELDS[p.collection];
     if (!fields || !Object.prototype.hasOwnProperty.call(COLLECTION_FIELDS, p.collection)) fail('BAD_REQUEST', 'ไม่รู้จักประเภทข้อมูล');
     const list = db[p.collection];
     const input = p.item || {};
     const existing = input.id ? list.find((x) => x.id === input.id) : null;
     if (input.id && !existing) fail('NOT_FOUND', 'ไม่พบรายการนี้ อาจถูกลบไปแล้ว');
+    if (publicDoc && existing && existing._key !== p.key) fail('FORBIDDEN', 'แก้ไขหรือลบได้เฉพาะคนที่แนบรายการนี้ (จากเครื่องเดิม) หรือแอดมิน');
     const record = existing ? { ...existing } : { id: uid(p.collection[0]), photo_url: '', photo_file_id: '' };
     fields.forEach((f) => {
+      if (publicDoc && !PUBLIC_DOC_FIELDS.includes(f)) return;
       if (input[f] !== undefined) record[f] = String(input[f]).trim();
     });
+    if (p.collection === 'resources') {
+      if (input.uploaded_by !== undefined) record.uploaded_by = String(input.uploaded_by).trim().slice(0, 80);
+      if (publicDoc) {
+        record.type = 'link';
+        if (!record.subject) fail('VALIDATION', 'กรุณาเลือกวิชา');
+        if (!record.uploaded_by) fail('VALIDATION', 'กรุณาเลือกชื่อผู้แนบ');
+        if (!existing) record._key = p.key;
+      }
+    }
     if (record.url && !/^https?:\/\//i.test(record.url)) record.url = `https://${record.url}`;
     if (p.collection === 'resources') {
       // โหมดตัวอย่าง: ไม่ได้อัปโหลดจริง เก็บไฟล์เล็กไว้เป็น data URL ในเครื่อง
@@ -516,11 +532,17 @@ const actions = {
     }
     record.updated_at = now();
     upsert(list, record);
-    return record;
+    const { _key, ...out } = record; // eslint-disable-line no-unused-vars
+    return out;
   },
   deleteRecord(p) {
-    requireAdmin(p);
+    if (!(p.collection === 'resources' && !isAdmin(p.token))) requireAdmin(p);
     if (!Object.prototype.hasOwnProperty.call(COLLECTION_FIELDS, p.collection)) fail('BAD_REQUEST', 'ไม่รู้จักประเภทข้อมูล');
+    if (!isAdmin(p.token)) {
+      const row = db.resources.find((x) => x.id === p.id);
+      if (!row) fail('NOT_FOUND', 'ไม่พบรายการนี้ อาจถูกลบไปแล้ว');
+      if (!row._key || row._key !== p.key) fail('FORBIDDEN', 'แก้ไขหรือลบได้เฉพาะคนที่แนบรายการนี้ (จากเครื่องเดิม) หรือแอดมิน');
+    }
     return remove(db[p.collection], p.id);
   },
 };

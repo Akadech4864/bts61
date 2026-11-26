@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CalendarDays, GraduationCap, House, Settings, Users } from 'lucide-react';
 import { cx } from '../lib/utils';
+import { isProgrammaticScroll } from '../lib/scroll';
 import MoreMenuDock from './MoreMenu';
 
 /**
@@ -35,7 +36,11 @@ function useHideOnScroll() {
       const y = Math.max(window.scrollY, 0);
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const dy = y - lastY;
-      if (y < 56) {
+      if (isProgrammaticScroll()) {
+        // แอปเลื่อนให้เอง (เช่น ไปที่วันนี้) — ไม่นับเป็นการเลื่อนลงของผู้ใช้
+        setHidden(false);
+        lastY = y;
+      } else if (y < 56) {
         setHidden(false);
         lastY = y;
       } else if (dy > 8) {

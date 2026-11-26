@@ -22,6 +22,8 @@ const EMPTY = { members: [], duty: [], swaps: [], classes: [], staff: [], instru
 // รหัสสุ่มของเครื่องนี้ ใช้ยืนยันว่าเป็นเครื่องที่ส่งคำขอสลับเวร (แก้ไข/ลบคำขอของตัวเองได้) — เซิร์ฟเวอร์เก็บเฉพาะค่าแฮช
 const DEVICE_KEY = isDemo ? 'bts61:demo:device' : 'bts61:device';
 const MY_SWAPS_KEY = isDemo ? 'bts61:demo:my-swaps' : 'bts61:my-swaps';
+// เอกสารที่เครื่องนี้แนบไว้ (แก้ไข/ลบได้เอง)
+const MY_DOCS_KEY = isDemo ? 'bts61:demo:my-docs' : 'bts61:my-docs';
 function deviceKey() {
   let key = readStored(DEVICE_KEY, '');
   if (typeof key !== 'string' || key.length < 32) {
@@ -63,6 +65,11 @@ export function StoreProvider({ children }) {
   const [auth, setAuthState] = useState(readAuth);
   const [mySwaps, setMySwaps] = useState(() => {
     const ids = readStored(MY_SWAPS_KEY, []);
+    return Array.isArray(ids) ? ids : [];
+  });
+
+  const [myDocs, setMyDocs] = useState(() => {
+    const ids = readStored(MY_DOCS_KEY, []);
     return Array.isArray(ids) ? ids : [];
   });
 
@@ -233,9 +240,9 @@ export function StoreProvider({ children }) {
         mutate('saveClass', { item }, (prev, res) => ({ ...prev, classes: upsert(prev.classes, res) })),
       deleteClass: (id) =>
         mutate('deleteClass', { id }, (prev) => ({ ...prev, classes: removeById(prev.classes, id) })),
-      /** ข้อมูลหลักสูตร (เฉพาะแอดมิน): collection = staff | instructors | resources */
+      /** ข้อมูลหลักสูตร: collection = staff | instructors | resources (เอกสาร: ผู้เข้าอบรมแนบเองได้ แก้ไข/ลบได้เฉพาะของเครื่องนี้) */
       async saveRecord(collection, item, { photoBlob = null, removePhoto = false, file = null, removeFile = false } = {}) {
-        const payload = { collection, item, removePhoto, removeFile: removeFile && !file };
+        const payload = { collection, item, removePhoto, removeFile: removeFile && !file, key: deviceKey() };
         // ไฟล์เอกสารประกอบการสอน (เฉพาะงาน/เอกสาร) — เซิร์ฟเวอร์เก็บใน Google Drive แยกโฟลเดอร์ตามวิชา
         if (file) {
           const mimeType = docMime(file);
@@ -255,10 +262,15 @@ export function StoreProvider({ children }) {
         }
         const res = await mutate('saveRecord', payload, (prev, r) => ({ ...prev, [collection]: upsert(prev[collection] || [], r) }));
         if (photoBlob && res && res.photo_file_id) primePhoto(res.photo_file_id, photoBlob, thumbBlob);
+        if (collection === 'resources' && !item.id && res && res.id && res.uploaded_by) {
+          const mine = readStored(MY_DOCS_KEY, []);
+          writeStored(MY_DOCS_KEY, [...(Array.isArray(mine) ? mine : []), res.id].slice(-300));
+          setMyDocs((d) => [...d, res.id]);
+        }
         return res;
       },
       deleteRecord: (collection, id) =>
-        mutate('deleteRecord', { collection, id }, (prev) => ({ ...prev, [collection]: removeById(prev[collection] || [], id) })),
+        mutate('deleteRecord', { collection, id, key: deviceKey() }, (prev) => ({ ...prev, [collection]: removeById(prev[collection] || [], id) })),
     }),
     [mutate, refresh, setAuth],
   );
@@ -277,8 +289,8 @@ export function StoreProvider({ children }) {
   const memberById = useMemo(() => new Map(data.members.map((m) => [m.id, m])), [data.members]);
 
   const value = useMemo(
-    () => ({ data, status, syncing, error, lastSync, auth, isAdmin, can, memberById, mySwaps, ...actions }),
-    [data, status, syncing, error, lastSync, auth, isAdmin, can, memberById, mySwaps, actions],
+    () => ({ data, status, syncing, error, lastSync, auth, isAdmin, can, memberById, mySwaps, myDocs, ...actions }),
+    [data, status, syncing, error, lastSync, auth, isAdmin, can, memberById, mySwaps, myDocs, actions],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

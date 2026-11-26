@@ -5,6 +5,7 @@ import { Photo } from '../components/Avatar';
 import InstructorSheet from '../components/InstructorSheet';
 import { Button, EmptyState, PageHeader, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import { useStore } from '../lib/store';
+import { scrollToY } from '../lib/scroll';
 import { useUI } from '../lib/ui';
 import {
   addDays, classStatus, compareClass, cx, daysBetween, formatDate, parseISODate, readStored, relativeDay, timeRange, toISODate, useNow, writeStored,
@@ -424,7 +425,7 @@ export default function ClassPage({ switcher }) {
     setWeekKey(mondayOfDate(today));
     setTimeout(() => {
       const el = mode === 'day' ? null : document.querySelector('[data-week-today]');
-      window.scrollTo(0, el ? Math.max(0, el.getBoundingClientRect().top + window.scrollY - 140) : 0);
+      scrollToY(el ? el.getBoundingClientRect().top + window.scrollY - 140 : 0);
     }, 80);
   };
   const nextId = next && !live ? next.id : '';
@@ -433,7 +434,7 @@ export default function ClassPage({ switcher }) {
     if (mode === 'day') return undefined;
     const t = setTimeout(() => {
       const el = document.querySelector('[data-week-today]') || (mode === 'all' && document.querySelector('[data-week-current]'));
-      if (el) window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.scrollY - 140));
+      if (el) scrollToY(el.getBoundingClientRect().top + window.scrollY - 140);
     }, 120);
     return () => clearTimeout(t);
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -6,7 +6,7 @@ import { Button, Field, Segmented, Spinner, SuggestInput, TextArea, TextInput, i
 import { useToast } from './Toast';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
-import { cx, formatDate, thCompare } from '../lib/utils';
+import { cx, formatDate, fullName, readStored, thCompare, writeStored } from '../lib/utils';
 import { buildSubjects, DOC_ACCEPT, DOC_CATEGORIES, fileSizeLabel, subjectKey } from '../lib/docs';
 import { faceOf, KIND_OPTIONS, RESOURCE_TYPES } from '../lib/course';
 
@@ -79,8 +79,14 @@ const CONFIG = {
   },
 };
 
-function RecordFormInner({ collection, initial, onClose }) {
+// ชื่อผู้แนบ: ใช้คนเดียวกับ "เวรของฉัน" ในหน้าตารางเวร (เลือกครั้งเดียว จำไว้ในเครื่อง)
+const ME_KEY = 'bts61:duty-me';
+const uploaderLabel = (m) => `${fullName(m)}${m.nickname ? ` (${m.nickname})` : ''}`;
+
+/** publicMode = ผู้เข้าอบรมแนบเอกสารเอง (ไม่มีช่องสำหรับแอดมิน เช่น ประเภท/ลำดับ) */
+function RecordFormInner({ collection, initial, onClose, publicMode = false }) {
   const cfg = CONFIG[collection];
+  const fields = publicMode ? cfg.fields.filter((f) => f.key !== 'type' && f.key !== 'sort') : cfg.fields;
   const { data, saveRecord, deleteRecord } = useStore();
   const ui = useUI();
   const toast = useToast();
@@ -92,6 +98,15 @@ function RecordFormInner({ collection, initial, onClose }) {
   const [removeFile, setRemoveFile] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [uploaderId, setUploaderId] = useState(() => {
+    const v = readStored(ME_KEY, '');
+    return typeof v === 'string' ? v : '';
+  });
+  const people = useMemo(
+    () => (publicMode ? [...data.members].sort((a, b) => (Number(a.seq) || 9999) - (Number(b.seq) || 9999) || thCompare(a.first_name || '', b.first_name || '')) : []),
+    [publicMode, data.members],
+  );
+  const uploader = people.find((m) => m.id === uploaderId) || null;
   const urls = useRef([]);
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
 
@@ -141,10 +156,22 @@ function RecordFormInner({ collection, initial, onClose }) {
       toast.error(cfg.required[1]);
       return;
     }
+    if (publicMode && isNew && !uploader) {
+      toast.error('กรุณาเลือกชื่อของคุณ (ผู้แนบ)');
+      return;
+    }
+    if (publicMode && !String(form.subject || '').trim()) {
+      toast.error('กรุณาเลือกวิชา');
+      return;
+    }
     setSaving(true);
     try {
       const item = { id: form.id };
-      cfg.fields.forEach((f) => {
+      if (publicMode) {
+        item.uploaded_by = isNew ? uploaderLabel(uploader) : form.uploaded_by || '';
+        if (isNew) writeStored(ME_KEY, uploader.id);
+      }
+      fields.forEach((f) => {
         if (f.custom === 'file') return;
         if (f.custom === 'session') {
           item.class_date = form.class_date || '';
@@ -153,7 +180,7 @@ function RecordFormInner({ collection, initial, onClose }) {
         }
         item[f.key] = typeof form[f.key] === 'string' ? form[f.key].trim() : form[f.key];
       });
-      if (cfg.fields.some((f) => f.custom === 'file')) {
+      if (fields.some((f) => f.custom === 'file')) {
         // มีไฟล์แนบอยู่แล้ว ลิงก์คือที่อยู่ของไฟล์นั้น ไม่ต้องส่งซ้ำ
         if (form.type === 'link' && hasFile) delete item.url;
         else item.url = String(form.url || '').trim();
@@ -202,7 +229,8 @@ function RecordFormInner({ collection, initial, onClose }) {
   const previewUrl = photo ? photo.url : removePhoto ? '' : form.photo_url;
   const pickClass =
     'inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl glass px-3 text-sm font-semibold text-navy-800 transition hover:bg-white/80 active:scale-[0.98]';
-  const visible = cfg.fields.filter((f) => !f.showIf || f.showIf(form));
+  const visible = fields.filter((f) => !f.showIf || f.showIf(form));
+  const titles = publicMode ? ['แนบเอกสาร', 'แก้ไขเอกสารที่แนบ'] : cfg.titles;
 
   return (
     <>
@@ -210,7 +238,7 @@ function RecordFormInner({ collection, initial, onClose }) {
         open
         onClose={onClose}
         dismissable={false}
-        title={cfg.titles[isNew ? 0 : 1]}
+        title={titles[isNew ? 0 : 1]}
         footer={
           <div className="flex gap-2">
             {!isNew && (
@@ -259,6 +287,27 @@ function RecordFormInner({ collection, initial, onClose }) {
               </div>
             </div>
           )}
+
+          {publicMode && (
+            <div className="space-y-2">
+              <p className="rounded-2xl bg-navy-500/[0.07] px-3.5 py-2.5 text-[12.5px] leading-snug text-navy-800">
+                เอกสารจะแสดงให้ทุกคนเห็นทันที · แก้ไขหรือลบได้จากเครื่องนี้ (แอดมินลบได้ทุกรายการ)
+              </p>
+              {isNew ? (
+                <Field label="แนบโดย (ชื่อของคุณ)" required>
+                  <select value={uploaderId} onChange={(e) => setUploaderId(e.target.value)} className={cx(inputClass, 'pr-8')}>
+                    <option value="">— เลือกชื่อของคุณ —</option>
+                    {people.map((m) => (
+                      <option key={m.id} value={m.id}>{m.seq ? `${m.seq}. ` : ''}{uploaderLabel(m)}</option>
+                    ))}
+                  </select>
+                </Field>
+              ) : (
+                form.uploaded_by && <p className="px-1 text-[13px] text-slate-500">แนบโดย {form.uploaded_by}</p>
+              )}
+            </div>
+          )}
+          {!publicMode && form.uploaded_by && <p className="px-1 text-[13px] text-slate-500">แนบโดย {form.uploaded_by} (ผู้เข้าอบรม)</p>}
 
           <div className="grid grid-cols-2 gap-3">
             {visible.map((f) => (f.custom === 'file' ? (
@@ -401,8 +450,8 @@ function RecordFormInner({ collection, initial, onClose }) {
   );
 }
 
-/** state: null | { key, collection, item? } */
+/** state: null | { key, collection, item?, public? } */
 export default function RecordForm({ state, onClose }) {
   if (!state) return null;
-  return <RecordFormInner key={state.key} collection={state.collection} initial={state.item} onClose={onClose} />;
+  return <RecordFormInner key={state.key} collection={state.collection} initial={state.item} onClose={onClose} publicMode={!!state.public} />;
 }
