@@ -51,7 +51,7 @@ function compareBy(sort) {
 /* ------------------------------ หัวข้อแบ่งกลุ่ม (ข้อมูลยังไม่ครบ / ครบแล้ว) ------------------------------ */
 
 // สัญลักษณ์ของข้อมูลที่ยังขาด: ไอคอนของสิ่งนั้น มีกากบาทสีแดงทับ (กล้อง = รูป, โทรศัพท์ = เบอร์โทร, ป้ายชื่อ = ชื่อเล่น)
-const MISSING_ICONS = { 'รูป': Camera, 'โทร.': Phone, 'ชื่อเล่น': Tag };
+const MISSING_ICONS = { 'รูป': Camera, 'เบอร์': Phone, 'ชื่อเล่น': Tag };
 
 function MissingMark({ kind, size = 20 }) {
   const Icon = MISSING_ICONS[kind] || CircleAlert;

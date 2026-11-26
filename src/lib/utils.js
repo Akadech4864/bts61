@@ -70,16 +70,16 @@ export function phoneDigits(phone) {
   return first.replace(/[^\d+]/g, '');
 }
 
-/** ข้อมูลสำคัญที่ยังขาด (รูป / โทร. / ชื่อเล่น) — คืนรายการคำสั้น ๆ ว่างเปล่า = ครบแล้ว */
+/** ข้อมูลสำคัญที่ยังขาด (รูป / เบอร์ / ชื่อเล่น) — คืนรายการคำสั้น ๆ ว่างเปล่า = ครบแล้ว */
 export function missingInfo(m) {
   const out = [];
   if (!m.photo_url) out.push('รูป');
-  if (!phoneDigits(m.phone)) out.push('โทร.');
+  if (!phoneDigits(m.phone)) out.push('เบอร์');
   if (!String(m.nickname || '').trim()) out.push('ชื่อเล่น');
   return out;
 }
 
-/** "ขาดรูป, โทร., ชื่อเล่น" — ขึ้นต้นด้วยคำว่า ขาด ครั้งเดียว (ครบแล้วคืน '') */
+/** "ขาดรูป, เบอร์, ชื่อเล่น" — ขึ้นต้นด้วยคำว่า ขาด ครั้งเดียว (ครบแล้วคืน '') */
 export function missingText(m) {
   const list = missingInfo(m);
   return list.length ? `ขาด${list.join(', ')}` : '';
