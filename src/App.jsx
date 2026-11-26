@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import BottomNav, { TAB_ALIASES, TABS } from './components/BottomNav';
+import BottomNav, { ALIAS_VIEWS, TAB_ALIASES, TABS } from './components/BottomNav';
 import ProfileSheet from './components/ProfileSheet';
 import MemberForm from './components/MemberForm';
 import { ClassForm, DutyForm } from './components/ScheduleForms';
@@ -10,13 +10,11 @@ import { StoreProvider, useStore } from './lib/store';
 import { UIContext } from './lib/ui';
 import { readStored, writeStored } from './lib/utils';
 import DirectoryPage from './pages/DirectoryPage';
-import ClassPage from './pages/ClassPage';
-import DutyPage from './pages/DutyPage';
+import SchedulePage from './pages/SchedulePage';
 import SettingsPage from './pages/SettingsPage';
-import DocsPage from './pages/DocsPage';
 import CoursePage from './pages/CoursePage';
 
-const PAGES = { directory: DirectoryPage, classes: ClassPage, duty: DutyPage, docs: DocsPage, course: CoursePage, settings: SettingsPage };
+const PAGES = { directory: DirectoryPage, schedule: SchedulePage, course: CoursePage, settings: SettingsPage };
 const TAB_KEY = 'bts61:tab';
 
 function ConfirmDialog({ request, onAnswer }) {
@@ -41,12 +39,14 @@ function ConfirmDialog({ request, onAnswer }) {
 
 function Shell() {
   const { isAdmin } = useStore();
+  const [stored] = useState(() => readStored(TAB_KEY, 'directory'));
   const [tab, setTab] = useState(() => {
-    const stored = readStored(TAB_KEY, 'directory');
     const saved = TAB_ALIASES[stored] || stored;
     return TABS.some((t) => t.id === saved) ? saved : 'directory';
   });
-  const [view, setView] = useState(null); // ส่งต่อมุมมองย่อยเมื่อเปลี่ยนหน้า เช่น { mode: 'groups' } หรือ { date: '2026-12-01' }
+  // ส่งต่อมุมมองย่อยเมื่อเปลี่ยนหน้า เช่น { tab: 'instructors', mode: 'groups' } หรือ { sub: 'classes', date: '2026-12-01' }
+  const [view, setView] = useState(() => ALIAS_VIEWS[stored] || null);
+  const [navSeq, setNavSeq] = useState(0);
   const [profileId, setProfileId] = useState(null);
   const [memberForm, setMemberForm] = useState(null);
   const [classForm, setClassForm] = useState(null);
@@ -54,9 +54,12 @@ function Shell() {
   const [confirmRequest, setConfirmRequest] = useState(null);
   const formSeq = useRef(0);
 
-  const go = useCallback((next, nextView = null) => {
+  const go = useCallback((requested, nextView = null) => {
+    const next = TAB_ALIASES[requested] || requested;
+    const aliasView = ALIAS_VIEWS[requested];
     setTab(next);
-    setView(nextView);
+    setView(aliasView ? { ...aliasView, ...(nextView || {}) } : nextView);
+    setNavSeq((n) => n + 1); // เปิดหน้าใหม่ทุกครั้ง แม้อยู่หมวดเดิม (เช่น เอกสาร → อาจารย์ประจำกลุ่ม)
     writeStored(TAB_KEY, next);
     window.scrollTo(0, 0);
   }, []);
@@ -98,7 +101,7 @@ function Shell() {
   return (
     <UIContext.Provider value={ui}>
       <div className="app-bg" aria-hidden="true" />
-      <main key={tab} className="animate-fade-in">
+      <main key={`${tab}:${navSeq}`} className="animate-fade-in">
         <Page />
       </main>
       <BottomNav tab={tab} onChange={go} adminActive={isAdmin} />

@@ -143,7 +143,7 @@ function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit }) {
   );
 }
 
-export default function DutyPage() {
+export default function DutyPage({ switcher }) {
   const { data, status, memberById, isAdmin } = useStore();
   const ui = useUI();
   const today = toISODate(useNow(60000));
@@ -222,8 +222,7 @@ export default function DutyPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 page-bottom">
       <PageHeader
-        eyebrow="Duty Roster"
-        title="ตารางเวร"
+        title="ตาราง"
         right={
           <div className="flex shrink-0 items-center gap-2">
             {isAdmin && (
@@ -234,7 +233,9 @@ export default function DutyPage() {
             <MoreMenuButton />
           </div>
         }
-      />
+      >
+        {switcher}
+      </PageHeader>
 
       {/* ค้นหาเวรของตัวเอง: พิมพ์ชื่อแล้วแตะเลือก ระบบจะจำไว้ในเครื่องนี้ */}
       <TopBarSentinel />
@@ -306,8 +307,8 @@ export default function DutyPage() {
               value={range}
               onChange={setRange}
               options={[
-                { value: 'upcoming', label: `ตั้งแต่วันนี้ (${upcomingDays} วัน)` },
-                { value: 'all', label: `ทั้งหมด (${allDays} วัน)` },
+                { value: 'upcoming', label: 'ที่จะถึง', title: `ตั้งแต่วันนี้ ${upcomingDays} วัน` },
+                { value: 'all', label: 'ทั้งหมด', title: `ทั้งหมด ${allDays} วัน` },
               ]}
             />
           </div>
@@ -332,7 +333,7 @@ export default function DutyPage() {
             />
           )}
           <p className="mt-4 px-2 text-center text-xs leading-relaxed text-slate-400">
-            แตะชื่อเพื่อดูข้อมูลและเบอร์โทร · หมายเหตุ: ผู้ที่ทำหน้าที่เวรประจำวัน หากวันนั้นลาหรือไม่สามารถปฏิบัติหน้าที่เวรได้ ให้เปลี่ยนเวรให้เรียบร้อย
+            แตะชื่อเพื่อดูเบอร์โทร · หากลาหรือติดภารกิจในวันเวร ให้เปลี่ยนเวรให้เรียบร้อย
           </p>
         </>
       )}

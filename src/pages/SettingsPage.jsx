@@ -160,7 +160,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 page-bottom">
-      <PageHeader eyebrow={isAdmin ? 'Admin Control Panel' : 'Settings'} title={isAdmin ? 'แผงควบคุมแอดมิน' : 'ตั้งค่า / แอดมิน'} right={<MoreMenuButton />} />
+      <PageHeader title={isAdmin ? 'แผงควบคุมแอดมิน' : 'ตั้งค่า / แอดมิน'} right={<MoreMenuButton />} />
 
       {isDemo && (
         <div className="glass mb-4 flex items-start gap-3 rounded-2xl p-4 ring-1 ring-inset ring-gold-300">
@@ -235,7 +235,7 @@ export default function SettingsPage() {
             <MenuRow icon={BookOpen} title="ตารางสอน" description={`${data.classes.length} รายการ · เพิ่ม แก้ไข ลบ`} onClick={() => setManage('classes')} />
             <MenuRow icon={CalendarDays} title="ตารางเวร" description={`${data.duty.length} รายการ · เพิ่ม แก้ไข ลบ`} onClick={() => setManage('duty')} />
             <MenuRow icon={GraduationCap} title="อาจารย์" description={`${(data.instructors || []).length} ท่าน · แก้ไขได้ที่เมนูหลักสูตร > รายชื่ออาจารย์`} onClick={() => ui.go('course', { tab: 'instructors' })} />
-            <MenuRow icon={FolderOpen} title="งาน / เอกสาร" description={`${(data.resources || []).length} รายการ · แก้ไขได้ที่หน้างาน/เอกสาร`} onClick={() => ui.go('docs')} />
+            <MenuRow icon={FolderOpen} title="งาน / เอกสาร" description={`${(data.resources || []).length} รายการ · แก้ไขได้ที่เมนูหลักสูตร > เอกสาร`} onClick={() => ui.go('course', { tab: 'docs' })} />
             <MenuRow icon={Landmark} title="ผู้บริหารหลักสูตร" description={`${(data.staff || []).length} ท่าน · แก้ไขได้ที่เมนูหลักสูตร > ข้อมูลหลักสูตร`} onClick={() => ui.go('course', { tab: 'info' })} />
           </Card>
 

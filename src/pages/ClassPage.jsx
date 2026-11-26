@@ -131,18 +131,21 @@ function PersonRow({ name, label, match, onOpen, small = false }) {
   );
 }
 
-function ClassCard({ item, status, isNext, onEdit, findPerson, onPerson }) {
+function ClassCard({ item, status, isNext, onEdit, findPerson, onPerson, mainRoom }) {
+  const minor = !item.speaker && !item.secretary && !item.topic && !item.kind && !item.session;
+  const room = item.location && item.location !== mainRoom ? item.location : '';
   return (
     <article
       className={cx(
-        'glass relative flex gap-3 rounded-3xl p-4 transition',
+        'glass relative flex gap-3 transition',
+        minor ? 'rounded-2xl px-4 py-2.5' : 'rounded-3xl p-4',
         status === 'now' ? 'ring-2 ring-emerald-500/70' : isNext ? 'ring-2 ring-gold-300' : '',
         status === 'past' && 'opacity-60',
       )}
     >
       <div className="w-[58px] shrink-0 text-center">
-        <p className="text-[17px] font-bold leading-tight text-navy-900 tabular-nums">{item.start_time || 'ทั้งวัน'}</p>
-        {item.end_time && (
+        <p className={cx('font-bold leading-tight tabular-nums', minor ? 'text-[14px] text-slate-600' : 'text-[17px] text-navy-900')}>{item.start_time || 'ทั้งวัน'}</p>
+        {item.end_time && !minor && (
           <>
             <div className="mx-auto my-1 h-3 w-px bg-slate-300" />
             <p className="text-sm font-medium leading-tight text-slate-500 tabular-nums">{item.end_time}</p>
@@ -150,12 +153,15 @@ function ClassCard({ item, status, isNext, onEdit, findPerson, onPerson }) {
         )}
       </div>
       <div className="min-w-0 flex-1 border-l border-slate-100 pl-3">
-        <div className="mb-1.5 flex min-h-6 flex-wrap items-center gap-1.5 pr-8">
+        <div className={cx('flex flex-wrap items-center gap-1.5 pr-8', minor ? (status === 'now' || isNext ? 'mb-1' : 'hidden') : 'mb-1.5 min-h-6')}>
           <StatusBadge status={status} isNext={isNext} />
           {item.kind && <span className={cx('rounded-full px-2 py-0.5 text-[11px] font-semibold', kindTone(item.kind))}>{item.kind}</span>}
           {item.session && <span className="rounded-full bg-white/60 px-2 py-0.5 text-[11px] font-medium text-slate-500">ครั้งที่ {item.session}</span>}
         </div>
-        <h3 className="text-[16px] font-semibold leading-snug text-navy-900">{item.subject}</h3>
+        <h3 className={cx('leading-snug', minor ? 'text-[14.5px] font-medium text-slate-700' : 'text-[16px] font-semibold text-navy-900')}>
+          {item.subject}
+          {minor && item.end_time && <span className="ml-1.5 text-[12.5px] font-normal tabular-nums text-slate-400">ถึง {item.end_time}</span>}
+        </h3>
         {item.topic && <p className="mt-0.5 text-[14px] leading-snug text-slate-700">{item.topic}</p>}
         {(item.speaker || item.secretary) && (
           <div className="mt-2.5 space-y-1.5">
@@ -163,10 +169,10 @@ function ClassCard({ item, status, isNext, onEdit, findPerson, onPerson }) {
             <PersonRow name={item.secretary} label="เลขาฯวิชา" match={findPerson(item.secretary)} onOpen={onPerson} small />
           </div>
         )}
-        <div className="mt-2 space-y-1 text-[13px] text-slate-600">
-          {item.location && (
+        <div className={cx('space-y-1 text-[13px] text-slate-600', (room || item.note) && 'mt-2')}>
+          {room && (
             <p className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /> <span>{item.location}</span>
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /> <span>{room}</span>
             </p>
           )}
           {item.note && (
@@ -231,7 +237,7 @@ function HeroCard({ item, live, today, onJump, findPerson }) {
   );
 }
 
-export default function ClassPage() {
+export default function ClassPage({ switcher }) {
   const { data, status, isAdmin } = useStore();
   const ui = useUI();
   const now = useNow(30000);
@@ -250,13 +256,18 @@ export default function ClassPage() {
 
   const days = useMemo(() => buildStrip(classes, today, selected), [classes, today, selected]);
   const dayClasses = classes.filter((c) => c.class_date === selected);
+  const mainRoom = useMemo(() => {
+    const count = new Map();
+    classes.forEach((c) => c.location && count.set(c.location, (count.get(c.location) || 0) + 1));
+    return [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+  }, [classes]);
+  const dayInMainRoom = dayClasses.some((c) => c.location === mainRoom);
   const loading = status === 'loading';
 
   return (
     <div className="mx-auto max-w-3xl px-4 page-bottom">
       <PageHeader
-        eyebrow="Class Schedule"
-        title="ตารางสอน"
+        title="ตาราง"
         right={
           <div className="flex shrink-0 items-center gap-2">
             {selected !== today && (
@@ -277,7 +288,9 @@ export default function ClassPage() {
             <MoreMenuButton />
           </div>
         }
-      />
+      >
+        {switcher}
+      </PageHeader>
 
       {loading ? (
         <div className="space-y-3">
@@ -288,7 +301,7 @@ export default function ClassPage() {
         </div>
       ) : (
         <>
-          {hero && <HeroCard item={hero} live={!!live} today={today} onJump={() => setSelected(hero.class_date)} findPerson={findPerson} />}
+          {hero && hero.class_date !== selected && <HeroCard item={hero} live={!!live} today={today} onJump={() => setSelected(hero.class_date)} findPerson={findPerson} />}
 
           <div className="mt-3" />
           <TopBarSentinel />
@@ -303,6 +316,11 @@ export default function ClassPage() {
                 {selected === today ? 'วันนี้ · ' : ''}
                 {dayClasses.length ? `${dayClasses.length} รายการ` : 'ไม่มีรายการสอน'}
               </p>
+              {dayInMainRoom && (
+                <p className="flex items-center gap-1 truncate text-[12px] text-slate-400">
+                  <MapPin className="h-3 w-3 shrink-0" /> <span className="truncate">{mainRoom}</span>
+                </p>
+              )}
             </div>
             {isAdmin && (
               <Button size="sm" icon={Plus} onClick={() => ui.openClassForm({ class_date: selected })} className="shrink-0">
@@ -340,6 +358,7 @@ export default function ClassPage() {
                   isNext={!!next && next.id === c.id && !live}
                   onEdit={isAdmin ? () => ui.openClassForm(c) : null}
                   findPerson={findPerson}
+                  mainRoom={mainRoom}
                   onPerson={onPerson}
                 />
               ))}

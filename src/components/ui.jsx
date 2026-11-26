@@ -258,6 +258,37 @@ export function Segmented({ options, value, onChange, className, size = 'md' }) 
   );
 }
 
+/** แท็บย่อยเต็มความกว้างใต้หัวหน้า (ใช้แบ่งหมวดในเมนูใหญ่ เช่น ตารางสอน/ตารางเวร) */
+export function SubTabs({ options, value, onChange, label, className }) {
+  return (
+    <div
+      className={cx('glass mb-3 grid gap-1 rounded-2xl p-1', className)}
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      role="tablist"
+      aria-label={label}
+    >
+      {options.map((o) => {
+        const active = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(o.value)}
+            className={cx(
+              'h-9 min-w-0 truncate rounded-xl px-1.5 text-[13.5px] font-semibold transition active:scale-[0.97]',
+              active ? 'btn-navy text-white' : 'text-slate-600 hover:bg-white/60 hover:text-navy-800',
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Card({ className, children, ...rest }) {
   return (
     <div className={cx('glass rounded-3xl', className)} {...rest}>

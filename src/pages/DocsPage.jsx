@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import {
+  ChevronDown,
   CalendarCheck2, ChevronRight, ClipboardList, ExternalLink, FileText, FolderOpen, Info, Pencil, Plus, Users,
 } from 'lucide-react';
-import MoreMenuButton from '../components/MoreMenu';
-import { Button, EmptyState, PageHeader, Skeleton } from '../components/ui';
+import { Button, EmptyState, Skeleton } from '../components/ui';
 import RecordForm from '../components/RecordForm';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -162,30 +162,45 @@ function LinkList({ links, onEdit }) {
 }
 
 function InfoCard({ item, onEdit }) {
+  const [open, setOpen] = useState(false);
   const lines = detailLines(item.detail);
+  const href = safeHref(item.url);
+  const expandable = lines.length > 0 || !!href;
   return (
-    <section className="glass rounded-3xl p-4">
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-[15px] font-bold leading-snug text-navy-900">{item.title}</h3>
+    <section className="glass rounded-3xl">
+      <div className="flex items-center gap-1 pr-2">
+        <button
+          type="button"
+          onClick={() => expandable && setOpen((v) => !v)}
+          aria-expanded={expandable ? open : undefined}
+          className="flex min-w-0 flex-1 items-center gap-2 px-4 py-3.5 text-left"
+        >
+          <span className="min-w-0 flex-1 text-[15px] font-bold leading-snug text-navy-900">{item.title}</span>
+          {expandable && <ChevronDown className={cx('h-5 w-5 shrink-0 text-slate-400 transition-transform', open && 'rotate-180')} />}
+        </button>
         {onEdit && <EditButton onClick={() => onEdit(item)} />}
       </div>
-      {lines.length > 0 && (
-        <ul className="mt-2 space-y-1.5">
-          {lines.map((l, i) => (
-            <li key={i} className="flex gap-2 text-[14px] leading-snug text-slate-700">
-              <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-gold-500" />
-              <span className="min-w-0">
-                {l.label && <strong className="font-semibold text-navy-900">{l.label}: </strong>}
-                {l.text}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {safeHref(item.url) && (
-        <a href={safeHref(item.url)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-navy-700">
-          <ExternalLink className="h-3.5 w-3.5" /> เปิดลิงก์
-        </a>
+      {open && (
+        <div className="-mt-1 px-4 pb-4">
+          {lines.length > 0 && (
+            <ul className="space-y-1.5">
+              {lines.map((l, i) => (
+                <li key={i} className="flex gap-2 text-[14px] leading-snug text-slate-700">
+                  <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-gold-500" />
+                  <span className="min-w-0">
+                    {l.label && <strong className="font-semibold text-navy-900">{l.label}: </strong>}
+                    {l.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {href && (
+            <a href={href} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-navy-700">
+              <ExternalLink className="h-3.5 w-3.5" /> เปิดลิงก์
+            </a>
+          )}
+        </div>
       )}
     </section>
   );
@@ -193,7 +208,7 @@ function InfoCard({ item, onEdit }) {
 
 const sameSubject = (a, b) => a.replace(/^วิชา/, '').trim() === b.replace(/^วิชา/, '').trim();
 
-export default function DocsPage() {
+export function DocsPanel() {
   const { data, status, isAdmin } = useStore();
   const ui = useUI();
   const now = useNow(60000);
@@ -225,21 +240,14 @@ export default function DocsPage() {
   const loading = status === 'loading';
 
   return (
-    <div className="mx-auto max-w-3xl px-4 page-bottom">
-      <PageHeader
-        eyebrow="Assignments & Documents"
-        title="งาน / เอกสาร"
-        right={
-          <div className="flex shrink-0 items-center gap-2">
-            {isAdmin && (
-              <Button size="sm" icon={Plus} onClick={() => setForm({ key: Date.now(), collection: 'resources', item: { subject: subject || '' } })} className="shrink-0">
-                เพิ่ม
-              </Button>
-            )}
-            <MoreMenuButton />
-          </div>
-        }
-      />
+    <div>
+      {isAdmin && (
+        <div className="mb-3 flex justify-end">
+          <Button size="sm" variant="soft" icon={Plus} onClick={() => setForm({ key: Date.now(), collection: 'resources', item: { subject: subject || '' } })}>
+            เพิ่มงาน / เอกสาร
+          </Button>
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-3">
@@ -275,20 +283,8 @@ export default function DocsPage() {
             <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gold-400/10" />
             <p className="text-xs font-semibold text-gold-300">งาน / เอกสารประจำวิชา</p>
             <h2 className="mt-1 text-2xl font-bold leading-tight">{subject}</h2>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              {[
-                ['กำหนดส่ง', tasks.length],
-                ['ครั้งที่เรียน', sessions.length],
-                ['เอกสาร', links.length + infos.length],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-2xl bg-white/10 py-2 ring-1 ring-inset ring-white/15">
-                  <p className="text-xl font-bold tabular-nums">{value}</p>
-                  <p className="text-[11px] text-white/70">{label}</p>
-                </div>
-              ))}
-            </div>
             {(nextTask || nextSession) && (
-              <div className="mt-3 space-y-1 text-[13px] text-white/85">
+              <div className="mt-3 space-y-1.5 text-[13px] text-white/85">
                 {nextTask && (
                   <p className="flex items-center gap-2">
                     <ClipboardList className="h-4 w-4 shrink-0 text-gold-300" />
@@ -348,9 +344,6 @@ export default function DocsPage() {
             </>
           )}
 
-          <p className="mt-6 px-2 text-center text-xs leading-relaxed text-slate-400">
-            เอกสารประกอบการเรียนของวิชาอื่นจะทยอยเพิ่มในหน้านี้ (แยกเป็นแท็บตามวิชา)
-          </p>
         </>
       )}
 
@@ -358,3 +351,5 @@ export default function DocsPage() {
     </div>
   );
 }
+
+export default DocsPanel;

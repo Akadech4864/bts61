@@ -1,19 +1,24 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, FolderOpen, GraduationCap, Settings, ShieldCheck, Users } from 'lucide-react';
+import { CalendarDays, GraduationCap, Settings, Users } from 'lucide-react';
 import { cx } from '../lib/utils';
 
-/** เมนูทั้งหมดของแอพ — 5 รายการแรกอยู่ที่เมนูด้านล่าง ที่เหลืออยู่ในปุ่ม "เมนูอื่น" บนหัวของทุกหน้า */
+/**
+ * เมนูหลักของแอพ จัดเป็น 3 หมวดใหญ่ที่เมนูด้านล่าง (ที่เหลืออยู่ในปุ่ม "เมนูอื่น" บนหัวของทุกหน้า)
+ * - ทำเนียบรุ่น
+ * - ตาราง: ตารางสอน / ตารางเวร
+ * - หลักสูตร: ข้อมูล / อาจารย์ / ประวัติ / เอกสาร
+ */
 export const TABS = [
   { id: 'directory', label: 'ทำเนียบรุ่น', icon: Users },
-  { id: 'classes', label: 'ตารางสอน', icon: CalendarDays },
-  { id: 'duty', label: 'ตารางเวร', icon: ShieldCheck },
-  { id: 'docs', label: 'เอกสาร', title: 'งาน / เอกสาร', icon: FolderOpen },
+  { id: 'schedule', label: 'ตาราง', title: 'ตารางสอน / ตารางเวร', icon: CalendarDays },
   { id: 'course', label: 'หลักสูตร', icon: GraduationCap },
-  { id: 'settings', label: 'ตั้งค่า', icon: Settings },
+  { id: 'settings', label: 'ตั้งค่า / แอดมิน', icon: Settings },
 ];
 /** ชื่อเมนูเดิมที่ย้ายไปรวมกัน (ใช้กับแท็บที่จำไว้ในเครื่อง) */
-export const TAB_ALIASES = { about: 'course', instructors: 'course' };
-export const DOCK_LIMIT = 5;
+export const TAB_ALIASES = { about: 'course', instructors: 'course', docs: 'course', classes: 'schedule', duty: 'schedule' };
+/** มุมมองย่อยของเมนูเดิม เมื่อถูกเรียกด้วยชื่อเก่า เช่น ui.go('classes', { date }) */
+export const ALIAS_VIEWS = { classes: { sub: 'classes' }, duty: { sub: 'duty' }, docs: { tab: 'docs' }, instructors: { tab: 'instructors' }, about: { tab: 'info' } };
+export const DOCK_LIMIT = 3;
 export const DOCK_TABS = TABS.slice(0, DOCK_LIMIT);
 export const MORE_TABS = TABS.slice(DOCK_LIMIT);
 

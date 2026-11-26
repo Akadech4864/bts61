@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown, Camera, CircleAlert, CircleCheck, IdCard, LayoutGrid, Phone, Plus, RefreshCw, Search, SlidersHorizontal, Table2, Tag, UserPlus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Camera, CircleAlert, CircleCheck, Grid2x2, IdCard, Info, LayoutGrid, Phone, Plus, RefreshCw, Search, SlidersHorizontal, Table2, Tag, UserPlus, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
 import { SocialInline, SocialMarks } from '../components/Social';
 import { EmptyState, Marquee, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
@@ -467,8 +467,8 @@ export default function DirectoryPage() {
       flag: true,
       title: 'ยังกรอกข้อมูลไม่ครบ',
       note: can.edit || can.photo
-        ? 'แตะที่ชื่อตัวเอง แล้วกด "แก้ไขข้อมูล" เพื่อเพิ่มได้เลย'
-        : 'แจ้งข้อมูลกับผู้ดูแลรุ่นเพื่อเพิ่มให้',
+        ? 'แตะชื่อตัวเองเพื่อเพิ่มข้อมูล'
+        : 'แจ้งผู้ดูแลรุ่นเพื่อเพิ่มให้',
       members: pending,
     }];
     if (complete.length) out.push({ key: 'complete', tone: 'ok', title: 'ข้อมูลครบแล้ว', members: complete });
@@ -493,6 +493,7 @@ export default function DirectoryPage() {
     setQuery('');
   };
 
+  const [legendOpen, setLegendOpen] = useState(false);
   const loading = status === 'loading';
   const sortLabel = (SORT_OPTIONS.find((o) => o.key === sort.key) || SORT_OPTIONS[0]).label;
 
@@ -572,33 +573,6 @@ export default function DirectoryPage() {
             )}
           </button>
         </div>
-
-        {/* เลือกกลุ่มได้ทันที: ทั้งหมด / ตำรวจ / หน่วยงานอื่น (แสดงเฉพาะเมื่อมีคนที่ไม่ใช่ตำรวจ) */}
-        {!loading && orgCounts.all > 0 && (members.some((m) => orgTypeOf(m) === 'other') || org !== 'all') && (
-          <div className="mt-2 grid grid-cols-3 gap-1.5 sm:max-w-md" role="tablist" aria-label="กลุ่มผู้เข้าอบรม">
-            {['all', 'police', 'other'].map((k) => {
-              const active = org === k;
-              return (
-                <button
-                  key={k}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setOrg(k)}
-                  className={cx(
-                    'flex h-10 items-center justify-center gap-1.5 rounded-2xl text-[13px] font-semibold transition active:scale-[0.97]',
-                    active ? 'btn-navy text-white' : 'glass text-slate-700',
-                  )}
-                >
-                  {ORG_LABELS[k]}
-                  <span className={cx('rounded-full px-1.5 text-[11px] tabular-nums', active ? 'bg-white/20 text-white' : 'bg-navy-500/10 text-navy-700')}>
-                    {orgCounts[k]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* จำนวนผลลัพธ์ + สลับมุมมอง */}
@@ -614,12 +588,15 @@ export default function DirectoryPage() {
         </p>
         <div className="flex shrink-0 items-center gap-2">
           {view === 'grid' && (
-            <Segmented
-              size="sm"
-              value={Number(density) || 0}
-              onChange={setDensity}
-              options={GRID_COLS[bp].map((n, i) => ({ value: i, label: String(n), title: `${n} คอลัมน์` }))}
-            />
+            <button
+              type="button"
+              onClick={() => setDensity(((Number(density) || 0) + 1) % GRID_COLS[bp].length)}
+              aria-label={`ขนาดรูป: ${cols} คอลัมน์ (แตะเพื่อเปลี่ยน)`}
+              title="เปลี่ยนจำนวนคอลัมน์"
+              className="glass inline-flex h-10 items-center gap-1 rounded-2xl px-2.5 text-[13px] font-semibold tabular-nums text-slate-600 transition active:scale-95"
+            >
+              <Grid2x2 className="h-4 w-4" /> {cols}
+            </button>
           )}
           <Segmented size="sm" value={view} onChange={setView} options={VIEWS} />
         </div>
@@ -627,6 +604,16 @@ export default function DirectoryPage() {
 
       {(activeCount > 0 || query) && (
         <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-3">
+          {org !== 'all' && (
+            <button
+              type="button"
+              onClick={() => setOrg('all')}
+              className="btn-navy inline-flex h-8 shrink-0 items-center gap-1 rounded-full pl-3 pr-2 text-[13px] font-medium text-white"
+            >
+              <span className="text-white/60">กลุ่ม</span> {ORG_LABELS[org]}
+              <X className="h-3.5 w-3.5 text-white/70" />
+            </button>
+          )}
           {activeFilters.map((f) => (
             <button
               key={`${f.key}:${f.value}`}
@@ -677,15 +664,28 @@ export default function DirectoryPage() {
                     count={s.members.length}
                     note={s.flag ? (
                       <>
-                        {/* คำอธิบายสัญลักษณ์ */}
-                        <span className="mb-1 mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-medium text-slate-600">
-                          {Object.keys(MISSING_ICONS).map((k) => (
-                            <span key={k} className="inline-flex items-center gap-1">
-                              <MissingMark kind={k} size={22} /> ขาด{k}
-                            </span>
-                          ))}
+                        <span className="inline-flex items-center gap-1">
+                          {s.note}
+                          <button
+                            type="button"
+                            onClick={() => setLegendOpen((v) => !v)}
+                            aria-expanded={legendOpen}
+                            aria-label="ความหมายของสัญลักษณ์"
+                            title="ความหมายของสัญลักษณ์"
+                            className={cx('grid h-6 w-6 shrink-0 place-items-center rounded-full transition', legendOpen ? 'bg-amber-400/30 text-amber-700' : 'text-slate-400 hover:text-slate-600')}
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
                         </span>
-                        {s.note}
+                        {legendOpen && (
+                          <span className="mb-1 mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-medium text-slate-600">
+                            {Object.keys(MISSING_ICONS).map((k) => (
+                              <span key={k} className="inline-flex items-center gap-1">
+                                <MissingMark kind={k} size={22} /> ขาด{k}
+                              </span>
+                            ))}
+                          </span>
+                        )}
                       </>
                     ) : s.note}
                   />

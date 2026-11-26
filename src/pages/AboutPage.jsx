@@ -75,9 +75,8 @@ function StaffCard({ person, onEdit }) {
 }
 
 /** ข้อมูลหลักสูตร + ผู้บริหาร (ใช้ในเมนูหลักสูตร > ข้อมูลหลักสูตร) */
-export function CourseInfoPanel({ onTab }) {
+export function CourseInfoPanel() {
   const { data, status, isAdmin } = useStore();
-  const ui = useUI();
   const [form, setForm] = useState(null);
   const staff = useMemo(() => [...(data.staff || [])].sort(bySort), [data.staff]);
   const [lead, ...team] = staff;
@@ -160,21 +159,6 @@ export function CourseInfoPanel({ onTab }) {
           )}
         </div>
       )}
-
-      <div className="glass mt-6 divide-y divide-white/70 rounded-3xl px-4">
-        {[
-          { icon: GraduationCap, title: 'อาจารย์ประจำกลุ่ม (วิชาเอกสารศึกษา)', go: () => onTab('instructors', 'groups') },
-          { icon: CalendarDays, title: 'ตารางการฝึกอบรม', go: () => ui.go('classes') },
-        ].map((row) => (
-          <button key={row.title} type="button" onClick={row.go} className="flex w-full items-center gap-3 py-3 text-left transition active:opacity-70">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-navy-500/10 text-navy-600">
-              <row.icon className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1 text-[15px] font-medium text-slate-800">{row.title}</span>
-            <ChevronRight className="h-5 w-5 shrink-0 text-slate-300" />
-          </button>
-        ))}
-      </div>
 
       <RecordForm state={form} onClose={() => setForm(null)} />
     </div>

@@ -1,21 +1,23 @@
 import { useMemo, useState } from 'react';
-import { ChevronRight, GraduationCap, IdCard, Landmark, Lightbulb, Search, X } from 'lucide-react';
+import { ChevronRight, GraduationCap, IdCard, Lightbulb, Search, X } from 'lucide-react';
 import { Photo } from '../components/Avatar';
 import InstructorSheet from '../components/InstructorSheet';
 import MoreMenuButton from '../components/MoreMenu';
 import RecordForm from '../components/RecordForm';
-import { EmptyState, PageHeader, Skeleton } from '../components/ui';
+import { EmptyState, PageHeader, Skeleton, SubTabs } from '../components/ui';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { cx, normalize } from '../lib/utils';
 import { bySort, faceOf, parseProfile } from '../lib/course';
 import { CourseInfoPanel } from './AboutPage';
 import { InstructorsPanel } from './InstructorsPage';
+import { DocsPanel } from './DocsPage';
 
 const SUBTABS = [
-  { value: 'info', label: 'ข้อมูลหลักสูตร', icon: Landmark },
-  { value: 'instructors', label: 'รายชื่ออาจารย์', icon: GraduationCap },
-  { value: 'profiles', label: 'ประวัติอาจารย์', icon: IdCard },
+  { value: 'info', label: 'ข้อมูล' },
+  { value: 'instructors', label: 'อาจารย์' },
+  { value: 'profiles', label: 'ประวัติ' },
+  { value: 'docs', label: 'เอกสาร' },
 ];
 
 /** สรุปสั้นจากประวัติวิทยากร: วุฒิสูงสุด + ความเชี่ยวชาญ 2 รายการแรก */
@@ -139,7 +141,7 @@ function ProfilesPanel() {
   );
 }
 
-/** เมนูหลักสูตร: ข้อมูลหลักสูตร / รายชื่ออาจารย์ / ประวัติอาจารย์ */
+/** หมวดหลักสูตร: ข้อมูลหลักสูตร / รายชื่ออาจารย์ / ประวัติอาจารย์ / งานและเอกสาร */
 export default function CoursePage() {
   const ui = useUI();
   const initial = ui.view && SUBTABS.some((s) => s.value === ui.view.tab) ? ui.view.tab : 'info';
@@ -153,33 +155,14 @@ export default function CoursePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 page-bottom">
-      <PageHeader eyebrow="Course" title="หลักสูตร" right={<MoreMenuButton />} />
-      <div className="mb-3 grid grid-cols-3 gap-1.5" role="tablist" aria-label="หัวข้อในเมนูหลักสูตร">
-        {SUBTABS.map((s) => {
-          const active = s.value === tab;
-          const Icon = s.icon;
-          return (
-            <button
-              key={s.value}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => go(s.value)}
-              className={cx(
-                'flex h-[62px] flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[12.5px] font-semibold leading-tight transition active:scale-[0.97]',
-                active ? 'btn-navy text-white' : 'glass text-navy-800',
-              )}
-            >
-              <Icon className="h-5 w-5" strokeWidth={active ? 2.3 : 2} />
-              {s.label}
-            </button>
-          );
-        })}
-      </div>
+      <PageHeader title="หลักสูตร" right={<MoreMenuButton />}>
+        <SubTabs options={SUBTABS} value={tab} onChange={(v) => go(v)} label="หัวข้อในเมนูหลักสูตร" />
+      </PageHeader>
 
-      {tab === 'info' && <CourseInfoPanel onTab={go} />}
+      {tab === 'info' && <CourseInfoPanel />}
       {tab === 'instructors' && <InstructorsPanel key={mode || 'default'} initialMode={mode} />}
       {tab === 'profiles' && <ProfilesPanel />}
+      {tab === 'docs' && <DocsPanel />}
     </div>
   );
 }
