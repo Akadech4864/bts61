@@ -3,6 +3,7 @@ import {
   BookOpen, CalendarDays, Eye, EyeOff, FlaskConical, FolderOpen, GraduationCap, KeyRound, Landmark, Lock, LogOut, RefreshCw, ShieldCheck, TriangleAlert, Users,
 } from 'lucide-react';
 import MoreMenuButton from '../components/MoreMenu';
+import AiKeyCard from '../components/AiKeyCard';
 import { Button, Card, PageHeader, Switch, TextInput } from '../components/ui';
 import { ManageSheet, MenuRow, PasswordResetSheet } from '../components/AdminSheets';
 import { useToast } from '../components/Toast';
@@ -238,6 +239,9 @@ export default function SettingsPage() {
             <MenuRow icon={FolderOpen} title="งาน / เอกสาร" description={`${(data.resources || []).length} รายการ · แก้ไขได้ที่เมนูหลักสูตร > วิชา`} onClick={() => ui.go('course', { tab: 'docs' })} />
             <MenuRow icon={Landmark} title="ผู้บริหารหลักสูตร" description={`${(data.staff || []).length} ท่าน · แก้ไขได้ที่เมนูหลักสูตร > ข้อมูลหลักสูตร`} onClick={() => ui.go('course', { tab: 'info' })} />
           </Card>
+
+          <SectionTitle>AI ช่วยกรอกข้อมูล</SectionTitle>
+          <AiKeyCard />
 
           <SectionTitle>ความปลอดภัย</SectionTitle>
           <Card className="px-4">

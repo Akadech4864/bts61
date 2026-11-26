@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MissingMarks } from '../components/MissingMarks';
 import DutyHero from '../components/DutyHero';
-import { ArrowLeftRight, CalendarClock, ChevronUp, History, Pencil, Plus, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
+import DutyScanSheet from '../components/DutyScanSheet';
+import { ArrowLeftRight, CalendarClock, ChevronUp, History, Pencil, Plus, ScanText, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
 import MoreMenuButton from '../components/MoreMenu';
 import { Photo } from '../components/Avatar';
 import { Button, EmptyState, PageHeader, Skeleton, TopBarSentinel } from '../components/ui';
@@ -193,6 +194,7 @@ export default function DutyPage({ switcher }) {
   const [swapForm, setSwapForm] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const fabRef = useRef(null);
   useEffect(() => {
     if (!fabOpen) return undefined;
@@ -296,9 +298,21 @@ export default function DutyPage({ switcher }) {
         right={
           <div className="flex shrink-0 items-center gap-2">
             {isAdmin && (
-              <Button size="sm" icon={Plus} onClick={() => ui.openDutyForm(null)} className="shrink-0">
-                เพิ่มเวร
-              </Button>
+              <>
+                {/* แอดมิน: เพิ่มเวรจากรูปตารางเวร (AI อ่านให้ แล้วตรวจก่อนบันทึก) */}
+                <button
+                  type="button"
+                  onClick={() => setScanOpen(true)}
+                  aria-label="เพิ่มเวรจากรูป"
+                  title="เพิ่มเวรจากรูป (AI)"
+                  className="glass grid h-11 w-11 shrink-0 place-items-center rounded-full text-violet-700 transition active:scale-95"
+                >
+                  <ScanText className="h-5 w-5" />
+                </button>
+                <Button size="sm" icon={Plus} onClick={() => ui.openDutyForm(null)} className="shrink-0">
+                  เพิ่มเวร
+                </Button>
+              </>
             )}
             <MoreMenuButton />
           </div>
@@ -450,6 +464,7 @@ export default function DutyPage({ switcher }) {
         </div>
       )}
 
+      <DutyScanSheet open={scanOpen} onClose={() => setScanOpen(false)} />
       <SwapForm state={swapForm} onClose={() => setSwapForm(null)} />
       {historyOpen && <SwapHistory open onClose={() => setHistoryOpen(false)} onEdit={(item) => openSwapForm(item)} />}
     </div>

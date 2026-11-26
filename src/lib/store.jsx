@@ -214,6 +214,10 @@ export function StoreProvider({ children }) {
         }
         return res;
       },
+      /** แอดมิน: สถานะ/บันทึก API key ของ AI และให้ AI อ่านรูปตารางเวร (ยังไม่บันทึก คืนรายการให้ตรวจ) */
+      aiStatus: () => mutate('aiStatus', {}),
+      saveAiKey: (apiKey, remove = false) => mutate('saveAiKey', { apiKey, remove }),
+      scanDuty: (image) => mutate('scanDuty', { image }),
       /** แจ้งปัญหา / ข้อเสนอแนะ (ส่งอีเมลถึงผู้ดูแลระบบ) */
       reportIssue: (report) => api('reportIssue', { report }),
       deleteSwap: (id) =>

@@ -380,6 +380,33 @@ const actions = {
     upsert(db.swaps, record);
     return publicSwap(record);
   },
+  aiStatus(p) {
+    requireAdmin(p);
+    return { configured: !!db.aiKey, last4: db.aiKey ? db.aiKey.slice(-4) : '', model: 'claude-opus-5-5' };
+  },
+  saveAiKey(p) {
+    requireAdmin(p);
+    if (p.remove) db.aiKey = '';
+    else if (!/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(String(p.apiKey || ''))) fail('VALIDATION', 'รูปแบบ API key ไม่ถูกต้อง (ต้องขึ้นต้นด้วย sk-ant-)');
+    else db.aiKey = String(p.apiKey);
+    return { configured: !!db.aiKey, last4: db.aiKey ? db.aiKey.slice(-4) : '', model: 'claude-opus-5-5' };
+  },
+  /** โหมดตัวอย่าง: ไม่ได้เรียก AI จริง คืนรายการสมมติจากรายชื่อตัวอย่างให้ลองหน้าตรวจ/บันทึก */
+  scanDuty(p) {
+    requireAdmin(p);
+    if (!p.image || !p.image.base64) fail('BAD_FILE', 'กรุณาเลือกรูป');
+    const m = db.members;
+    const day = (n) => toISODate(new Date(Date.now() + n * 86400000));
+    return {
+      rows: [
+        { date: day(7), role: 'เวรทั่วไป', people: [{ name: m[2].first_name, seq: m[2].seq || '' }], note: '' },
+        { date: day(7), role: 'เวรรับอาจารย์', people: [{ name: m[4].nickname || m[4].first_name, seq: '' }], note: '' },
+        { date: day(8), role: 'เวรทั่วไป', people: [{ name: 'ชื่อที่อ่านไม่ชัด', seq: '' }], note: '' },
+      ],
+      model: 'demo',
+      usage: null,
+    };
+  },
   reportIssue(p) {
     const message = String((p.report && p.report.message) || '').trim();
     if (message.replace(/\s/g, '').length < 5) fail('VALIDATION', 'กรุณาเล่ารายละเอียดของปัญหาอย่างน้อยสักประโยค');
