@@ -419,15 +419,15 @@ export default function ClassPage({ switcher }) {
   };
   const openSubject = (subject) => ui.go('course', { tab: 'docs', subject });
   const nextId = next && !live ? next.id : '';
-  // ทั้งหลักสูตร: เลื่อนไปที่วันนี้อัตโนมัติ
+  // รายสัปดาห์ / ทั้งหลักสูตร: เปิดมาที่การ์ดวันนี้ก่อน (เว้นที่ให้แถบลอยด้านบน)
   useEffect(() => {
-    if (mode !== 'all') return;
+    if (mode === 'day') return undefined;
     const t = setTimeout(() => {
-      const el = document.querySelector('[data-week-today]') || document.querySelector('[data-week-current]');
-      if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 90);
-    }, 80);
+      const el = document.querySelector('[data-week-today]') || (mode === 'all' && document.querySelector('[data-week-current]'));
+      if (el) window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.scrollY - 140));
+    }, 120);
     return () => clearTimeout(t);
-  }, [mode]);
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
   const dayClasses = classes.filter((c) => c.class_date === selected);
   const mainRoom = useMemo(() => {
     const count = new Map();
@@ -501,16 +501,29 @@ export default function ClassPage({ switcher }) {
             />
           )}
 
-          <div className="mb-1 mt-3">
+          <div className="mt-3" />
+          <TopBarSentinel />
+          <div className="topbar sticky-glass sticky top-0 z-20 -mx-4 space-y-2 px-4 py-2">
             <Segmented size="sm" value={mode} onChange={setMode} options={VIEW_OPTIONS} className="w-full [&>button]:flex-1" />
+            {mode === 'day' && <DateStrip days={days} selected={selected} today={today} onSelect={setSelected} />}
+            {mode === 'week' && weeks.length > 0 && (
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={weekIndex <= 0} onClick={() => setWeekKey(weeks[weekIndex - 1].key)} aria-label="สัปดาห์ก่อนหน้า" className="glass grid h-10 w-10 shrink-0 place-items-center rounded-full text-navy-700 disabled:opacity-35">
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <div className="min-w-0 flex-1 text-center">
+                  <p className="text-[14.5px] font-bold text-navy-900">สัปดาห์ที่ {weeks[weekIndex].no}</p>
+                  <p className="text-[12px] text-slate-500">{weeks[weekIndex].label}</p>
+                </div>
+                <button type="button" disabled={weekIndex >= weeks.length - 1} onClick={() => setWeekKey(weeks[weekIndex + 1].key)} aria-label="สัปดาห์ถัดไป" className="glass grid h-10 w-10 shrink-0 place-items-center rounded-full text-navy-700 disabled:opacity-35">
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
           </div>
 
           {mode === 'day' && (
             <>
-            <TopBarSentinel />
-            <div className="topbar sticky-glass sticky top-0 z-20 -mx-4 px-4 py-2">
-              <DateStrip days={days} selected={selected} today={today} onSelect={setSelected} />
-            </div>
 
             <div className="mb-3 mt-2 flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -574,19 +587,7 @@ export default function ClassPage({ switcher }) {
 
           {mode === 'week' && weeks.length > 0 && (
             <div className="mt-2">
-              <div className="topbar sticky-glass sticky top-0 z-20 -mx-4 flex items-center gap-2 px-4 py-2">
-                <button type="button" disabled={weekIndex <= 0} onClick={() => setWeekKey(weeks[weekIndex - 1].key)} aria-label="สัปดาห์ก่อนหน้า" className="glass grid h-10 w-10 shrink-0 place-items-center rounded-full text-navy-700 disabled:opacity-35">
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <div className="min-w-0 flex-1 text-center">
-                  <p className="text-[14.5px] font-bold text-navy-900">สัปดาห์ที่ {weeks[weekIndex].no}</p>
-                  <p className="text-[12px] text-slate-500">{weeks[weekIndex].label}</p>
-                </div>
-                <button type="button" disabled={weekIndex >= weeks.length - 1} onClick={() => setWeekKey(weeks[weekIndex + 1].key)} aria-label="สัปดาห์ถัดไป" className="glass grid h-10 w-10 shrink-0 place-items-center rounded-full text-navy-700 disabled:opacity-35">
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="mt-2 space-y-2.5">
+              <div className="space-y-2.5">
                 {weeks[weekIndex].days.map((day) => (
                   <DayBlock key={day.date} date={day.date} items={day.items} today={today} statusOf={statusOf} nextId={nextId} onOpenDay={openDay} onSubject={openSubject} />
                 ))}
