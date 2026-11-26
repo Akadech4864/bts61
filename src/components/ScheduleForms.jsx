@@ -8,6 +8,7 @@ import { useToast } from './Toast';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { formatDate, fullName, guessMembers, nickOf, resolveDuty, thCompare, toISODate } from '../lib/utils';
+import { CLASS_KINDS } from '../lib/course';
 
 const uniqueSorted = (values) => [...new Set(values.filter(Boolean))].sort(thCompare);
 
@@ -33,7 +34,8 @@ function ClassFormInner({ initial, onClose }) {
   const ui = useUI();
   const toast = useToast();
   const [form, setForm] = useState(() => ({
-    id: '', class_date: toISODate(new Date()), start_time: '09:00', end_time: '12:00', subject: '', speaker: '', location: '', note: '',
+    id: '', class_date: toISODate(new Date()), start_time: '09:00', end_time: '12:00', subject: '', topic: '', kind: '', session: '',
+    speaker: '', secretary: '', location: '', note: '',
     ...(initial || {}),
   }));
   const [saving, setSaving] = useState(false);
@@ -45,6 +47,9 @@ function ClassFormInner({ initial, onClose }) {
     () => ({
       location: uniqueSorted(data.classes.map((c) => c.location)),
       speaker: uniqueSorted(data.classes.map((c) => c.speaker)),
+      secretary: uniqueSorted(data.classes.map((c) => c.secretary)),
+      subject: uniqueSorted(data.classes.map((c) => c.subject)),
+      kind: uniqueSorted([...CLASS_KINDS, ...data.classes.map((c) => c.kind)]),
     }),
     [data.classes],
   );
@@ -106,11 +111,25 @@ function ClassFormInner({ initial, onClose }) {
             <TextInput type="time" value={form.end_time} onChange={(e) => set('end_time')(e.target.value)} />
           </Field>
         </div>
-        <Field label="หัวข้อวิชา" required>
-          <TextInput value={form.subject} onChange={(e) => set('subject')(e.target.value)} placeholder="ชื่อวิชา / กิจกรรม" />
+        <Field label="วิชา / กิจกรรม" required>
+          <SuggestInput value={form.subject} onChange={set('subject')} options={options.subject} placeholder="ชื่อวิชา / กิจกรรม" />
         </Field>
-        <Field label="วิทยากร">
+        <Field label="หัวข้อ">
+          <TextInput value={form.topic} onChange={(e) => set('topic')(e.target.value)} placeholder="หัวข้อการบรรยาย (ถ้ามี)" />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="รูปแบบ">
+            <SuggestInput value={form.kind} onChange={set('kind')} options={options.kind} placeholder="เช่น บรรยาย" />
+          </Field>
+          <Field label="ครั้งที่">
+            <TextInput value={form.session} onChange={(e) => set('session')(e.target.value)} placeholder="เช่น 1/7" />
+          </Field>
+        </div>
+        <Field label="อาจารย์ผู้บรรยาย / วิทยากร">
           <SuggestInput value={form.speaker} onChange={set('speaker')} options={options.speaker} placeholder="ชื่อวิทยากร" />
+        </Field>
+        <Field label="เลขาฯวิชา">
+          <SuggestInput value={form.secretary} onChange={set('secretary')} options={options.secretary} placeholder="ชื่อเลขานุการวิชา" />
         </Field>
         <Field label="ห้องเรียน / สถานที่">
           <SuggestInput value={form.location} onChange={set('location')} options={options.location} placeholder="เช่น ห้องเรียนรวม ชั้น 2" />

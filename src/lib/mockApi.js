@@ -67,16 +67,20 @@ function seed() {
     id: uid('c'), class_date: addDays(today, offset), start_time: start, end_time: end, subject, speaker, location, note, updated_at: now(),
   });
   const classes = [
-    cls(-1, '09:00', '12:00', 'ยุทธศาสตร์ชาติกับการบริหารงานตำรวจ', 'วิทยากรตัวอย่าง ก.', 'ห้องเรียนรวม ชั้น 2'),
+    { ...cls(-1, '09:00', '12:00', 'วิชาเอกสารศึกษา', 'วิทยากรตัวอย่าง ก.', 'ห้องเรียนรวม ชั้น 2'), topic: 'เสนอหัวข้อกรณีศึกษา / แนะนำการเขียน บทที่ 1 และบทที่ 2', kind: 'บรรยาย', session: '1/6', secretary: 'อาจารย์ตัวอย่าง ข.' },
     cls(0, '08:00', '09:00', 'กิจกรรมหน้าเสาธงและอบรมประจำวัน', 'ผู้อำนวยการหลักสูตร', 'ลานอเนกประสงค์'),
-    cls(0, '09:00', '12:00', 'ภาวะผู้นำเชิงกลยุทธ์สำหรับผู้บังคับการ', 'วิทยากรตัวอย่าง ข.', 'ห้องเรียนรวม ชั้น 2', 'เตรียมกรณีศึกษาจากหน่วยของตนเอง'),
+    { ...cls(0, '09:00', '12:00', 'การเสริมสร้างคุณค่าการเป็นผู้นำ', 'วิทยากรตัวอย่าง ข.', 'ห้องเรียนรวม ชั้น 2', 'เตรียมกรณีศึกษาจากหน่วยของตนเอง'), topic: 'ภาวะผู้นำเชิงกลยุทธ์', kind: 'ฝึกปฏิบัติ', session: '4/23', secretary: 'อาจารย์ตัวอย่าง ค.' },
     cls(0, '13:00', '16:00', 'การบริหารงานสืบสวนสอบสวนยุคดิจิทัล', 'วิทยากรตัวอย่าง ค.', 'ห้องเรียนรวม ชั้น 2'),
     cls(0, '18:30', '21:30', 'สัมมนากลุ่มย่อย (ภาคค่ำ)', 'อาจารย์ประจำกลุ่ม', 'ห้องสัมมนา 1–4'),
     cls(1, '09:00', '12:00', 'การบริหารงบประมาณและพัสดุ', 'วิทยากรตัวอย่าง ง.', 'ห้องเรียนรวม ชั้น 2'),
     cls(1, '13:00', '16:00', 'การสื่อสารในภาวะวิกฤต', 'วิทยากรตัวอย่าง จ.', 'ห้องเรียนรวม ชั้น 2'),
     cls(2, '09:00', '16:00', 'ศึกษาดูงานนอกสถานที่', 'คณะอาจารย์', 'ขึ้นรถหน้าอาคารอำนวยการ 07:30 น.', 'แต่งกายชุดสุภาพ'),
     cls(5, '09:00', '12:00', 'กฎหมายปกครองสำหรับผู้บริหาร', 'วิทยากรตัวอย่าง ฉ.', 'ห้องเรียนรวม ชั้น 2'),
+    { ...cls(8, '13:00', '16:00', 'วิชาเอกสารศึกษา', 'วิทยากรตัวอย่าง ก.', 'ห้องเรียนรวม ชั้น 2'), topic: 'ปรับแก้ไขงาน / แนะนำการเขียน บทที่ 2', kind: 'สัมมนากลุ่ม', session: '2/6' },
   ];
+  const staff = demoStaff();
+  const instructors = demoInstructors();
+  const resources = demoResources(today);
 
   const names = (ids) => ids.map((i) => `พ.ต.อ. ${people[i][0]} ${people[i][1]}`).join(', ');
   const duty = (offset, role, idx, note = '') => ({
@@ -97,12 +101,59 @@ function seed() {
     members,
     classes,
     duty: dutyList,
+    staff,
+    instructors,
+    resources,
     settings: { public_edit_enabled: true, allow_public_add: true, allow_public_edit: true, allow_public_photo_edit: true },
     password: DEMO_PASSWORD,
     otp: null,
     tokens: [],
   };
 }
+
+/* ---------- ข้อมูลหลักสูตรสมมติ (ผู้บริหาร / อาจารย์ / งานและเอกสาร) ---------- */
+function demoStaff() {
+  return [
+    ['พล.ต.ต.', 'ตัวอย่าง', 'ผู้อำนวยการ', 'ผอ.', 'ผู้อำนวยการหลักสูตร'],
+    ['พ.ต.อ.', 'สมมติ', 'รองหลักสูตร', 'รอง', 'รอง ผอ.หลักสูตร'],
+    ['พ.ต.ท.หญิง', 'ทดสอบ', 'เลขาหลักสูตร', 'เลขา', 'เลขานุการหลักสูตร'],
+    ['ด.ต.', 'สาธิต', 'เจ้าหน้าที่', 'ดิต', 'เจ้าหน้าที่'],
+  ].map((x, i) => ({
+    id: uid('s'), sort: String(i + 1), rank: x[0], first_name: x[1], last_name: x[2], nickname: x[3], role: x[4],
+    phone: `08100000${String(i + 1).padStart(2, '0')}`, photo_url: '', photo_file_id: '', updated_at: now(),
+  }));
+}
+
+function demoInstructors() {
+  return [
+    [1, 'e', 'ผศ.ดร.ตัวอย่าง วิชาการ', 'อาจารย์มหาวิทยาลัยตัวอย่าง', ['1.3 สัมมนากลุ่มวิชาบริหารจัดการ|อาจารย์พิเศษ', '5 วิชาเอกสารศึกษา|อาจารย์พิเศษ']],
+    [1, 'p', 'พ.ต.ท.หญิง สมมติ สอนดี', 'อาจารย์ (สบ 3) ตัวอย่าง', ['2.2 การบูรณาการการสืบสวนสอบสวนชั้นสูง|อาจารย์ประจำ/ผู้รับผิดชอบวิชา', '5 วิชาเอกสารศึกษา|อาจารย์ประจำ']],
+    [2, 'p', 'พ.ต.อ.ดร.ทดสอบ ความรู้', 'อาจารย์ (สบ 5) ตัวอย่าง', ['1.1.3 การนำนโยบายและยุทธศาสตร์สู่การปฏิบัติ|อาจารย์ประจำ/ผู้รับผิดชอบวิชา', '1.3 สัมมนากลุ่มวิชาบริหารจัดการ|อาจารย์ประจำ', '5 วิชาเอกสารศึกษา|อาจารย์ประจำ']],
+    [2, 'p', 'พ.ต.ต.หญิง สาธิต ใจดี', 'อาจารย์ (สบ 2) ตัวอย่าง', ['2.3 สัมมนาปัญหาการบริหารงานจราจร|อาจารย์ประจำ', '5 วิชาเอกสารศึกษา|อาจารย์ประจำ']],
+  ].map((x, i) => ({
+    id: uid('i'), sort: String(i + 1), group_no: String(x[0]), kind: x[1], name: x[2], position: x[3], subjects: x[4].join('\n'),
+    expertise: 'หัวข้อตัวอย่าง', education: 'ป.เอก (ตัวอย่าง)', links: '', phone: '', photo_url: '', photo_file_id: '', updated_at: now(),
+  }));
+}
+
+function demoResources(today) {
+  return [
+    ['link', 'สื่อประกอบการเรียน (ตัวอย่าง)', 'ลิงก์ตัวอย่างของเอกสารประกอบการเรียน', 'https://www.example.com/', '', ''],
+    ['task', 'ส่งงานครั้งที่ 1', '', '', addDays(today, 6), ''],
+    ['task', 'ส่งงานครั้งที่ 2', '', '', addDays(today, 17), ''],
+    ['info', 'หลักเกณฑ์การให้คะแนน (ตัวอย่าง)', 'ส่วนเนื้อเรื่อง: 50 คะแนน\nการนำเสนอผล: 50 คะแนน', '', '', ''],
+  ].map((x, i) => ({
+    id: uid('r'), sort: String(i + 1), subject: 'วิชาเอกสารศึกษา', type: x[0], title: x[1], detail: x[2], url: x[3], due_date: x[4], due_time: x[5],
+    updated_at: now(),
+  }));
+}
+
+const COLLECTION_FIELDS = {
+  staff: ['sort', 'rank', 'first_name', 'last_name', 'nickname', 'role', 'phone'],
+  instructors: ['sort', 'name', 'position', 'kind', 'group_no', 'expertise', 'education', 'subjects', 'links', 'phone'],
+  resources: ['sort', 'subject', 'type', 'title', 'detail', 'url', 'due_date', 'due_time'],
+};
+const REQUIRED = { staff: 'first_name', instructors: 'name', resources: 'title' };
 
 let db;
 function load() {
@@ -113,6 +164,10 @@ function load() {
     db = null;
   }
   if (!db || !Array.isArray(db.members)) db = seed();
+  // ข้อมูลตัวอย่างที่บันทึกไว้ก่อนมีเมนูใหม่: เติมข้อมูลหลักสูตรสมมติให้
+  if (!Array.isArray(db.staff)) db.staff = demoStaff();
+  if (!Array.isArray(db.instructors)) db.instructors = demoInstructors();
+  if (!Array.isArray(db.resources)) db.resources = demoResources(toISODate(new Date()));
   return db;
 }
 
@@ -152,7 +207,10 @@ function remove(list, id) {
 
 const actions = {
   bootstrap(p) {
-    const out = { members: db.members, duty: db.duty, classes: db.classes, settings: db.settings, serverTime: now() };
+    const out = {
+      members: db.members, duty: db.duty, classes: db.classes, staff: db.staff, instructors: db.instructors, resources: db.resources,
+      settings: db.settings, serverTime: now(),
+    };
     if (p.token) out.isAdmin = isAdmin(p.token);
     return out;
   },
@@ -276,6 +334,10 @@ const actions = {
       speaker: String(input.speaker || '').trim(),
       location: String(input.location || '').trim(),
       note: String(input.note || '').trim(),
+      topic: String(input.topic || '').trim(),
+      kind: String(input.kind || '').trim(),
+      session: String(input.session || '').trim(),
+      secretary: String(input.secretary || '').trim(),
       updated_at: now(),
     };
     upsert(db.classes, record);
@@ -284,6 +346,38 @@ const actions = {
   deleteClass(p) {
     requireAdmin(p);
     return remove(db.classes, p.id);
+  },
+  saveRecord(p) {
+    requireAdmin(p);
+    const fields = COLLECTION_FIELDS[p.collection];
+    if (!fields || !Object.prototype.hasOwnProperty.call(COLLECTION_FIELDS, p.collection)) fail('BAD_REQUEST', 'ไม่รู้จักประเภทข้อมูล');
+    const list = db[p.collection];
+    const input = p.item || {};
+    const existing = input.id ? list.find((x) => x.id === input.id) : null;
+    if (input.id && !existing) fail('NOT_FOUND', 'ไม่พบรายการนี้ อาจถูกลบไปแล้ว');
+    const record = existing ? { ...existing } : { id: uid(p.collection[0]), photo_url: '', photo_file_id: '' };
+    fields.forEach((f) => {
+      if (input[f] !== undefined) record[f] = String(input[f]).trim();
+    });
+    if (record.url && !/^https?:\/\//i.test(record.url)) record.url = `https://${record.url}`;
+    if (!record[REQUIRED[p.collection]]) fail('VALIDATION', 'กรุณากรอกข้อมูลที่จำเป็น');
+    if (p.collection !== 'resources') {
+      if (p.photo) {
+        record.photo_url = `data:${p.photo.mimeType};base64,${p.photo.base64}`;
+        record.photo_file_id = uid('file');
+      } else if (p.removePhoto) {
+        record.photo_url = '';
+        record.photo_file_id = '';
+      }
+    }
+    record.updated_at = now();
+    upsert(list, record);
+    return record;
+  },
+  deleteRecord(p) {
+    requireAdmin(p);
+    if (!Object.prototype.hasOwnProperty.call(COLLECTION_FIELDS, p.collection)) fail('BAD_REQUEST', 'ไม่รู้จักประเภทข้อมูล');
+    return remove(db[p.collection], p.id);
   },
 };
 

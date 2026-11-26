@@ -290,6 +290,11 @@ export default function DutyPage() {
               ))}
             </div>
           )}
+          {entries.length > 0 && (
+            <p className="mt-5 px-2 text-center text-xs leading-relaxed text-slate-400">
+              หมายเหตุ: ผู้ที่ทำหน้าที่เวรประจำวัน หากวันนั้นลาหรือไม่สามารถปฏิบัติหน้าที่เวรได้ ให้เปลี่ยนเวรให้เรียบร้อย
+            </p>
+          )}
         </>
       )}
     </div>

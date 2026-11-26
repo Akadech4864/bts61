@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, CalendarDays, CalendarSearch, ChevronRight, Clock, MapPin, Pencil, Plus, StickyNote, UserRound } from 'lucide-react';
+import { BookOpen, CalendarDays, CalendarSearch, ChevronRight, Clock, MapPin, NotebookPen, Pencil, Plus, StickyNote, UserRound } from 'lucide-react';
 import { Button, EmptyState, PageHeader, Skeleton, TopBarSentinel } from '../components/ui';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import {
   addDays, classStatus, compareClass, cx, daysBetween, formatDate, parseISODate, relativeDay, timeRange, toISODate, useNow,
 } from '../lib/utils';
+import { kindTone } from '../lib/course';
 
 const WEEKDAYS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
 const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -115,14 +116,22 @@ function ClassCard({ item, status, isNext, onEdit }) {
         )}
       </div>
       <div className="min-w-0 flex-1 border-l border-slate-100 pl-3">
-        <div className="mb-1.5 flex min-h-6 items-center gap-2">
+        <div className="mb-1.5 flex min-h-6 flex-wrap items-center gap-1.5 pr-8">
           <StatusBadge status={status} isNext={isNext} />
+          {item.kind && <span className={cx('rounded-full px-2 py-0.5 text-[11px] font-semibold', kindTone(item.kind))}>{item.kind}</span>}
+          {item.session && <span className="rounded-full bg-white/60 px-2 py-0.5 text-[11px] font-medium text-slate-500">ครั้งที่ {item.session}</span>}
         </div>
         <h3 className="text-[16px] font-semibold leading-snug text-navy-900">{item.subject}</h3>
+        {item.topic && <p className="mt-0.5 text-[14px] leading-snug text-slate-700">{item.topic}</p>}
         <div className="mt-2 space-y-1 text-[13px] text-slate-600">
           {item.speaker && (
             <p className="flex items-start gap-2">
               <UserRound className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /> <span>{item.speaker}</span>
+            </p>
+          )}
+          {item.secretary && (
+            <p className="flex items-start gap-2">
+              <NotebookPen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /> <span><span className="text-slate-400">เลขาฯวิชา</span> {item.secretary}</span>
             </p>
           )}
           {item.location && (
@@ -167,6 +176,7 @@ function HeroCard({ item, live, today, onJump }) {
         <ChevronRight className="h-5 w-5 text-white/50" />
       </div>
       <h2 className="mt-3 text-xl font-bold leading-snug">{item.subject}</h2>
+      {item.topic && <p className="mt-1 text-[14px] leading-snug text-white/85">{item.topic}</p>}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-white/80">
         <span className="inline-flex items-center gap-1.5">
           <Clock className="h-3.5 w-3.5" />
@@ -192,7 +202,8 @@ export default function ClassPage() {
   const ui = useUI();
   const now = useNow(30000);
   const today = toISODate(now);
-  const [selected, setSelected] = useState(today);
+  // เปิดจากหน้าอื่นพร้อมวันที่ (เช่น แตะวันที่ของวิชาในหน้าอาจารย์/เอกสาร)
+  const [selected, setSelected] = useState(() => (ui.view && ui.view.date) || today);
 
   const classes = useMemo(() => [...data.classes].sort(compareClass), [data.classes]);
   const statusOf = useMemo(() => new Map(classes.map((c) => [c.id, classStatus(c, now)])), [classes, now]);

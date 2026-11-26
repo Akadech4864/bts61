@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import BottomNav, { TABS } from './components/BottomNav';
+import BottomNav, { MoreBar, TABS } from './components/BottomNav';
 import ProfileSheet from './components/ProfileSheet';
 import MemberForm from './components/MemberForm';
 import { ClassForm, DutyForm } from './components/ScheduleForms';
@@ -13,8 +13,13 @@ import DirectoryPage from './pages/DirectoryPage';
 import ClassPage from './pages/ClassPage';
 import DutyPage from './pages/DutyPage';
 import SettingsPage from './pages/SettingsPage';
+import InstructorsPage from './pages/InstructorsPage';
+import DocsPage from './pages/DocsPage';
+import AboutPage from './pages/AboutPage';
 
-const PAGES = { directory: DirectoryPage, classes: ClassPage, duty: DutyPage, settings: SettingsPage };
+const PAGES = {
+  directory: DirectoryPage, classes: ClassPage, duty: DutyPage, instructors: InstructorsPage, docs: DocsPage, about: AboutPage, settings: SettingsPage,
+};
 const TAB_KEY = 'bts61:tab';
 
 function ConfirmDialog({ request, onAnswer }) {
@@ -43,6 +48,7 @@ function Shell() {
     const saved = readStored(TAB_KEY, 'directory');
     return TABS.some((t) => t.id === saved) ? saved : 'directory';
   });
+  const [view, setView] = useState(null); // ส่งต่อมุมมองย่อยเมื่อเปลี่ยนหน้า เช่น { mode: 'groups' } หรือ { date: '2026-12-01' }
   const [profileId, setProfileId] = useState(null);
   const [memberForm, setMemberForm] = useState(null);
   const [classForm, setClassForm] = useState(null);
@@ -50,14 +56,16 @@ function Shell() {
   const [confirmRequest, setConfirmRequest] = useState(null);
   const formSeq = useRef(0);
 
-  const go = useCallback((next) => {
+  const go = useCallback((next, nextView = null) => {
     setTab(next);
+    setView(nextView);
     writeStored(TAB_KEY, next);
     window.scrollTo(0, 0);
   }, []);
 
   useEffect(() => {
-    document.title = `${(TABS.find((t) => t.id === tab) || TABS[0]).label} · บตส.รุ่นที่ 61`;
+    const t = TABS.find((x) => x.id === tab) || TABS[0];
+    document.title = `${t.title || t.label} · บตส.รุ่นที่ 61`;
   }, [tab]);
 
   const confirmResolve = useRef(null);
@@ -70,6 +78,7 @@ function Shell() {
   const ui = useMemo(
     () => ({
       tab,
+      view,
       go,
       openProfile: (id) => setProfileId(id),
       openMemberForm: (member, prefill) => setMemberForm({ key: ++formSeq.current, member: member || null, prefill: prefill || null }),
@@ -82,7 +91,7 @@ function Shell() {
           setConfirmRequest(options);
         }),
     }),
-    [tab, go],
+    [tab, view, go],
   );
 
   const closeProfile = useCallback(() => setProfileId(null), []);
@@ -91,6 +100,7 @@ function Shell() {
   return (
     <UIContext.Provider value={ui}>
       <div className="app-bg" aria-hidden="true" />
+      <MoreBar tab={tab} onChange={go} adminActive={isAdmin} />
       <main key={tab} className="animate-fade-in">
         <Page />
       </main>

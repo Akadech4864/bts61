@@ -16,7 +16,7 @@ const DEFAULT_SETTINGS = {
   allow_public_edit: false,
   allow_public_photo_edit: false,
 };
-const EMPTY = { members: [], duty: [], classes: [], settings: DEFAULT_SETTINGS };
+const EMPTY = { members: [], duty: [], classes: [], staff: [], instructors: [], resources: [], settings: DEFAULT_SETTINGS };
 
 const StoreContext = createContext(null);
 export const useStore = () => useContext(StoreContext);
@@ -78,6 +78,9 @@ export function StoreProvider({ children }) {
             members: res.members || [],
             duty: res.duty || [],
             classes: res.classes || [],
+            staff: res.staff || [],
+            instructors: res.instructors || [],
+            resources: res.resources || [],
             settings: { ...DEFAULT_SETTINGS, ...(res.settings || {}) },
           });
           setLastSync(Date.now());
@@ -185,6 +188,25 @@ export function StoreProvider({ children }) {
         mutate('saveClass', { item }, (prev, res) => ({ ...prev, classes: upsert(prev.classes, res) })),
       deleteClass: (id) =>
         mutate('deleteClass', { id }, (prev) => ({ ...prev, classes: removeById(prev.classes, id) })),
+      /** ข้อมูลหลักสูตร (เฉพาะแอดมิน): collection = staff | instructors | resources */
+      async saveRecord(collection, item, { photoBlob = null, removePhoto = false } = {}) {
+        const payload = { collection, item, removePhoto };
+        let thumbBlob = null;
+        if (photoBlob) {
+          payload.photo = { base64: await blobToBase64(photoBlob), mimeType: photoBlob.type || 'image/jpeg' };
+          try {
+            thumbBlob = await makeThumb(photoBlob);
+            payload.photo.thumb = await blobToBase64(thumbBlob);
+          } catch {
+            thumbBlob = null;
+          }
+        }
+        const res = await mutate('saveRecord', payload, (prev, r) => ({ ...prev, [collection]: upsert(prev[collection] || [], r) }));
+        if (photoBlob && res && res.photo_file_id) primePhoto(res.photo_file_id, photoBlob, thumbBlob);
+        return res;
+      },
+      deleteRecord: (collection, id) =>
+        mutate('deleteRecord', { collection, id }, (prev) => ({ ...prev, [collection]: removeById(prev[collection] || [], id) })),
     }),
     [mutate, refresh, setAuth],
   );

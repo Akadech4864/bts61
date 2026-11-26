@@ -29,6 +29,9 @@ export function shortName(m) {
   return `${rank}${spaced ? ' ' : ''}${m.first_name || ''}${m.first_name && m.last_name ? 'ฯ' : ''}`.trim();
 }
 
+/** เลขไทย -> เลขอารบิก (ข้อมูลจากเอกสารราชการมักใช้เลขไทย) */
+export const toArabicDigits = (s) => String(s || '').replace(/[๐-๙]/g, (d) => String(d.charCodeAt(0) - 0x0e50));
+
 export const nickOf = (m) => (m && (m.nickname || m.first_name)) || '';
 
 /** อักษรย่อสำหรับรูปแทนตัว รองรับสระหน้าและวรรณยุกต์ไทย */
