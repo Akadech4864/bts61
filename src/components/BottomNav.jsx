@@ -57,7 +57,7 @@ function useHideOnScroll() {
   return hidden;
 }
 
-export default function BottomNav({ tab, onChange, adminActive }) {
+export default function BottomNav({ tab, onChange, adminActive, dots }) {
   const hidden = useHideOnScroll();
 
   useEffect(() => {
@@ -86,8 +86,8 @@ export default function BottomNav({ tab, onChange, adminActive }) {
             >
               <Icon className="h-[21px] w-[21px]" strokeWidth={active ? 2.2 : 1.9} />
               <span className="max-w-full truncate px-0.5 text-[11px] font-medium leading-none">{t.label}</span>
-              {t.id === 'settings' && adminActive && (
-                <span className="absolute right-3.5 top-2 h-2 w-2 rounded-full bg-gold-400 ring-2 ring-white" />
+              {((t.id === 'settings' && adminActive) || (dots && dots[t.id])) && (
+                <span className="absolute left-1/2 top-2 ml-3 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" />
               )}
             </button>
           );

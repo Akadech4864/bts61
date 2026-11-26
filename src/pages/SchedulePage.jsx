@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SubTabs } from '../components/ui';
+import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import ClassPage from './ClassPage';
 import DutyPage from './DutyPage';
@@ -12,10 +13,13 @@ const SUBS = [
 /** หมวด "ตาราง": รวมตารางสอนและตารางเวรไว้ในเมนูเดียว สลับด้วยแท็บย่อย */
 export default function SchedulePage() {
   const ui = useUI();
+  const { data } = useStore();
   const [sub, setSub] = useState(ui.view && ui.view.sub === 'duty' ? 'duty' : 'classes');
+  // จุดเหลืองที่แท็บตารางเวร = มีคำขอสลับเวรรออนุมัติ
+  const pending = (data.swaps || []).some((s) => s.status === 'pending');
   const switcher = (
     <SubTabs
-      options={SUBS}
+      options={SUBS.map((o) => (o.value === 'duty' ? { ...o, dot: pending } : o))}
       value={sub}
       label="ประเภทตาราง"
       onChange={(next) => {

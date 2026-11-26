@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { CalendarClock, Pencil, Plus, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
+import { ArrowLeftRight, CalendarClock, History, Pencil, Plus, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
 import MoreMenuButton from '../components/MoreMenu';
 import { Photo } from '../components/Avatar';
-import { Button, EmptyState, PageHeader, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
+import { Button, EmptyState, PageHeader, Skeleton, TopBarSentinel } from '../components/ui';
+import { SwapDot, SwapForm, SwapHistory, firstNameShort, markOf, swapMarks } from '../components/DutySwap';
 import MemberSuggest from '../components/MemberSuggest';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
@@ -27,8 +28,8 @@ const shortDate = (iso) => {
 };
 const beYear = (iso) => String(parseISODate(iso).getFullYear() + 543).slice(2);
 
-/** ผู้เข้าเวร: รูปหน้าตรง + ชื่อเล่น + ชื่อ-สกุล + ลำดับที่ แตะเพื่อเปิดข้อมูลในทำเนียบรุ่น */
-function DutyPerson({ member, highlight, onOpen }) {
+/** ผู้เข้าเวร: รูปหน้าตรง + ชื่อเล่น + ชื่อจริงฯ + ลำดับที่ (จุดเหลือง = รออนุมัติสลับ, เขียว = สลับแล้ว) แตะเพื่อเปิดข้อมูล */
+function DutyPerson({ member, highlight, onOpen, mark }) {
   return (
     <button
       type="button"
@@ -40,6 +41,7 @@ function DutyPerson({ member, highlight, onOpen }) {
     >
       <span className="relative shrink-0">
         <Photo member={member} width={160} className="h-14 w-14 rounded-full object-[center_20%] ring-2 ring-white shadow-sm" textClass="text-base" />
+        <SwapDot mark={mark} className="absolute -left-1 -top-1" />
         {member.seq && (
           <span className="absolute -bottom-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-navy-900 px-1 text-[10px] font-bold tabular-nums leading-none text-white ring-2 ring-white">
             {member.seq}
@@ -48,14 +50,13 @@ function DutyPerson({ member, highlight, onOpen }) {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[16px] font-bold leading-tight text-navy-900">{nickOf(member)}</span>
-        <span className="mt-0.5 block truncate text-[13px] leading-tight text-slate-700">{member.first_name}</span>
-        {member.last_name && <span className="block truncate text-[12px] leading-tight text-slate-500">{member.last_name}</span>}
+        <span className="mt-0.5 block truncate text-[13px] leading-tight text-slate-600">{firstNameShort(member)}</span>
       </span>
     </button>
   );
 }
 
-function DutyCell({ entries, mineId, onOpen, onEdit }) {
+function DutyCell({ entries, mineId, onOpen, onEdit, marks }) {
   if (!entries || !entries.length) return <span className="block px-1 text-center text-slate-300">—</span>;
   return (
     <div className="space-y-1.5">
@@ -64,7 +65,7 @@ function DutyCell({ entries, mineId, onOpen, onEdit }) {
         return (
           <div key={item.id} className="relative">
             {people.members.map((m) => (
-              <DutyPerson key={m.id} member={m} highlight={m.id === mineId} onOpen={onOpen} />
+              <DutyPerson key={m.id} member={m} highlight={m.id === mineId} onOpen={onOpen} mark={markOf(marks, item.id, m.id)} />
             ))}
             {people.extras.map((name) => (
               <p key={name} className="px-1 text-[14px] font-medium leading-snug text-slate-700">{name}</p>
@@ -93,7 +94,7 @@ function DutyCell({ entries, mineId, onOpen, onEdit }) {
 }
 
 /** ตารางเวรรายสัปดาห์: 1 แถว = 1 วัน, 1 คอลัมน์ = 1 หน้าที่ */
-function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit }) {
+function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit, marks }) {
   const dateCol = 62;
   return (
     <div className="glass overflow-x-auto rounded-3xl">
@@ -130,7 +131,7 @@ function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit }) {
                   </td>
                   {roles.map((r) => (
                     <td key={r} className="px-2 py-2.5 align-middle">
-                      <DutyCell entries={day.byRole[r]} mineId={mineId} onOpen={onOpen} onEdit={onEdit} />
+                      <DutyCell entries={day.byRole[r]} mineId={mineId} onOpen={onOpen} onEdit={onEdit} marks={marks} />
                     </td>
                   ))}
                 </tr>
@@ -149,7 +150,8 @@ export default function DutyPage({ switcher }) {
   const today = toISODate(useNow(60000));
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
-  const [range, setRange] = useState('upcoming'); // upcoming = ตั้งแต่วันนี้ | all = ทั้งหมด
+  const [swapForm, setSwapForm] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [mineId, setMineId] = usePersistentState('bts61:duty-me', '');
   const mine = mineId ? memberById.get(mineId) : null;
 
@@ -178,7 +180,7 @@ export default function DutyPage({ switcher }) {
   const visible = entries.filter(
     (e) => (!mine || e.people.members.some((m) => m.id === mine.id)) && tokens.every((t) => e.text.includes(t)),
   );
-  const shown = range === 'upcoming' ? visible.filter((e) => e.item.duty_date >= today) : visible;
+  const shown = visible;
 
   const roles = useMemo(() => {
     const found = [...new Set(entries.map((e) => e.role))];
@@ -209,9 +211,17 @@ export default function DutyPage({ switcher }) {
     return [...out.values()];
   }, [shown, courseMonday]);
 
-  const dayCount = (list) => new Set(list.map((e) => e.item.duty_date)).size;
-  const upcomingDays = dayCount(visible.filter((e) => e.item.duty_date >= today));
-  const allDays = dayCount(visible);
+  const marks = useMemo(() => swapMarks(data.swaps), [data.swaps]);
+  const pendingSwaps = (data.swaps || []).filter((x) => x.status === 'pending').length;
+  const openSwapForm = (item) => {
+    let prefill = item;
+    if (!prefill && mine) {
+      const slot = entries.find((e) => e.item.duty_date >= today && e.people.members.some((m) => m.id === mine.id));
+      if (slot) prefill = { from_duty_id: slot.item.id, from_member_id: mine.id };
+    }
+    setHistoryOpen(false);
+    setSwapForm({ key: Date.now(), item: prefill || null });
+  };
   const suggestions = useMemo(
     () => (focused && query.trim() ? guessMembers(data.members, query, 5) : []),
     [focused, query, data.members],
@@ -301,26 +311,30 @@ export default function DutyPage({ switcher }) {
         <EmptyState icon={ShieldCheck} title="ยังไม่มีตารางเวรในระบบ" description="ผู้ดูแลระบบเพิ่มตารางเวรได้จากเมนู ตั้งค่า/แอดมิน" />
       ) : (
         <>
-          <div className="mb-2.5 mt-2 flex items-center justify-between gap-3">
-            <Segmented
-              size="sm"
-              value={range}
-              onChange={setRange}
-              options={[
-                { value: 'upcoming', label: 'ที่จะถึง', title: `ตั้งแต่วันนี้ ${upcomingDays} วัน` },
-                { value: 'all', label: 'ทั้งหมด', title: `ทั้งหมด ${allDays} วัน` },
-              ]}
-            />
+          {/* ขอสลับเวร / ประวัติการสลับเวร */}
+          <div className="mb-2.5 mt-2 flex items-center gap-2">
+            <Button size="sm" variant="soft" icon={ArrowLeftRight} onClick={() => openSwapForm(null)}>
+              ขอสลับเวร
+            </Button>
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(true)}
+              className="relative inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-medium text-navy-700 hover:bg-white/60"
+            >
+              <History className="h-4 w-4" /> ประวัติการสลับ
+              {pendingSwaps > 0 && (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 text-[11px] font-bold tabular-nums text-navy-950" title="คำขอที่รออนุมัติ">
+                  {pendingSwaps}
+                </span>
+              )}
+            </button>
           </div>
 
           {weeks.length === 0 ? (
             <EmptyState
               icon={mine || query ? UserRoundSearch : CalendarClock}
-              title={range === 'upcoming' ? 'ไม่มีเวรที่กำลังจะถึง' : 'ไม่พบรายการเวร'}
+              title="ไม่พบรายการเวร"
               description={mine || query ? 'ลองล้างคำค้น หรือกด "ดูทั้งหมด" เพื่อดูเวรของทุกคน' : undefined}
-              action={range === 'upcoming' && allDays > 0 ? (
-                <Button variant="soft" size="sm" onClick={() => setRange('all')}>ดูรายการย้อนหลัง</Button>
-              ) : null}
             />
           ) : (
             <DutyTable
@@ -330,13 +344,21 @@ export default function DutyPage({ switcher }) {
               mineId={mine && mine.id}
               onOpen={ui.openProfile}
               onEdit={isAdmin ? ui.openDutyForm : null}
+              marks={marks}
             />
           )}
           <p className="mt-4 px-2 text-center text-xs leading-relaxed text-slate-400">
-            แตะชื่อเพื่อดูเบอร์โทร · หากลาหรือติดภารกิจในวันเวร ให้เปลี่ยนเวรให้เรียบร้อย
+            แตะชื่อเพื่อดูเบอร์โทร · หากลาหรือติดภารกิจในวันเวร ให้ขอสลับเวรกับเพื่อน แล้วรอแอดมินอนุมัติ
+          </p>
+          <p className="mt-2 flex items-center justify-center gap-3 text-[11.5px] text-slate-400">
+            <span className="inline-flex items-center gap-1"><SwapDot mark="pending" /> รออนุมัติสลับ</span>
+            <span className="inline-flex items-center gap-1"><SwapDot mark="swapped" /> สลับเวรแล้ว</span>
           </p>
         </>
       )}
+
+      <SwapForm state={swapForm} onClose={() => setSwapForm(null)} />
+      {historyOpen && <SwapHistory open onClose={() => setHistoryOpen(false)} onEdit={(item) => openSwapForm(item)} />}
     </div>
   );
 }

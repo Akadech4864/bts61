@@ -16,7 +16,21 @@ const DEFAULT_SETTINGS = {
   allow_public_edit: false,
   allow_public_photo_edit: false,
 };
-const EMPTY = { members: [], duty: [], classes: [], staff: [], instructors: [], resources: [], settings: DEFAULT_SETTINGS };
+const EMPTY = { members: [], duty: [], swaps: [], classes: [], staff: [], instructors: [], resources: [], settings: DEFAULT_SETTINGS };
+
+// รหัสสุ่มของเครื่องนี้ ใช้ยืนยันว่าเป็นเครื่องที่ส่งคำขอสลับเวร (แก้ไข/ลบคำขอของตัวเองได้) — เซิร์ฟเวอร์เก็บเฉพาะค่าแฮช
+const DEVICE_KEY = isDemo ? 'bts61:demo:device' : 'bts61:device';
+const MY_SWAPS_KEY = isDemo ? 'bts61:demo:my-swaps' : 'bts61:my-swaps';
+function deviceKey() {
+  let key = readStored(DEVICE_KEY, '');
+  if (typeof key !== 'string' || key.length < 32) {
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    key = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    writeStored(DEVICE_KEY, key);
+  }
+  return key;
+}
 
 const StoreContext = createContext(null);
 export const useStore = () => useContext(StoreContext);
@@ -46,6 +60,10 @@ export function StoreProvider({ children }) {
   const [error, setError] = useState('');
   const [lastSync, setLastSync] = useState((cached && cached.ts) || 0);
   const [auth, setAuthState] = useState(readAuth);
+  const [mySwaps, setMySwaps] = useState(() => {
+    const ids = readStored(MY_SWAPS_KEY, []);
+    return Array.isArray(ids) ? ids : [];
+  });
 
   const authRef = useRef(auth);
   const inflight = useRef(null);
@@ -77,6 +95,7 @@ export function StoreProvider({ children }) {
           setData({
             members: res.members || [],
             duty: res.duty || [],
+            swaps: res.swaps || [],
             classes: res.classes || [],
             staff: res.staff || [],
             instructors: res.instructors || [],
@@ -184,6 +203,25 @@ export function StoreProvider({ children }) {
         mutate('deleteMember', { id }, (prev) => ({ ...prev, members: removeById(prev.members, id) })),
       saveDuty: (item) => mutate('saveDuty', { item }, (prev, res) => ({ ...prev, duty: upsert(prev.duty, res) })),
       deleteDuty: (id) => mutate('deleteDuty', { id }, (prev) => ({ ...prev, duty: removeById(prev.duty, id) })),
+      /** ขอสลับเวร (ผู้เข้าอบรมส่งเองได้) — คำขอใหม่จะจำไว้ว่าเป็นของเครื่องนี้ */
+      async saveSwap(item) {
+        const res = await mutate('saveSwap', { item, key: deviceKey() }, (prev, r) => ({ ...prev, swaps: upsert(prev.swaps || [], r) }));
+        if (!item.id && res && res.id) {
+          const mine = readStored(MY_SWAPS_KEY, []);
+          writeStored(MY_SWAPS_KEY, [...(Array.isArray(mine) ? mine : []), res.id].slice(-100));
+          setMySwaps((s) => [...s, res.id]);
+        }
+        return res;
+      },
+      deleteSwap: (id) =>
+        mutate('deleteSwap', { id, key: deviceKey() }, (prev) => ({ ...prev, swaps: removeById(prev.swaps || [], id) })),
+      /** แอดมิน: decision = approve | reject (อนุมัติแล้วระบบสลับรายชื่อในตารางเวรให้) */
+      decideSwap: (id, decision, note = '') =>
+        mutate('decideSwap', { id, decision, note }, (prev, r) => ({
+          ...prev,
+          swaps: upsert(prev.swaps || [], r.swap),
+          duty: (r.duty || []).reduce((list, d) => upsert(list, d), prev.duty),
+        })),
       saveClass: (item) =>
         mutate('saveClass', { item }, (prev, res) => ({ ...prev, classes: upsert(prev.classes, res) })),
       deleteClass: (id) =>
@@ -225,8 +263,8 @@ export function StoreProvider({ children }) {
   const memberById = useMemo(() => new Map(data.members.map((m) => [m.id, m])), [data.members]);
 
   const value = useMemo(
-    () => ({ data, status, syncing, error, lastSync, auth, isAdmin, can, memberById, ...actions }),
-    [data, status, syncing, error, lastSync, auth, isAdmin, can, memberById, actions],
+    () => ({ data, status, syncing, error, lastSync, auth, isAdmin, can, memberById, mySwaps, ...actions }),
+    [data, status, syncing, error, lastSync, auth, isAdmin, can, memberById, mySwaps, actions],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

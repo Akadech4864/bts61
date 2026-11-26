@@ -281,7 +281,10 @@ export function SubTabs({ options, value, onChange, label, className }) {
               active ? 'btn-navy text-white' : 'text-slate-600 hover:bg-white/60 hover:text-navy-800',
             )}
           >
-            {o.label}
+            <span className="relative">
+              {o.label}
+              {o.dot && <span className="absolute -right-2.5 -top-0.5 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-white" aria-label="มีรายการรอดำเนินการ" />}
+            </span>
           </button>
         );
       })}

@@ -178,6 +178,7 @@ function load() {
   if (!Array.isArray(db.staff)) db.staff = demoStaff();
   if (!Array.isArray(db.instructors)) db.instructors = demoInstructors();
   if (!Array.isArray(db.resources)) db.resources = demoResources(toISODate(new Date()));
+  if (!Array.isArray(db.swaps)) db.swaps = [];
   return db;
 }
 
@@ -208,6 +209,12 @@ function upsert(list, item) {
   else list[i] = item;
 }
 
+/** คำขอสลับเวรที่ส่งให้หน้าเว็บ (ไม่รวมรหัสของเครื่องที่ส่งคำขอ) */
+function publicSwap(s) {
+  const { key, ...rest } = s;
+  return rest;
+}
+
 function remove(list, id) {
   const i = list.findIndex((x) => x.id === id);
   if (i === -1) fail('NOT_FOUND', 'ไม่พบรายการนี้ อาจถูกลบไปแล้ว');
@@ -219,7 +226,7 @@ const actions = {
   bootstrap(p) {
     const out = {
       members: db.members, duty: db.duty, classes: db.classes, staff: db.staff, instructors: db.instructors, resources: db.resources,
-      settings: db.settings, serverTime: now(),
+      swaps: db.swaps.map(publicSwap), settings: db.settings, serverTime: now(),
     };
     if (p.token) out.isAdmin = isAdmin(p.token);
     return out;
@@ -329,6 +336,82 @@ const actions = {
   deleteDuty(p) {
     requireAdmin(p);
     return remove(db.duty, p.id);
+  },
+  saveSwap(p) {
+    const input = p.item || {};
+    const admin = isAdmin(p.token);
+    const existing = input.id ? db.swaps.find((s) => s.id === input.id) : null;
+    if (input.id && !existing) fail('NOT_FOUND', 'ไม่พบคำขอนี้ อาจถูกลบไปแล้ว');
+    if (existing) {
+      if (!admin && existing.key !== p.key) fail('FORBIDDEN', 'แก้ไขคำขอได้เฉพาะเครื่องที่ส่งคำขอ หรือแอดมิน');
+      if (existing.status !== 'pending') fail('FORBIDDEN', 'คำขอนี้ได้รับการพิจารณาแล้ว แก้ไขไม่ได้');
+    } else if (!admin && String(p.key || '').length < 16) {
+      fail('BAD_REQUEST', 'ไม่พบรหัสของเครื่อง กรุณารีเฟรชแล้วลองใหม่');
+    }
+    if (input.confirmed !== true) fail('VALIDATION', 'กรุณายืนยันว่าได้ตกลงกับผู้ที่จะสลับเวรด้วยแล้ว');
+    const fromDuty = db.duty.find((d) => d.id === input.from_duty_id);
+    const toDuty = db.duty.find((d) => d.id === input.to_duty_id);
+    if (!fromDuty || !toDuty) fail('NOT_FOUND', 'ไม่พบรายการเวรที่เลือก กรุณารีเฟรช');
+    const ids = (d) => String(d.member_ids || '').split(',').filter(Boolean);
+    const a = input.from_member_id;
+    const b = input.to_member_id;
+    if (!a || !b || a === b || fromDuty.id === toDuty.id) fail('VALIDATION', 'กรุณาเลือกเวรของคุณและเวรที่ต้องการสลับด้วย');
+    if (!ids(fromDuty).includes(a) || !ids(toDuty).includes(b)) fail('VALIDATION', 'รายชื่อไม่ตรงกับเวรที่เลือก กรุณารีเฟรช');
+    if (ids(fromDuty).includes(b) || ids(toDuty).includes(a)) fail('VALIDATION', 'ทั้งสองคนอยู่ในเวรนี้ด้วยกันอยู่แล้ว');
+    const today = toISODate(new Date());
+    if (fromDuty.duty_date < today || toDuty.duty_date < today) fail('VALIDATION', 'สลับได้เฉพาะเวรตั้งแต่วันนี้เป็นต้นไป');
+    const slots = [`${fromDuty.id}|${a}`, `${toDuty.id}|${b}`];
+    const clash = db.swaps.find((s) => s.status === 'pending' && s.id !== input.id
+      && [`${s.from_duty_id}|${s.from_member_id}`, `${s.to_duty_id}|${s.to_member_id}`].some((x) => slots.includes(x)));
+    if (clash) fail('DUPLICATE', 'เวรนี้มีคำขอสลับที่รออนุมัติอยู่แล้ว');
+    const name = (id) => {
+      const m = db.members.find((x) => x.id === id);
+      return m ? `${m.rank} ${m.first_name} ${m.last_name}`.trim() : '';
+    };
+    const t = now();
+    const record = {
+      id: existing ? existing.id : uid('sw'), status: 'pending', key: existing ? existing.key : String(p.key || ''),
+      from_duty_id: fromDuty.id, from_member_id: a, from_name: name(a), from_date: fromDuty.duty_date, from_role: fromDuty.shift_or_role,
+      to_duty_id: toDuty.id, to_member_id: b, to_name: name(b), to_date: toDuty.duty_date, to_role: toDuty.shift_or_role,
+      reason: String(input.reason || '').trim().slice(0, 300),
+      created_at: existing ? existing.created_at : t, updated_at: t, decided_at: '', admin_note: '',
+    };
+    upsert(db.swaps, record);
+    return publicSwap(record);
+  },
+  deleteSwap(p) {
+    const row = db.swaps.find((s) => s.id === p.id);
+    if (!row) fail('NOT_FOUND', 'ไม่พบคำขอนี้ อาจถูกลบไปแล้ว');
+    const admin = isAdmin(p.token);
+    if (!admin && row.key !== p.key) fail('FORBIDDEN', 'ลบคำขอได้เฉพาะเครื่องที่ส่งคำขอ หรือแอดมิน');
+    if (!admin && row.status !== 'pending') fail('FORBIDDEN', 'คำขอที่พิจารณาแล้วลบได้เฉพาะแอดมิน');
+    return remove(db.swaps, p.id);
+  },
+  decideSwap(p) {
+    requireAdmin(p);
+    const row = db.swaps.find((s) => s.id === p.id);
+    if (!row) fail('NOT_FOUND', 'ไม่พบคำขอนี้ อาจถูกลบไปแล้ว');
+    if (row.status !== 'pending') fail('CONFLICT', 'คำขอนี้ได้รับการพิจารณาไปแล้ว');
+    const changed = [];
+    if (p.decision === 'approve') {
+      const fromDuty = db.duty.find((d) => d.id === row.from_duty_id);
+      const toDuty = db.duty.find((d) => d.id === row.to_duty_id);
+      const ids = (d) => String((d && d.member_ids) || '').split(',').filter(Boolean);
+      if (!fromDuty || !toDuty || !ids(fromDuty).includes(row.from_member_id) || !ids(toDuty).includes(row.to_member_id)) {
+        fail('CONFLICT', 'รายชื่อในเวรเปลี่ยนไปจากตอนที่ขอแล้ว กรุณาไม่อนุมัติ แล้วให้ส่งคำขอใหม่');
+      }
+      [[fromDuty, row.from_member_id, row.to_member_id], [toDuty, row.to_member_id, row.from_member_id]].forEach(([d, out, inn]) => {
+        d.member_ids = ids(d).map((x) => (x === out ? inn : x)).join(',');
+        d.updated_at = now();
+        changed.push(d);
+      });
+    } else if (p.decision !== 'reject') {
+      fail('BAD_REQUEST', 'ไม่รู้จักผลการพิจารณา');
+    }
+    row.status = p.decision === 'approve' ? 'approved' : 'rejected';
+    row.decided_at = now();
+    row.admin_note = String(p.note || '').trim();
+    return { swap: publicSwap(row), duty: changed };
   },
   saveClass(p) {
     requireAdmin(p);

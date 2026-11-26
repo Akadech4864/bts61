@@ -38,7 +38,7 @@ function ConfirmDialog({ request, onAnswer }) {
 }
 
 function Shell() {
-  const { isAdmin } = useStore();
+  const { isAdmin, data } = useStore();
   const [stored] = useState(() => readStored(TAB_KEY, 'directory'));
   const [tab, setTab] = useState(() => {
     const saved = TAB_ALIASES[stored] || stored;
@@ -104,7 +104,7 @@ function Shell() {
       <main key={`${tab}:${navSeq}`} className="animate-fade-in">
         <Page />
       </main>
-      <BottomNav tab={tab} onChange={go} adminActive={isAdmin} />
+      <BottomNav tab={tab} onChange={go} adminActive={isAdmin} dots={{ schedule: (data.swaps || []).some((s) => s.status === 'pending') }} />
 
       <ProfileSheet memberId={profileId} onClose={closeProfile} />
       <MemberForm state={memberForm} onClose={() => setMemberForm(null)} />
