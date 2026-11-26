@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { AlarmClock, ArrowLeftRight, CalendarDays, ChevronRight, ClipboardList, Clock, MapPin, ShieldCheck, UserRound } from 'lucide-react';
 import { Photo } from '../components/Avatar';
 import MoreMenuButton from '../components/MoreMenu';
+import InstructorSheet from '../components/InstructorSheet';
 import { Skeleton } from '../components/ui';
 import { COURSE_TITLE_SHORT } from '../config';
 import { useStore } from '../lib/store';
@@ -58,25 +59,70 @@ function Section({ icon: Icon, title, action, onAction, children }) {
   );
 }
 
+/** ครั้งที่ของวิชานี้: ใช้เลขจากตารางสอน (เช่น 1/23) ถ้าไม่มี นับจากคาบของวิชาเดียวกันในตาราง */
+function sessionText(item, classes) {
+  if (item.session) return `ครั้งที่ ${item.session} ของวิชานี้`;
+  const same = classes.filter((c) => c.subject === item.subject);
+  if (same.length < 2) return '';
+  return `ครั้งที่ ${same.findIndex((c) => c.id === item.id) + 1}/${same.length} ของวิชานี้`;
+}
+
+/** แถวผู้สอน/เลขาฯ: รูป ชื่อ ตำแหน่ง — แตะเพื่อดูประวัติ */
+function PersonLine({ label, name, match, onOpen, small = false }) {
+  if (!name) return null;
+  const detail = match ? (match.type === 'instructor' ? match.rec.position || match.rec.expertise : match.rec.role) : '';
+  const body = (
+    <>
+      <Face match={match} className={cx(small ? 'h-9 w-9' : 'h-11 w-11', 'ring-2 ring-white/20')} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] text-white/60">{label}</span>
+        <span className={cx('block leading-snug', small ? 'text-[13.5px] font-medium text-white/90' : 'text-[14.5px] font-semibold')}>{name}</span>
+        {detail && <span className="line-clamp-2 block text-[12px] leading-snug text-white/60">{detail}</span>}
+      </span>
+      {match && <ChevronRight className="h-4 w-4 shrink-0 text-white/40" />}
+    </>
+  );
+  if (!match) return <div className="flex items-center gap-2.5">{body}</div>;
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen(match);
+      }}
+      className="-mx-1.5 flex w-[calc(100%+0.75rem)] items-center gap-2.5 rounded-2xl px-1.5 py-1 text-left transition hover:bg-white/5 active:bg-white/10"
+    >
+      {body}
+    </button>
+  );
+}
+
 /** การ์ดเด่น: วิชาที่กำลังเรียน (มีแถบเวลาที่ผ่านไป) หรือวิชาถัดไป (นับถอยหลัง) — เปลี่ยนเองเมื่อหมดเวลา */
-function NowCard({ item, live, now, today, after, findPerson, onOpen }) {
+function NowCard({ item, live, now, today, after, classes, findPerson, onOpen, onPerson }) {
   const start = startOf(item);
   const end = endOf(item);
   const progress = live ? Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100)) : 0;
   const soon = !live && item.class_date === today;
+  const session = sessionText(item, classes);
   return (
-    <button type="button" onClick={onOpen} className="glass-dark relative block w-full overflow-hidden rounded-3xl p-5 text-left transition active:scale-[0.99]">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onOpen()}
+      className="glass-dark relative block w-full cursor-pointer overflow-hidden rounded-3xl p-5 text-left transition active:scale-[0.99]"
+    >
       <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gold-400/10" />
       <div className="flex items-center justify-between gap-2">
         <span className={cx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold', live ? 'bg-emerald-500 text-white' : 'bg-gold-400 text-navy-950')}>
           {live ? <><span className="pulse-dot" /> กำลังเรียนอยู่ตอนนี้</> : soon ? `เริ่มในอีก ${durationLabel(start - now)}` : 'วิชาถัดไป'}
         </span>
-        <ChevronRight className="h-5 w-5 text-white/50" />
+        <span className="inline-flex items-center gap-0.5 text-[12px] font-medium text-white/60">รายละเอียดวิชา <ChevronRight className="h-4 w-4" /></span>
       </div>
-      {(item.kind || item.session) && (
+      {(item.kind || session) && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {item.kind && <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[12px] font-semibold text-white">{item.kind}</span>}
-          {item.session && <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[12px] font-semibold text-white">ครั้งที่ {item.session}</span>}
+          {session && <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[12px] font-semibold text-white">{session}</span>}
         </div>
       )}
       <h2 className="mt-2 text-[22px] font-bold leading-snug">{item.subject}</h2>
@@ -100,30 +146,19 @@ function NowCard({ item, live, now, today, after, findPerson, onOpen }) {
           <p className="mt-1.5 text-right text-[12px] text-white/70">เหลืออีก {durationLabel(end - now)}</p>
         </div>
       )}
-      {item.speaker && (
-        <div className="mt-3 flex items-center gap-2.5 border-t border-white/10 pt-3">
-          <Face match={findPerson(item.speaker)} className="h-10 w-10 ring-2 ring-white/20" />
-          <span className="min-w-0">
-            <span className="block text-[11px] text-white/60">อาจารย์ผู้บรรยาย</span>
-            <span className="block text-[14px] font-semibold leading-snug">{item.speaker}</span>
-          </span>
+      {(item.speaker || item.secretary) && (
+        <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3">
+          <PersonLine label="อาจารย์ผู้บรรยาย" name={item.speaker} match={findPerson(item.speaker)} onOpen={onPerson} />
+          <PersonLine label="เลขาฯวิชา" name={item.secretary} match={findPerson(item.secretary)} onOpen={onPerson} small />
         </div>
       )}
-      {item.secretary && (
-        <div className={cx('flex items-center gap-2.5', item.speaker ? 'mt-2' : 'mt-3 border-t border-white/10 pt-3')}>
-          <Face match={findPerson(item.secretary)} className="h-8 w-8 ring-2 ring-white/20" />
-          <span className="min-w-0">
-            <span className="block text-[11px] text-white/60">เลขาฯวิชา</span>
-            <span className="block text-[13px] font-medium leading-snug text-white/90">{item.secretary}</span>
-          </span>
-        </div>
-      )}
+      {item.note && <p className="mt-3 border-t border-white/10 pt-2.5 text-[12.5px] text-gold-200">{item.note}</p>}
       {after && (
         <p className="mt-3 border-t border-white/10 pt-2.5 text-[12.5px] text-white/70">
           ต่อจากนี้ <span className="font-semibold text-white">{after.start_time}</span> · {after.subject}
         </p>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -180,6 +215,7 @@ export default function HomePage() {
   const today = toISODate(now);
 
   const classes = useMemo(() => [...data.classes].sort(compareClass), [data.classes]);
+  const [openIns, setOpenIns] = useState(null);
   const findPerson = useMemo(() => buildPeopleIndex(data.instructors, data.staff), [data.instructors, data.staff]);
   const statusOf = (c) => classStatus(c, now);
   const live = classes.find((c) => statusOf(c) === 'now');
@@ -263,6 +299,8 @@ export default function HomePage() {
                 today={today}
                 after={after}
                 findPerson={findPerson}
+                classes={classes}
+                onPerson={(match) => (match.type === 'instructor' ? setOpenIns(match.rec.id) : ui.go('course', { tab: 'info' }))}
                 onOpen={() => (isCourseSubject(hero.subject) ? ui.go('course', { tab: 'docs', subject: hero.subject }) : ui.go('classes', { date: hero.class_date }))}
               />
             ) : (
@@ -365,6 +403,7 @@ export default function HomePage() {
           )}
         </>
       )}
+      <InstructorSheet ins={(data.instructors || []).find((x) => x.id === openIns) || null} onClose={() => setOpenIns(null)} />
     </div>
   );
 }

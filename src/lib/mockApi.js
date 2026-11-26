@@ -380,6 +380,11 @@ const actions = {
     upsert(db.swaps, record);
     return publicSwap(record);
   },
+  reportIssue(p) {
+    const message = String((p.report && p.report.message) || '').trim();
+    if (message.replace(/\s/g, '').length < 5) fail('VALIDATION', 'กรุณาเล่ารายละเอียดของปัญหาอย่างน้อยสักประโยค');
+    return { id: uid('fb'), emailed: false };
+  },
   deleteSwap(p) {
     const row = db.swaps.find((s) => s.id === p.id);
     if (!row) fail('NOT_FOUND', 'ไม่พบคำขอนี้ อาจถูกลบไปแล้ว');

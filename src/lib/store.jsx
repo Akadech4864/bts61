@@ -214,6 +214,8 @@ export function StoreProvider({ children }) {
         }
         return res;
       },
+      /** แจ้งปัญหา / ข้อเสนอแนะ (ส่งอีเมลถึงผู้ดูแลระบบ) */
+      reportIssue: (report) => api('reportIssue', { report }),
       deleteSwap: (id) =>
         mutate('deleteSwap', { id, key: deviceKey() }, (prev) => ({ ...prev, swaps: removeById(prev.swaps || [], id) })),
       /** แอดมิน: decision = approve | reject (อนุมัติแล้วระบบสลับรายชื่อในตารางเวรให้) */
