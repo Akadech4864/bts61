@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ArrowLeftRight, CalendarDays, ChevronRight, ClipboardList, Clock, MapPin, ShieldCheck, UserRound } from 'lucide-react';
+import { AlarmClock, ArrowLeftRight, CalendarDays, ChevronRight, ClipboardList, Clock, MapPin, ShieldCheck, UserRound } from 'lucide-react';
 import { Photo } from '../components/Avatar';
 import MoreMenuButton from '../components/MoreMenu';
 import { Skeleton } from '../components/ui';
@@ -10,7 +10,8 @@ import {
   addDays, atTime, classStatus, compareClass, cx, daysBetween, formatDate, nickOf, parseISODate, relativeDay, resolveDuty, thCompare,
   timeRange, toISODate, useNow,
 } from '../lib/utils';
-import { buildPeopleIndex, faceOf, NON_SUBJECTS } from '../lib/course';
+import { buildPeopleIndex, faceOf, FEATURED_SUBJECT, NON_SUBJECTS } from '../lib/course';
+import { subjectKey } from '../lib/docs';
 import { firstNameShort } from '../components/DutySwap';
 
 const ROLE_ORDER = ['เวรทั่วไป', 'เวรรับอาจารย์'];
@@ -111,6 +112,48 @@ function NowCard({ item, live, now, today, after, findPerson, onOpen }) {
   );
 }
 
+/** ระดับความเร่งด่วนของกำหนดส่ง */
+function urgencyOf(days) {
+  if (days <= 1) return { ring: 'ring-2 ring-rose-400', chip: 'bg-rose-500 text-white', bar: 'bg-rose-500' };
+  if (days <= 7) return { ring: 'ring-2 ring-amber-300', chip: 'bg-amber-400 text-navy-950', bar: 'bg-amber-400' };
+  return { ring: 'ring-1 ring-gold-300/70', chip: 'bg-gold-400/25 text-gold-700', bar: 'bg-gold-400' };
+}
+
+const dueText = (days) => (days === 0 ? 'ส่งวันนี้' : days === 1 ? 'ส่งพรุ่งนี้' : `อีก ${days} วัน`);
+
+/** เตือนส่งงานวิชาเอกสารศึกษา: งานถัดไป นับถอยหลัง และความคืบหน้าตามขั้นตอนทั้งหมด */
+function StudyReminder({ tasks, today, onOpen }) {
+  const nextIndex = tasks.findIndex((t) => t.due_date >= today);
+  if (nextIndex === -1) return null;
+  const next = tasks[nextIndex];
+  const days = daysBetween(today, next.due_date);
+  const u = urgencyOf(days);
+  return (
+    <button type="button" onClick={onOpen} className={cx('glass block w-full rounded-3xl p-4 text-left transition active:scale-[0.99]', u.ring)}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-[13px] font-bold text-navy-900">
+          <AlarmClock className="h-[18px] w-[18px] text-gold-600" /> เตือนส่งงาน · วิชาเอกสารศึกษา
+        </span>
+        <span className={cx('shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-bold', u.chip)}>{dueText(days)}</span>
+      </div>
+      <p className="mt-2 text-[17px] font-bold leading-snug text-navy-900">{next.title}</p>
+      <p className="text-[13px] text-slate-600">
+        กำหนดส่ง {formatDate(next.due_date, 'long')}{next.due_time ? ` · ${next.due_time} น.` : ''}
+      </p>
+      {next.detail && <p className="mt-0.5 line-clamp-2 text-[12.5px] leading-snug text-slate-500">{next.detail}</p>}
+      <div className="mt-3 flex items-center gap-1" aria-label={`ขั้นที่ ${nextIndex + 1} จาก ${tasks.length}`}>
+        {tasks.map((t, i) => (
+          <span key={t.id} className={cx('h-1.5 flex-1 rounded-full', i < nextIndex ? 'bg-emerald-500' : i === nextIndex ? u.bar : 'bg-slate-300/70')} />
+        ))}
+      </div>
+      <p className="mt-1.5 flex items-center justify-between text-[12px] text-slate-500">
+        <span>ขั้นที่ {nextIndex + 1} จาก {tasks.length}</span>
+        <span className="inline-flex items-center gap-0.5 font-semibold text-navy-700">ดูรายละเอียด <ChevronRight className="h-3.5 w-3.5" /></span>
+      </p>
+    </button>
+  );
+}
+
 /**
  * หน้าแรก: วันที่ เวลา สัปดาห์ที่ของหลักสูตร, วิชาที่กำลังเรียน/ถัดไป, กำหนดการวันนี้, เวรวันนี้, งานที่ใกล้ถึงกำหนด
  * อัปเดตเองทุก 15 วินาที — เมื่อวิชาจบหรือขึ้นวันใหม่ จะเลื่อนไปรายการถัดไปตามตารางทันที
@@ -160,11 +203,13 @@ export default function HomePage() {
   );
   const pendingSwaps = (data.swaps || []).filter((s) => s.status === 'pending').length;
 
-  // งานที่ใกล้ถึงกำหนดส่ง
-  const tasks = (data.resources || [])
-    .filter((r) => r.type === 'task' && r.due_date && r.due_date >= today)
-    .sort((a, b) => a.due_date.localeCompare(b.due_date))
-    .slice(0, 3);
+  // งานที่ต้องส่ง: เอกสารศึกษาแสดงเป็นการ์ดเตือนแยก วิชาอื่นแสดงในรายการด้านล่าง
+  const isStudy = (r) => subjectKey(r.subject) === subjectKey(FEATURED_SUBJECT);
+  const allTasks = (data.resources || [])
+    .filter((r) => r.type === 'task' && r.due_date)
+    .sort((a, b) => a.due_date.localeCompare(b.due_date));
+  const studyTasks = allTasks.filter(isStudy);
+  const tasks = allTasks.filter((r) => !isStudy(r) && r.due_date >= today).slice(0, 3);
 
   const clock = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const loading = status === 'loading';
@@ -209,6 +254,12 @@ export default function HomePage() {
               <div className="glass rounded-3xl p-5 text-center text-[14px] text-slate-500">ไม่มีวิชาที่กำลังจะมาถึง</div>
             )}
           </div>
+
+          {studyTasks.some((t) => t.due_date >= today) && (
+            <div className="mt-3">
+              <StudyReminder tasks={studyTasks} today={today} onOpen={() => ui.go('course', { tab: 'study' })} />
+            </div>
+          )}
 
           {todayClasses.length > 0 && (
             <Section icon={CalendarDays} title="กำหนดการวันนี้" action="ตารางสอน" onAction={() => ui.go('classes', { date: today })}>
@@ -267,7 +318,7 @@ export default function HomePage() {
           )}
 
           {tasks.length > 0 && (
-            <Section icon={ClipboardList} title="งานที่ใกล้ถึงกำหนดส่ง">
+            <Section icon={ClipboardList} title="งานวิชาอื่นที่ใกล้ถึงกำหนดส่ง">
               <div className="glass rounded-3xl px-2 py-1.5">
                 {tasks.map((t, i) => {
                   const days = daysBetween(today, t.due_date);
