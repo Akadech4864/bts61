@@ -88,8 +88,13 @@ export default function MoreMenuDock({ tabs = [], activeTab, onGo }) {
 
           <div className="mx-1 mt-1.5 border-t border-slate-200/80 px-1.5 pb-1 pt-2.5">
             <p className="text-[11px] font-semibold text-slate-500">ผู้พัฒนาระบบ</p>
-            <p className="text-[13px] font-semibold leading-snug text-navy-900">{DEVELOPER.name}</p>
-            <p className="text-[12px] text-slate-500">({DEVELOPER.nick})</p>
+            <div className="mt-1.5 flex items-center gap-2.5">
+              <img src={DEVELOPER.photo} alt={DEVELOPER.name} className="h-12 w-12 shrink-0 rounded-full bg-slate-200 object-cover object-left-top ring-2 ring-white shadow-[0_4px_12px_-4px_rgb(11_28_54/0.35)]" />
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold leading-snug text-navy-900">{DEVELOPER.name}</p>
+                <p className="text-[12px] text-slate-500">({DEVELOPER.nick})</p>
+              </div>
+            </div>
             <div className="mt-2 flex gap-1.5">
               <a href={developerTel} className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-navy-500/10 text-[12px] font-semibold text-navy-800">
                 <Phone className="h-3.5 w-3.5" /> {DEVELOPER.phone}

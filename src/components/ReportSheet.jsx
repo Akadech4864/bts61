@@ -85,7 +85,10 @@ function ReportInner({ onClose }) {
 
         <div className="rounded-2xl bg-white/60 p-3 ring-1 ring-inset ring-white/80">
           <p className="text-[12px] text-slate-500">หรือติดต่อผู้พัฒนาระบบโดยตรง</p>
-          <p className="mt-0.5 text-[14px] font-semibold text-navy-900">{DEVELOPER.name} ({DEVELOPER.nick})</p>
+          <div className="mt-1.5 flex items-center gap-2.5">
+            <img src={DEVELOPER.photo} alt={DEVELOPER.name} className="h-11 w-11 shrink-0 rounded-full bg-slate-200 object-cover object-left-top ring-2 ring-white" />
+            <p className="min-w-0 text-[14px] font-semibold leading-snug text-navy-900">{DEVELOPER.name} ({DEVELOPER.nick})</p>
+          </div>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <a href={developerTel} className="glass inline-flex h-10 items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-navy-800">
               <Phone className="h-4 w-4" /> {DEVELOPER.phone}

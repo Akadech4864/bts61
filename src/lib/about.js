@@ -10,6 +10,7 @@ export const DEVELOPER = {
   nick: 'อาร์ท 64',
   phone: '085-556-3955',
   line: 'arthur4864',
+  photo: './developer.jpg',
 };
 
 export const developerTel = `tel:${DEVELOPER.phone.replace(/\D/g, '')}`;
