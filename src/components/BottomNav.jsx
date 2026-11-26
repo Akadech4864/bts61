@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, GraduationCap, Settings, Users } from 'lucide-react';
+import { CalendarDays, GraduationCap, House, Settings, Users } from 'lucide-react';
 import { cx } from '../lib/utils';
 
 /**
@@ -9,6 +9,7 @@ import { cx } from '../lib/utils';
  * - หลักสูตร: ข้อมูล / อาจารย์ / ประวัติ / เอกสาร
  */
 export const TABS = [
+  { id: 'home', label: 'หน้าแรก', icon: House },
   { id: 'directory', label: 'ทำเนียบรุ่น', icon: Users },
   { id: 'schedule', label: 'ตาราง', title: 'ตารางสอน / ตารางเวร', icon: CalendarDays },
   { id: 'course', label: 'หลักสูตร', icon: GraduationCap },
@@ -18,7 +19,7 @@ export const TABS = [
 export const TAB_ALIASES = { about: 'course', instructors: 'course', docs: 'course', classes: 'schedule', duty: 'schedule' };
 /** มุมมองย่อยของเมนูเดิม เมื่อถูกเรียกด้วยชื่อเก่า เช่น ui.go('classes', { date }) */
 export const ALIAS_VIEWS = { classes: { sub: 'classes' }, duty: { sub: 'duty' }, docs: { tab: 'docs' }, instructors: { tab: 'instructors' }, about: { tab: 'info' } };
-export const DOCK_LIMIT = 3;
+export const DOCK_LIMIT = 4;
 export const DOCK_TABS = TABS.slice(0, DOCK_LIMIT);
 export const MORE_TABS = TABS.slice(DOCK_LIMIT);
 

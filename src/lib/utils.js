@@ -237,7 +237,7 @@ export const compareClass = (a, b) =>
   (a.start_time || '').localeCompare(b.start_time || '') ||
   thCompare(a.subject, b.subject);
 
-function atTime(day, hhmm) {
+export function atTime(day, hhmm) {
   const m = /^(\d{1,2}):(\d{2})/.exec(hhmm || '');
   if (!m) return null;
   const d = new Date(day);

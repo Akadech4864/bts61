@@ -11,11 +11,12 @@ import { StoreProvider, useStore } from './lib/store';
 import { UIContext } from './lib/ui';
 import { readStored, writeStored } from './lib/utils';
 import DirectoryPage from './pages/DirectoryPage';
+import HomePage from './pages/HomePage';
 import SchedulePage from './pages/SchedulePage';
 import SettingsPage from './pages/SettingsPage';
 import CoursePage from './pages/CoursePage';
 
-const PAGES = { directory: DirectoryPage, schedule: SchedulePage, course: CoursePage, settings: SettingsPage };
+const PAGES = { home: HomePage, directory: DirectoryPage, schedule: SchedulePage, course: CoursePage, settings: SettingsPage };
 const TAB_KEY = 'bts61:tab';
 
 function ConfirmDialog({ request, onAnswer }) {
@@ -40,10 +41,15 @@ function ConfirmDialog({ request, onAnswer }) {
 
 function Shell() {
   const { isAdmin, data } = useStore();
-  const [stored] = useState(() => readStored(TAB_KEY, 'directory'));
+  // เปิดแอพที่หน้าแรกเสมอ (วันนี้มีอะไร) — แท็บที่จำไว้ใช้เฉพาะตอนโหลดหน้าใหม่ภายในไม่กี่นาที เช่น กดอัปเดตเวอร์ชัน
+  const [stored] = useState(() => {
+    const last = readStored(TAB_KEY, null);
+    const fresh = last && typeof last === 'object' && Date.now() - (last.at || 0) < 2 * 60 * 1000;
+    return fresh ? last.tab : 'home';
+  });
   const [tab, setTab] = useState(() => {
     const saved = TAB_ALIASES[stored] || stored;
-    return TABS.some((t) => t.id === saved) ? saved : 'directory';
+    return TABS.some((t) => t.id === saved) ? saved : 'home';
   });
   // ส่งต่อมุมมองย่อยเมื่อเปลี่ยนหน้า เช่น { tab: 'instructors', mode: 'groups' } หรือ { sub: 'classes', date: '2026-12-01' }
   const [view, setView] = useState(() => ALIAS_VIEWS[stored] || null);
@@ -61,7 +67,7 @@ function Shell() {
     setTab(next);
     setView(aliasView ? { ...aliasView, ...(nextView || {}) } : nextView);
     setNavSeq((n) => n + 1); // เปิดหน้าใหม่ทุกครั้ง แม้อยู่หมวดเดิม (เช่น เอกสาร → อาจารย์ประจำกลุ่ม)
-    writeStored(TAB_KEY, next);
+    writeStored(TAB_KEY, { tab: next, at: Date.now() });
     window.scrollTo(0, 0);
   }, []);
 

@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MissingMarks } from '../components/MissingMarks';
-import { ArrowLeftRight, CalendarClock, History, Pencil, Plus, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
+import { ArrowLeftRight, CalendarClock, ChevronUp, History, Pencil, Plus, Search, ShieldCheck, UserRoundSearch, X } from 'lucide-react';
 import MoreMenuButton from '../components/MoreMenu';
 import { Photo } from '../components/Avatar';
 import { Button, EmptyState, PageHeader, Skeleton, TopBarSentinel } from '../components/ui';
@@ -104,6 +104,7 @@ function DutyCell({ entries, mineId, onOpen, onEdit, marks }) {
 
 /** ตารางเวรรายสัปดาห์: 1 แถว = 1 วัน, 1 คอลัมน์ = 1 หน้าที่ */
 function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit, marks }) {
+  const anchor = (weeks.flatMap((w) => w.days).find((d) => d.date >= today) || {}).date;
   const dateCol = 58;
   return (
     <div className="glass overflow-x-auto rounded-3xl">
@@ -131,7 +132,7 @@ function DutyTable({ weeks, roles, today, mineId, onOpen, onEdit, marks }) {
               const d = parseISODate(day.date);
               const isToday = day.date === today;
               return (
-                <tr key={day.date} className={cx(isToday ? 'bg-gold-300/25' : '', day.date < today && 'opacity-55')}>
+                <tr key={day.date} data-duty-anchor={day.date === anchor ? 'true' : undefined} className={cx(isToday ? 'bg-gold-300/25' : '', day.date < today && 'opacity-55')}>
                   <td className="px-1 py-3 text-center align-top">
                     <p className="text-[12px] font-semibold leading-none text-slate-500">{WEEKDAYS[d.getDay()]}</p>
                     <p className="mt-1 text-[26px] font-bold leading-none text-navy-900 tabular-nums">{d.getDate()}</p>
@@ -189,7 +190,17 @@ export default function DutyPage({ switcher }) {
   const visible = entries.filter(
     (e) => (!mine || e.people.members.some((m) => m.id === mine.id)) && tokens.every((t) => e.text.includes(t)),
   );
-  const shown = visible;
+  // เริ่มที่เวรวันนี้ (หรือวันเวรถัดไป) เสมอ — วันที่ผ่านมาแล้วซ่อนไว้ กด "ดูวันที่ผ่านมา" เพื่อดูทั้งหมด
+  const [showPast, setShowPast] = useState(false);
+  const hasUpcoming = visible.some((e) => e.item.duty_date >= today);
+  const shown = showPast || !hasUpcoming ? visible : visible.filter((e) => e.item.duty_date >= today);
+  const pastDays = new Set(visible.filter((e) => e.item.duty_date < today).map((e) => e.item.duty_date)).size;
+  useEffect(() => {
+    // เปิดดูวันที่ผ่านมาแล้ว ให้แถววันนี้ยังอยู่บนสุดของจอ (ใต้แถบค้นหา) — เลื่อนขึ้นเองเพื่อดูวันก่อนหน้า
+    if (!showPast) return;
+    const row = document.querySelector('[data-duty-anchor]');
+    if (row) window.scrollTo(0, row.getBoundingClientRect().top + window.scrollY - 150);
+  }, [showPast]);
 
   const roles = useMemo(() => {
     const found = [...new Set(entries.map((e) => e.role))];
@@ -338,6 +349,18 @@ export default function DutyPage({ switcher }) {
               )}
             </button>
           </div>
+
+          {hasUpcoming && pastDays > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowPast((v) => !v)}
+              aria-expanded={showPast}
+              className="mb-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-2xl bg-white/50 text-[13px] font-semibold text-navy-700 ring-1 ring-inset ring-white/70 transition active:scale-[0.99]"
+            >
+              <ChevronUp className={cx('h-4 w-4 transition-transform', !showPast && 'rotate-180')} />
+              {showPast ? 'ซ่อนวันที่ผ่านมา · เริ่มที่วันนี้' : `ดูทั้งหมด (รวมวันที่ผ่านมา ${pastDays} วัน)`}
+            </button>
+          )}
 
           {weeks.length === 0 ? (
             <EmptyState
