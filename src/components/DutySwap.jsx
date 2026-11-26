@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeftRight, Check, Pencil, Trash2, X } from 'lucide-react';
+import { ArrowLeftRight, Check, Pencil, Search, Trash2, UserRoundPlus, X } from 'lucide-react';
 import { Sheet } from './Sheet';
 import { Photo } from './Avatar';
-import { Button, Field, Segmented, TextArea, inputClass } from './ui';
+import { Button, Field, Segmented, TextArea } from './ui';
 import { useToast } from './Toast';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
-import { cx, formatDate, formatDateTime, nickOf, splitList, toISODate, useNow } from '../lib/utils';
+import { cx, formatDate, formatDateTime, matchMember, nickOf, normalize, queryTokens, splitList, toISODate, useNow } from '../lib/utils';
 
 /** ชื่อแบบสั้นในตารางเวร: ชื่อจริงตามด้วย ฯ */
 export const firstNameShort = (m) => (m ? `${m.first_name || ''}${m.first_name && m.last_name ? 'ฯ' : ''}` : '');
@@ -22,13 +22,13 @@ export function swapMarks(swaps) {
   (swaps || []).forEach((s) => {
     if (s.status === 'approved') {
       marks.set(slotKey(s.from_duty_id, s.to_member_id), marks.get(slotKey(s.from_duty_id, s.to_member_id)) || 'swapped');
-      marks.set(slotKey(s.to_duty_id, s.from_member_id), marks.get(slotKey(s.to_duty_id, s.from_member_id)) || 'swapped');
+      if (s.to_duty_id) marks.set(slotKey(s.to_duty_id, s.from_member_id), marks.get(slotKey(s.to_duty_id, s.from_member_id)) || 'swapped');
     }
   });
   (swaps || []).forEach((s) => {
     if (s.status === 'pending') {
       marks.set(slotKey(s.from_duty_id, s.from_member_id), 'pending');
-      marks.set(slotKey(s.to_duty_id, s.to_member_id), 'pending');
+      if (s.to_duty_id) marks.set(slotKey(s.to_duty_id, s.to_member_id), 'pending');
     }
   });
   return marks;
@@ -75,31 +75,86 @@ function useSlots() {
   }, [data.duty, memberById, today]);
 }
 
-const slotLabel = (s) => `${formatDate(s.duty.duty_date, 'medium')} · ${s.duty.shift_or_role || 'เวร'} — ${nickOf(s.member)} (${firstNameShort(s.member)})`;
-
-function SlotPreview({ slot, tone }) {
+function SlotPreview({ slot, tone, onChange }) {
   if (!slot) return null;
   return (
-    <div className={cx('flex items-center gap-2.5 rounded-2xl p-2', tone === 'from' ? 'bg-navy-500/[0.06]' : 'bg-gold-300/25')}>
-      <Photo member={slot.member} width={96} className="h-11 w-11 shrink-0 rounded-full object-[center_20%]" textClass="text-sm" />
-      <div className="min-w-0">
+    <div className={cx('flex items-center gap-2.5 rounded-2xl p-2', tone === 'from' ? 'bg-navy-500/[0.07]' : 'bg-gold-300/25')}>
+      <Photo member={slot.member} width={120} className="h-12 w-12 shrink-0 rounded-full object-[center_20%] ring-2 ring-white" textClass="text-sm" />
+      <div className="min-w-0 flex-1">
         <p className="truncate text-[15px] font-bold leading-tight text-navy-900">{nickOf(slot.member)} <span className="font-normal text-slate-500">{firstNameShort(slot.member)}</span></p>
         <p className="truncate text-[12.5px] text-slate-600">{formatDate(slot.duty.duty_date, 'medium')} · {slot.duty.shift_or_role}</p>
       </div>
+      {onChange && <button type="button" onClick={onChange} className="shrink-0 rounded-full px-3 py-1.5 text-[13px] font-semibold text-navy-700 hover:bg-white/70">เปลี่ยน</button>}
     </div>
+  );
+}
+
+function SearchBox({ value, onChange, placeholder }) {
+  return (
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" />
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        enterKeyHint="search"
+        autoComplete="off"
+        className="h-11 w-full rounded-2xl bg-white/80 pl-10 pr-9 text-[16px] text-slate-900 outline-none ring-1 ring-inset ring-slate-200 transition placeholder:text-slate-400 focus:ring-2 focus:ring-navy-500/30 [&::-webkit-search-cancel-button]:hidden"
+      />
+      {value && (
+        <button type="button" onClick={() => onChange('')} aria-label="ล้างคำค้น" className="absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-slate-400">
+          <X className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+const StepTitle = ({ n, children }) => (
+  <p className="mb-2 flex items-center gap-2 text-[14px] font-bold text-navy-900">
+    <span className="grid h-6 w-6 place-items-center rounded-full bg-navy-900 text-[12px] text-white">{n}</span> {children}
+  </p>
+);
+
+/** การ์ดรูปคนแบบหน้าทำเนียบรุ่น (ใช้เลือกคนที่จะสลับด้วย) */
+function PersonPick({ member, badge, onPick }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(member.id)}
+      className="relative overflow-hidden rounded-2xl bg-white/40 text-left shadow-[0_8px_18px_-12px_rgb(11_28_54/0.45)] ring-1 ring-white/70 transition active:scale-[0.96]"
+    >
+      <Photo member={member} width={220} className="aspect-[3/4] w-full" textClass="text-2xl" />
+      {member.seq && (
+        <span className="absolute left-1 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-navy-950/60 px-1 text-[10px] font-semibold tabular-nums text-white">{member.seq}</span>
+      )}
+      {badge && <span className="absolute right-1 top-1 rounded-full bg-gold-400 px-1.5 text-[10px] font-bold leading-5 text-navy-950">{badge}</span>}
+      <span className="name-fade absolute inset-x-0 bottom-0 block px-1.5 pb-1.5 pt-6">
+        <span className="block truncate text-[13px] font-bold leading-tight text-white drop-shadow">{nickOf(member)}</span>
+        <span className="block truncate text-[10.5px] leading-tight text-white/85">{firstNameShort(member)}</span>
+      </span>
+    </button>
   );
 }
 
 /* ============================== ฟอร์มขอสลับเวร ============================== */
 
+/**
+ * ขอสลับเวร 3 ขั้น: (1) เวรของฉัน (2) เลือกคนจากการ์ดทุกคน ค้นหาชื่อได้ (3) แลกกับเวรของเขา หรือให้มาแทนโดยไม่ต้องแลกคืน
+ */
 function SwapFormInner({ initial, onClose }) {
-  const { data, saveSwap, deleteSwap } = useStore();
+  const { data, memberById, saveSwap, deleteSwap } = useStore();
   const ui = useUI();
   const toast = useToast();
   const slots = useSlots();
   const isNew = !initial.id;
   const [fromKey, setFromKey] = useState(initial.from_duty_id ? slotKey(initial.from_duty_id, initial.from_member_id) : '');
-  const [toKey, setToKey] = useState(initial.to_duty_id ? slotKey(initial.to_duty_id, initial.to_member_id) : '');
+  const [toMemberId, setToMemberId] = useState(initial.to_member_id || '');
+  // null = ยังไม่เลือก, '' = ให้มาแทน (ไม่ต้องแลกคืน), อื่น ๆ = id ของเวรอีกฝ่าย
+  const [toDutyId, setToDutyId] = useState(initial.to_member_id ? initial.to_duty_id || '' : null);
+  const [slotQuery, setSlotQuery] = useState('');
+  const [personQuery, setPersonQuery] = useState('');
   const [reason, setReason] = useState(initial.reason || '');
   const [agreed, setAgreed] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -108,32 +163,48 @@ function SwapFormInner({ initial, onClose }) {
   // ช่องเวรที่มีคำขออื่นรออนุมัติอยู่ เลือกซ้ำไม่ได้
   const busy = useMemo(() => {
     const set = new Set();
-    (data.swaps || []).forEach((s) => {
-      if (s.status !== 'pending' || s.id === initial.id) return;
-      set.add(slotKey(s.from_duty_id, s.from_member_id));
-      set.add(slotKey(s.to_duty_id, s.to_member_id));
+    (data.swaps || []).forEach((x) => {
+      if (x.status !== 'pending' || x.id === initial.id) return;
+      set.add(slotKey(x.from_duty_id, x.from_member_id));
+      if (x.to_duty_id) set.add(slotKey(x.to_duty_id, x.to_member_id));
     });
     return set;
   }, [data.swaps, initial.id]);
 
-  const from = slots.find((s) => s.key === fromKey) || null;
-  const toOptions = from
-    ? slots.filter((s) => s.duty.id !== from.duty.id && s.member.id !== from.member.id && !from.ids.includes(s.member.id) && !s.ids.includes(from.member.id))
-    : [];
-  const to = toOptions.find((s) => s.key === toKey) || null;
+  const from = slots.find((x) => x.key === fromKey) || null;
+  const slotTokens = queryTokens(slotQuery);
+  const slotList = slots.filter((x) => matchMember(x.member, slotTokens) || (slotTokens.length && slotTokens.every((t) => normalize(`${x.duty.shift_or_role} ${formatDate(x.duty.duty_date, 'medium')}`).includes(t))));
+  // เวรของอีกฝ่ายที่แลกได้ (ไม่ใช่เวรเดียวกัน และผู้ขอไม่ได้อยู่ในเวรนั้นอยู่แล้ว)
+  const tradable = (memberId) => (from ? slots.filter((x) => x.member.id === memberId && x.duty.id !== from.duty.id && !x.ids.includes(from.member.id)) : []);
+  const personTokens = queryTokens(personQuery);
+  const people = useMemo(
+    () => (from ? data.members.filter((m) => m.id !== from.member.id && !from.ids.includes(m.id)) : [])
+      .sort((a, b) => (Number(a.seq) || 9999) - (Number(b.seq) || 9999)),
+    [data.members, from],
+  );
+  const shownPeople = people.filter((m) => matchMember(m, personTokens));
+  const toMember = toMemberId ? memberById.get(toMemberId) : null;
+  const theirSlots = toMember ? tradable(toMember.id) : [];
+
+  const pickPerson = (id) => {
+    setToMemberId(id);
+    const options = tradable(id).filter((x) => !busy.has(x.key));
+    setToDutyId(options.length ? options[0].duty.id : '');
+    setPersonQuery('');
+  };
 
   async function submit(e) {
     e.preventDefault();
     if (saving) return undefined;
     if (!from) return toast.error('กรุณาเลือกเวรของคุณ');
-    if (!to) return toast.error('กรุณาเลือกเวรที่ต้องการสลับด้วย');
-    if (!agreed) return toast.error(`กรุณายืนยันว่าได้ตกลงกับ ${nickOf(to.member)} แล้ว`);
+    if (!toMember || toDutyId === null) return toast.error('กรุณาเลือกคนที่ต้องการสลับด้วย');
+    if (!agreed) return toast.error(`กรุณายืนยันว่าได้ตกลงกับ ${nickOf(toMember)} แล้ว`);
     setSaving(true);
     try {
       await saveSwap({
         id: initial.id || '',
         from_duty_id: from.duty.id, from_member_id: from.member.id,
-        to_duty_id: to.duty.id, to_member_id: to.member.id,
+        to_duty_id: toDutyId || '', to_member_id: toMember.id,
         reason, confirmed: true,
       });
       toast.success(isNew ? 'ส่งคำขอสลับเวรแล้ว รอแอดมินอนุมัติ' : 'แก้ไขคำขอสลับเวรแล้ว');
@@ -176,47 +247,121 @@ function SwapFormInner({ initial, onClose }) {
         </div>
       }
     >
-      <form id="swap-form" onSubmit={submit} className="space-y-4 pb-4">
-        {slots.length < 2 ? (
+      <form id="swap-form" onSubmit={submit} className="space-y-5 pb-4">
+        {!slots.length ? (
           <p className="rounded-2xl bg-white/60 p-4 text-center text-sm text-slate-500">ยังไม่มีเวรที่กำลังจะถึงให้สลับ</p>
         ) : (
           <>
-            <Field label="เวรของฉัน" required>
-              <select value={fromKey} onChange={(e) => { setFromKey(e.target.value); setToKey(''); }} className={cx(inputClass, 'pr-8')}>
-                <option value="">— เลือกเวรของคุณ —</option>
-                {slots.map((s) => (
-                  <option key={s.key} value={s.key} disabled={busy.has(s.key)}>
-                    {slotLabel(s)}{busy.has(s.key) ? ' (มีคำขอรออยู่)' : ''}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <SlotPreview slot={from} tone="from" />
+            <div>
+              <StepTitle n={1}>เวรของฉัน</StepTitle>
+              {from ? (
+                <SlotPreview slot={from} tone="from" onChange={() => { setFromKey(''); setToMemberId(''); setToDutyId(null); }} />
+              ) : (
+                <>
+                  {slots.length > 6 && <SearchBox value={slotQuery} onChange={setSlotQuery} placeholder="ค้นหาชื่อของคุณ" />}
+                  <div className="mt-2 space-y-1.5">
+                    {slotList.map((x) => {
+                      const taken = busy.has(x.key);
+                      return (
+                        <button
+                          key={x.key}
+                          type="button"
+                          disabled={taken}
+                          onClick={() => { setFromKey(x.key); setToMemberId(''); setToDutyId(null); }}
+                          className="flex w-full items-center gap-2.5 rounded-2xl bg-white/60 p-2 text-left ring-1 ring-inset ring-white/80 transition active:scale-[0.99] disabled:opacity-45"
+                        >
+                          <Photo member={x.member} width={96} className="h-10 w-10 shrink-0 rounded-full object-[center_20%]" textClass="text-xs" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[14px] font-bold leading-tight text-navy-900">{nickOf(x.member)} <span className="font-normal text-slate-500">{firstNameShort(x.member)}</span></span>
+                            <span className="block truncate text-[12px] text-slate-500">{formatDate(x.duty.duty_date, 'medium')} · {x.duty.shift_or_role}</span>
+                          </span>
+                          {taken && <span className="shrink-0 text-[11px] font-semibold text-amber-700">มีคำขอรออยู่</span>}
+                        </button>
+                      );
+                    })}
+                    {!slotList.length && <p className="py-3 text-center text-[13px] text-slate-500">ไม่พบเวรที่ตรงกับคำค้น</p>}
+                  </div>
+                </>
+              )}
+            </div>
 
-            <div className="flex justify-center text-slate-400"><ArrowLeftRight className="h-5 w-5 rotate-90" /></div>
+            {from && (
+              <div>
+                <StepTitle n={2}>สลับกับใคร</StepTitle>
+                {toMember ? (
+                  <div className="flex items-center gap-2.5 rounded-2xl bg-gold-300/25 p-2">
+                    <Photo member={toMember} width={120} className="h-12 w-12 shrink-0 rounded-full object-[center_20%] ring-2 ring-white" textClass="text-sm" />
+                    <p className="min-w-0 flex-1 truncate text-[15px] font-bold text-navy-900">{nickOf(toMember)} <span className="font-normal text-slate-500">{firstNameShort(toMember)}</span></p>
+                    <button type="button" onClick={() => { setToMemberId(''); setToDutyId(null); }} className="shrink-0 rounded-full px-3 py-1.5 text-[13px] font-semibold text-navy-700 hover:bg-white/70">เปลี่ยน</button>
+                  </div>
+                ) : (
+                  <>
+                    <SearchBox value={personQuery} onChange={setPersonQuery} placeholder="ค้นหาชื่อ ชื่อเล่น หรือลำดับที่" />
+                    <p className="mb-2 mt-1.5 px-1 text-[12px] text-slate-500">แตะเลือกได้ทุกคน · ป้าย "มีเวร" = แลกเวรกันได้ · คนที่ไม่มีเวรจะมาเข้าเวรแทน</p>
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                      {shownPeople.map((m) => (
+                        <PersonPick key={m.id} member={m} badge={tradable(m.id).length ? 'มีเวร' : ''} onPick={pickPerson} />
+                      ))}
+                    </div>
+                    {!shownPeople.length && <p className="py-3 text-center text-[13px] text-slate-500">ไม่พบรายชื่อที่ตรงกับคำค้น</p>}
+                  </>
+                )}
+              </div>
+            )}
 
-            <Field label="สลับกับเวรของ" required>
-              <select value={toKey} onChange={(e) => setToKey(e.target.value)} disabled={!from} className={cx(inputClass, 'pr-8 disabled:opacity-50')}>
-                <option value="">{from ? '— เลือกเวรที่ต้องการสลับด้วย —' : 'เลือกเวรของคุณก่อน'}</option>
-                {toOptions.map((s) => (
-                  <option key={s.key} value={s.key} disabled={busy.has(s.key)}>
-                    {slotLabel(s)}{busy.has(s.key) ? ' (มีคำขอรออยู่)' : ''}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <SlotPreview slot={to} tone="to" />
+            {from && toMember && (
+              <div>
+                <StepTitle n={3}>แลกกับ</StepTitle>
+                <div className="space-y-1.5">
+                  {theirSlots.map((x) => {
+                    const taken = busy.has(x.key);
+                    const active = toDutyId === x.duty.id;
+                    return (
+                      <button
+                        key={x.key}
+                        type="button"
+                        disabled={taken}
+                        onClick={() => setToDutyId(x.duty.id)}
+                        aria-pressed={active}
+                        className={cx('flex w-full items-center gap-2.5 rounded-2xl p-3 text-left ring-1 ring-inset transition disabled:opacity-45', active ? 'bg-navy-900 text-white ring-navy-900' : 'bg-white/60 text-navy-900 ring-white/80')}
+                      >
+                        <ArrowLeftRight className="h-4 w-4 shrink-0" />
+                        <span className="min-w-0 flex-1 text-[14px]">
+                          <span className="font-semibold">เวรของ {nickOf(toMember)}</span> · {formatDate(x.duty.duty_date, 'medium')} · {x.duty.shift_or_role}
+                        </span>
+                        {taken && <span className="shrink-0 text-[11px] font-semibold text-amber-600">มีคำขอรออยู่</span>}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setToDutyId('')}
+                    aria-pressed={toDutyId === ''}
+                    className={cx('flex w-full items-center gap-2.5 rounded-2xl p-3 text-left ring-1 ring-inset transition', toDutyId === '' ? 'bg-navy-900 text-white ring-navy-900' : 'bg-white/60 text-navy-900 ring-white/80')}
+                  >
+                    <UserRoundPlus className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 flex-1 text-[14px]">
+                      <span className="font-semibold">ให้ {nickOf(toMember)} มาเข้าเวรแทน</span> · ไม่ต้องแลกคืน
+                      {!theirSlots.length && <span className="block text-[12px] opacity-75">{nickOf(toMember)} ยังไม่มีเวรที่จะถึง</span>}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
 
-            <Field label="เหตุผล (ไม่บังคับ)">
-              <TextArea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} placeholder="เช่น ติดภารกิจราชการ" className="min-h-[72px]" />
-            </Field>
-
-            <label className={cx('flex cursor-pointer items-start gap-3 rounded-2xl p-3 ring-1 ring-inset transition', agreed ? 'bg-emerald-500/10 ring-emerald-500/40' : 'bg-white/60 ring-slate-200')}>
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-600" />
-              <span className="text-[14px] leading-snug text-slate-700">
-                ยืนยันว่าได้ตกลงสลับเวรกับ <strong className="text-navy-900">{to ? nickOf(to.member) : 'เพื่อน'}</strong> เรียบร้อยแล้ว
-              </span>
-            </label>
+            {from && toMember && (
+              <>
+                <Field label="เหตุผล (ไม่บังคับ)">
+                  <TextArea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} placeholder="เช่น ติดภารกิจราชการ" className="min-h-[72px]" />
+                </Field>
+                <label className={cx('flex cursor-pointer items-start gap-3 rounded-2xl p-3 ring-1 ring-inset transition', agreed ? 'bg-emerald-500/10 ring-emerald-500/40' : 'bg-white/60 ring-slate-200')}>
+                  <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-600" />
+                  <span className="text-[14px] leading-snug text-slate-700">
+                    ยืนยันว่าได้ตกลงกับ <strong className="text-navy-900">{nickOf(toMember)}</strong> เรียบร้อยแล้ว
+                  </span>
+                </label>
+              </>
+            )}
           </>
         )}
       </form>
@@ -243,8 +388,14 @@ function SwapSide({ member, name, date, role }) {
       <Photo member={member || { first_name: name }} width={96} className="h-10 w-10 shrink-0 rounded-full object-[center_20%]" textClass="text-sm" />
       <div className="min-w-0">
         <p className="truncate text-[14px] font-bold leading-tight text-navy-900">{member ? nickOf(member) : name}</p>
-        <p className="truncate text-[12px] leading-tight text-slate-500">{formatDate(date, 'medium')}</p>
-        <p className="truncate text-[12px] leading-tight text-slate-500">{role}</p>
+        {date ? (
+          <>
+            <p className="truncate text-[12px] leading-tight text-slate-500">{formatDate(date, 'medium')}</p>
+            <p className="truncate text-[12px] leading-tight text-slate-500">{role}</p>
+          </>
+        ) : (
+          <p className="text-[12px] font-semibold leading-tight text-gold-700">มาเข้าเวรแทน</p>
+        )}
       </div>
     </div>
   );
@@ -259,7 +410,7 @@ function SwapCard({ swap, canManage, isAdmin, onEdit }) {
   const pending = swap.status === 'pending';
   const fromM = memberById.get(swap.from_member_id);
   const toM = memberById.get(swap.to_member_id);
-  const who = `${fromM ? nickOf(fromM) : swap.from_name} ⇄ ${toM ? nickOf(toM) : swap.to_name}`;
+  const who = `${fromM ? nickOf(fromM) : swap.from_name} ${swap.to_duty_id ? '⇄' : '→'} ${toM ? nickOf(toM) : swap.to_name}${swap.to_duty_id ? '' : ' (มาแทน)'}`;
 
   const run = async (kind, fn, okText) => {
     setBusy(kind);

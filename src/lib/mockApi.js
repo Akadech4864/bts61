@@ -349,20 +349,21 @@ const actions = {
       fail('BAD_REQUEST', 'ไม่พบรหัสของเครื่อง กรุณารีเฟรชแล้วลองใหม่');
     }
     if (input.confirmed !== true) fail('VALIDATION', 'กรุณายืนยันว่าได้ตกลงกับผู้ที่จะสลับเวรด้วยแล้ว');
+    const cover = !input.to_duty_id; // ไม่ระบุเวรอีกฝ่าย = ให้มาเข้าเวรแทน
     const fromDuty = db.duty.find((d) => d.id === input.from_duty_id);
-    const toDuty = db.duty.find((d) => d.id === input.to_duty_id);
-    if (!fromDuty || !toDuty) fail('NOT_FOUND', 'ไม่พบรายการเวรที่เลือก กรุณารีเฟรช');
-    const ids = (d) => String(d.member_ids || '').split(',').filter(Boolean);
+    const toDuty = cover ? null : db.duty.find((d) => d.id === input.to_duty_id);
+    if (!fromDuty || (!cover && !toDuty)) fail('NOT_FOUND', 'ไม่พบรายการเวรที่เลือก กรุณารีเฟรช');
+    const ids = (d) => (d ? String(d.member_ids || '').split(',').filter(Boolean) : []);
     const a = input.from_member_id;
     const b = input.to_member_id;
-    if (!a || !b || a === b || fromDuty.id === toDuty.id) fail('VALIDATION', 'กรุณาเลือกเวรของคุณและเวรที่ต้องการสลับด้วย');
-    if (!ids(fromDuty).includes(a) || !ids(toDuty).includes(b)) fail('VALIDATION', 'รายชื่อไม่ตรงกับเวรที่เลือก กรุณารีเฟรช');
+    if (!a || !b || a === b || (!cover && fromDuty.id === toDuty.id)) fail('VALIDATION', 'กรุณาเลือกเวรของคุณและคนที่ต้องการสลับด้วย');
+    if (!ids(fromDuty).includes(a) || (!cover && !ids(toDuty).includes(b))) fail('VALIDATION', 'รายชื่อไม่ตรงกับเวรที่เลือก กรุณารีเฟรช');
     if (ids(fromDuty).includes(b) || ids(toDuty).includes(a)) fail('VALIDATION', 'ทั้งสองคนอยู่ในเวรนี้ด้วยกันอยู่แล้ว');
     const today = toISODate(new Date());
-    if (fromDuty.duty_date < today || toDuty.duty_date < today) fail('VALIDATION', 'สลับได้เฉพาะเวรตั้งแต่วันนี้เป็นต้นไป');
-    const slots = [`${fromDuty.id}|${a}`, `${toDuty.id}|${b}`];
+    if (fromDuty.duty_date < today || (!cover && toDuty.duty_date < today)) fail('VALIDATION', 'สลับได้เฉพาะเวรตั้งแต่วันนี้เป็นต้นไป');
+    const slots = cover ? [`${fromDuty.id}|${a}`] : [`${fromDuty.id}|${a}`, `${toDuty.id}|${b}`];
     const clash = db.swaps.find((s) => s.status === 'pending' && s.id !== input.id
-      && [`${s.from_duty_id}|${s.from_member_id}`, `${s.to_duty_id}|${s.to_member_id}`].some((x) => slots.includes(x)));
+      && [`${s.from_duty_id}|${s.from_member_id}`, s.to_duty_id ? `${s.to_duty_id}|${s.to_member_id}` : ''].some((x) => x && slots.includes(x)));
     if (clash) fail('DUPLICATE', 'เวรนี้มีคำขอสลับที่รออนุมัติอยู่แล้ว');
     const name = (id) => {
       const m = db.members.find((x) => x.id === id);
@@ -372,7 +373,7 @@ const actions = {
     const record = {
       id: existing ? existing.id : uid('sw'), status: 'pending', key: existing ? existing.key : String(p.key || ''),
       from_duty_id: fromDuty.id, from_member_id: a, from_name: name(a), from_date: fromDuty.duty_date, from_role: fromDuty.shift_or_role,
-      to_duty_id: toDuty.id, to_member_id: b, to_name: name(b), to_date: toDuty.duty_date, to_role: toDuty.shift_or_role,
+      to_duty_id: cover ? '' : toDuty.id, to_member_id: b, to_name: name(b), to_date: cover ? '' : toDuty.duty_date, to_role: cover ? '' : toDuty.shift_or_role,
       reason: String(input.reason || '').trim().slice(0, 300),
       created_at: existing ? existing.created_at : t, updated_at: t, decided_at: '', admin_note: '',
     };
@@ -394,13 +395,14 @@ const actions = {
     if (row.status !== 'pending') fail('CONFLICT', 'คำขอนี้ได้รับการพิจารณาไปแล้ว');
     const changed = [];
     if (p.decision === 'approve') {
+      const cover = !row.to_duty_id;
       const fromDuty = db.duty.find((d) => d.id === row.from_duty_id);
-      const toDuty = db.duty.find((d) => d.id === row.to_duty_id);
+      const toDuty = cover ? null : db.duty.find((d) => d.id === row.to_duty_id);
       const ids = (d) => String((d && d.member_ids) || '').split(',').filter(Boolean);
-      if (!fromDuty || !toDuty || !ids(fromDuty).includes(row.from_member_id) || !ids(toDuty).includes(row.to_member_id)) {
+      if (!fromDuty || (!cover && !toDuty) || !ids(fromDuty).includes(row.from_member_id) || (!cover && !ids(toDuty).includes(row.to_member_id))) {
         fail('CONFLICT', 'รายชื่อในเวรเปลี่ยนไปจากตอนที่ขอแล้ว กรุณาไม่อนุมัติ แล้วให้ส่งคำขอใหม่');
       }
-      [[fromDuty, row.from_member_id, row.to_member_id], [toDuty, row.to_member_id, row.from_member_id]].forEach(([d, out, inn]) => {
+      [[fromDuty, row.from_member_id, row.to_member_id], ...(cover ? [] : [[toDuty, row.to_member_id, row.from_member_id]])].forEach(([d, out, inn]) => {
         d.member_ids = ids(d).map((x) => (x === out ? inn : x)).join(',');
         d.updated_at = now();
         changed.push(d);
