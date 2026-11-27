@@ -9,6 +9,8 @@ import { Photo } from '../components/Avatar';
 import { Button, EmptyState, PageHeader, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import { SwapDot, SwapForm, SwapHistory, firstNameShort, markOf, swapMarks } from '../components/DutySwap';
 import MemberSuggest from '../components/MemberSuggest';
+import ExportButton from '../components/ExportButton';
+import { exportDuty } from '../lib/exports';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import {
@@ -329,6 +331,7 @@ export default function DutyPage({ switcher }) {
         title="ตาราง"
         right={
           <div className="flex shrink-0 items-center gap-2">
+            <ExportButton what="ตารางเวร" disabled={loading} onExport={() => exportDuty(data.duty, data.members, memberById)} />
             {isAdmin && (
               <>
                 {/* แอดมิน: เพิ่มเวรจากรูปตารางเวร (AI อ่านให้ แล้วตรวจก่อนบันทึก) */}

@@ -535,6 +535,20 @@ const actions = {
     const { _key, ...out } = record; // eslint-disable-line no-unused-vars
     return out;
   },
+  reorderRecords(p) {
+    requireAdmin(p);
+    if (!Object.prototype.hasOwnProperty.call(COLLECTION_FIELDS, p.collection)) fail('BAD_REQUEST', 'ไม่รู้จักประเภทข้อมูล');
+    const list = db[p.collection];
+    const items = [];
+    (p.ids || []).forEach((id) => {
+      const row = list.find((x) => x.id === id);
+      if (!row) return;
+      row.sort = String(items.length + 1);
+      items.push({ id, sort: row.sort });
+    });
+    if (!items.length) fail('NOT_FOUND', 'ไม่พบรายการ อาจถูกลบไปแล้ว กรุณารีเฟรช');
+    return { items };
+  },
   deleteRecord(p) {
     if (!(p.collection === 'resources' && !isAdmin(p.token))) requireAdmin(p);
     if (!Object.prototype.hasOwnProperty.call(COLLECTION_FIELDS, p.collection)) fail('BAD_REQUEST', 'ไม่รู้จักประเภทข้อมูล');

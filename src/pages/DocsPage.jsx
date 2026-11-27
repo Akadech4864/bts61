@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft, BookOpen, GraduationCap, UserRound, CalendarCheck2, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, ExternalLink, FileText, FolderOpen,
-  Info, Link2, Paperclip, Pencil, PlayCircle, Plus, Presentation, Search, Trash2, Users, X,
+  GripVertical, Info, Link2, Paperclip, Pencil, PlayCircle, Plus, Presentation, Search, Trash2, Users, X,
 } from 'lucide-react';
 import { EmptyState, Skeleton, SubTabs } from '../components/ui';
 import { useToast } from '../components/Toast';
@@ -13,6 +13,7 @@ import { useUI } from '../lib/ui';
 import { cx, daysBetween, formatDate, normalize, queryTokens, timeRange, toISODate, useNow } from '../lib/utils';
 import { buildPeopleIndex, bySort, detailLines, faceOf, FEATURED_SUBJECT, kindTone, safeHref, speakerKey } from '../lib/course';
 import { Photo } from '../components/Avatar';
+import { scrollToY } from '../lib/scroll';
 import { buildSubjects, categoryLabel, DOC_CATEGORIES, docCategory, fileSizeLabel, hostOf, subjectKey } from '../lib/docs';
 
 function SectionTitle({ icon: Icon, children, right }) {
@@ -150,11 +151,93 @@ const CAT_TONES = {
 };
 const CAT_ORDER = DOC_CATEGORIES.map((c) => c.value);
 
+/**
+ * ลากเรียงลำดับ: กดค้างที่ไอคอน ⋮⋮ แล้วลากขึ้น/ลง (มือถือและเมาส์) หรือใช้ปุ่มลูกศรขึ้น/ลงบนคีย์บอร์ด
+ * ระหว่างลากเรียงรายการใหม่ทันทีที่ผ่านกึ่งกลางแถวอื่น ปล่อยแล้วค่อยบันทึก
+ */
+function useDragOrder(items, onReorder) {
+  const [drag, setDrag] = useState(null); // { id, ids }
+  const rows = useRef(new Map());
+  const live = useRef({});
+  live.current = { drag, items, onReorder };
+  // ลำดับที่แสดง (ใช้ CSS order — ไม่ย้าย DOM ระหว่างลาก นิ้ว/เมาส์จึงไม่หลุดจากแถว)
+  const pos = new Map((drag ? drag.ids : items.map((d) => d.id)).map((id, i) => [id, i]));
+  const commit = (ids) => {
+    const { items: cur, onReorder: save } = live.current;
+    if (ids.join('|') !== cur.map((d) => d.id).join('|')) save(ids);
+  };
+
+  const dragging = !!drag;
+  useEffect(() => {
+    if (!dragging) return undefined;
+    const move = (e) => {
+      const d = live.current.drag;
+      if (!d) return;
+      const y = e.clientY;
+      const others = d.ids.filter((x) => x !== d.id);
+      let at = others.length;
+      for (let i = 0; i < others.length; i += 1) {
+        const el = rows.current.get(others[i]);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (y < r.top + r.height / 2) { at = i; break; }
+      }
+      const next = [...others.slice(0, at), d.id, ...others.slice(at)];
+      if (next.join('|') !== d.ids.join('|')) setDrag({ ...d, ids: next });
+      // ลากใกล้ขอบจอ เลื่อนหน้าให้อัตโนมัติ
+      if (y < 90) scrollToY(window.scrollY - 14);
+      else if (y > window.innerHeight - 110) scrollToY(window.scrollY + 14);
+    };
+    const up = () => {
+      const d = live.current.drag;
+      setDrag(null);
+      if (d) commit(d.ids);
+    };
+    const cancel = () => setDrag(null);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
+    };
+  }, [dragging]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleProps = (id) => ({
+    onPointerDown: (e) => {
+      if (e.button > 0) return;
+      e.preventDefault();
+      setDrag({ id, ids: items.map((d) => d.id) });
+    },
+    onKeyDown: (e) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const ids = items.map((d) => d.id);
+      const i = ids.indexOf(id);
+      const j = e.key === 'ArrowUp' ? i - 1 : i + 1;
+      if (j < 0 || j >= ids.length) return;
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+      commit(ids);
+    },
+  });
+  const rowRef = (id) => (el) => {
+    if (el) rows.current.set(id, el);
+    else rows.current.delete(id);
+  };
+  return { pos, dragId: drag && drag.id, handleProps, rowRef };
+}
+
+const NO_REORDER = () => {};
+
 /** เอกสาร/สื่อการสอน: ไอคอนตามหมวด, ชื่อ, หมวด · ขนาดไฟล์หรือเว็บไซต์ · คาบเรียน แตะเพื่อเปิด */
-function DocList({ docs, onEdit, onDelete, canEdit, showSubject = false }) {
+function DocList({ docs, onEdit, onDelete, onReorder, canEdit, showSubject = false }) {
+  const { pos, dragId, handleProps, rowRef } = useDragOrder(docs, onReorder || NO_REORDER);
+  const sortable = !!onReorder && docs.length > 1;
   return (
-    <div className="glass rounded-3xl px-2 py-1.5">
-      {docs.map((d, i) => {
+    <div className={cx('glass flex flex-col rounded-3xl px-2 py-1.5', dragId && 'select-none')}>
+      {docs.map((d) => {
+        const i = pos.get(d.id);
         const cat = docCategory(d);
         const Icon = CAT_ICONS[cat] || FileText;
         const href = safeHref(d.url);
@@ -176,7 +259,27 @@ function DocList({ docs, onEdit, onDelete, canEdit, showSubject = false }) {
           </>
         );
         return (
-          <div key={d.id} className={cx('flex items-center gap-1', i > 0 && 'border-t border-white/60')}>
+          <div
+            key={d.id}
+            ref={rowRef(d.id)}
+            style={{ order: i }}
+            className={cx(
+              'flex items-center gap-1',
+              i > 0 && 'border-t border-white/60',
+              dragId === d.id && 'relative z-10 rounded-2xl bg-white/90 shadow-lg ring-1 ring-navy-200',
+            )}
+          >
+            {sortable && (
+              <button
+                type="button"
+                {...handleProps(d.id)}
+                aria-label={`ลากเพื่อย้ายลำดับ: ${d.title}`}
+                title="กดค้างแล้วลากเพื่อเรียงลำดับ"
+                className={cx('-mr-1 grid h-10 w-7 shrink-0 touch-none select-none place-items-center rounded-lg transition hover:text-navy-500', dragId === d.id ? 'cursor-grabbing text-navy-500' : 'cursor-grab text-slate-300')}
+              >
+                <GripVertical className="h-5 w-5" />
+              </button>
+            )}
             {href ? (
               <a href={href} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-2.5 transition hover:bg-white/50">
                 {body}
@@ -202,8 +305,12 @@ function DocList({ docs, onEdit, onDelete, canEdit, showSubject = false }) {
   );
 }
 
-const sortDocs = (list) => [...list].sort((a, b) => CAT_ORDER.indexOf(docCategory(a)) - CAT_ORDER.indexOf(docCategory(b))
-  || (a.class_date || '9999').localeCompare(b.class_date || '9999') || (Number(a.sort) || 9999) - (Number(b.sort) || 9999));
+const autoOrder = (a, b) => CAT_ORDER.indexOf(docCategory(a)) - CAT_ORDER.indexOf(docCategory(b))
+  || (a.class_date || '9999').localeCompare(b.class_date || '9999') || (Number(a.sort) || 9999) - (Number(b.sort) || 9999);
+// ผลค้นหารวมทุกวิชา: เรียงตามหมวด > คาบเรียน
+const sortDocs = (list) => [...list].sort(autoOrder);
+// เอกสารของวิชา: ลำดับที่แอดมินลากเรียงไว้มาก่อน รายการใหม่ที่ยังไม่ได้จัดลำดับต่อท้ายตามหมวด
+const sortSubjectDocs = (list) => [...list].sort((a, b) => (Number(a.sort) || 99999) - (Number(b.sort) || 99999) || autoOrder(a, b));
 
 function AddButton({ onClick, children = 'แนบเอกสาร' }) {
   return (
@@ -318,7 +425,7 @@ function TeacherList({ sessions, findPerson, onOpenIns, onDate }) {
 }
 
 /** หน้ารายวิชา: เอกสาร/สื่อการสอน งานที่ต้องส่ง คาบเรียน และข้อมูลประกอบของวิชานั้น */
-function SubjectDetail({ subject, today, onBack, onEdit, onAttach, onEditDoc, onDeleteDoc, canEditDoc, study = false }) {
+function SubjectDetail({ subject, today, onBack, onEdit, onAttach, onEditDoc, onDeleteDoc, onReorderDocs, canEditDoc, study = false }) {
   const { data } = useStore();
   const [openIns, setOpenIns] = useState(null);
   const ui = useUI();
@@ -422,8 +529,13 @@ function SubjectDetail({ subject, today, onBack, onEdit, onAttach, onEditDoc, on
           return (
             <div key={part}>
               <SectionTitle icon={Presentation} right={onAttach && <AddButton onClick={() => onAttach(name)} />}>{study ? 'เอกสาร / แบบฟอร์ม / ตัวอย่าง' : 'เอกสาร / สื่อการสอน'}</SectionTitle>
+              {onReorderDocs && docs.length > 1 && (
+                <p className="-mt-1 mb-1.5 flex items-center gap-1 px-1 text-[12px] text-slate-500">
+                  <GripVertical className="h-3.5 w-3.5" /> กดค้างที่ไอคอนนี้แล้วลากขึ้น-ลง เพื่อเรียงลำดับเอกสาร
+                </p>
+              )}
               {docs.length ? (
-                <DocList docs={sortDocs(docs)} onEdit={onEditDoc} onDelete={onDeleteDoc} canEdit={canEditDoc} />
+                <DocList docs={sortSubjectDocs(docs)} onEdit={onEditDoc} onDelete={onDeleteDoc} onReorder={onReorderDocs} canEdit={canEditDoc} />
               ) : (
                 <p className="glass rounded-3xl px-4 py-5 text-center text-[13px] text-slate-500">ยังไม่มีเอกสาร</p>
               )}
@@ -478,7 +590,7 @@ function SubjectDetail({ subject, today, onBack, onEdit, onAttach, onEditDoc, on
  */
 /** สิทธิ์จัดการเอกสาร: แอดมิน = ทุกรายการ, ผู้เข้าอบรม = แนบใหม่ + แก้ไข/ลบของเครื่องตัวเอง */
 function useDocActions(setForm) {
-  const { isAdmin, myDocs, deleteRecord } = useStore();
+  const { isAdmin, myDocs, deleteRecord, reorderRecords } = useStore();
   const ui = useUI();
   const toast = useToast();
   const mine = new Set(myDocs || []);
@@ -494,6 +606,14 @@ function useDocActions(setForm) {
         toast.error(err.message);
       }
     },
+    reorderDocs: isAdmin ? async (ids) => {
+      try {
+        await reorderRecords('resources', ids);
+        toast.success('บันทึกลำดับเอกสารแล้ว');
+      } catch (err) {
+        toast.error(err.message);
+      }
+    } : undefined,
     edit: isAdmin ? (item) => setForm({ key: Date.now(), collection: 'resources', item }) : null,
     editDoc: (item) => setForm({ key: Date.now(), collection: 'resources', item, public: !isAdmin }),
     canEditDoc: (d) => isAdmin || mine.has(d.id),
@@ -520,7 +640,7 @@ export function DocsPanel() {
     allDocs.forEach((d) => { const c = docCategory(d); out[c] = (out[c] || 0) + 1; });
     return out;
   }, [allDocs]);
-  const { edit, editDoc, deleteDoc, canEditDoc, attach } = useDocActions(setForm);
+  const { edit, editDoc, deleteDoc, reorderDocs, canEditDoc, attach } = useDocActions(setForm);
   const open = subjects.find((x) => x.key === openKey) || null;
   // จำว่ากำลังเปิดวิชาไหน (ย้อนกลับจากหน้าอื่นจะกลับมาที่วิชาเดิม)
   useEffect(() => { ui.remember({ tab: 'docs', subject: open ? open.name : '' }); }, [open && open.name]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -545,6 +665,7 @@ export function DocsPanel() {
         onAttach={attach}
         onEditDoc={editDoc}
         onDeleteDoc={deleteDoc}
+        onReorderDocs={reorderDocs}
         canEditDoc={canEditDoc}
         onBack={() => {
           setOpenKey('');
@@ -664,7 +785,7 @@ export function StudyPanel() {
   const { data, status } = useStore();
   const today = toISODate(useNow(60000));
   const [form, setForm] = useState(null);
-  const { edit, editDoc, deleteDoc, canEditDoc, attach } = useDocActions(setForm);
+  const { edit, editDoc, deleteDoc, reorderDocs, canEditDoc, attach } = useDocActions(setForm);
   const subject = useMemo(() => {
     const found = buildSubjects(data.classes, data.resources || []).find((x) => x.key === subjectKey(FEATURED_SUBJECT));
     return found || { key: subjectKey(FEATURED_SUBJECT), name: FEATURED_SUBJECT, sessions: [], docs: [], tasks: [], infos: [], first: '' };
@@ -687,6 +808,7 @@ export function StudyPanel() {
         onAttach={attach}
         onEditDoc={editDoc}
         onDeleteDoc={deleteDoc}
+        onReorderDocs={reorderDocs}
         canEditDoc={canEditDoc}
       />
       <RecordForm state={form} onClose={() => setForm(null)} />

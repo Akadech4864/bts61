@@ -269,6 +269,22 @@ export function StoreProvider({ children }) {
         }
         return res;
       },
+      /** แอดมิน: จัดลำดับใหม่ (ลากเรียง) — แสดงลำดับใหม่ทันที แล้วบันทึก ถ้าไม่สำเร็จโหลดข้อมูลจริงกลับมา */
+      async reorderRecords(collection, ids) {
+        const order = new Map(ids.map((id, i) => [id, String(i + 1)]));
+        const withOrder = (list, map) => (list || []).map((r) => (map.has(r.id) ? { ...r, sort: map.get(r.id) } : r));
+        mutationSeq.current += 1;
+        setData((prev) => ({ ...prev, [collection]: withOrder(prev[collection], order) }));
+        try {
+          return await mutate('reorderRecords', { collection, ids }, (prev, res) => ({
+            ...prev,
+            [collection]: withOrder(prev[collection], new Map((res.items || []).map((x) => [x.id, x.sort]))),
+          }));
+        } catch (err) {
+          refresh({ silent: true });
+          throw err;
+        }
+      },
       deleteRecord: (collection, id) =>
         mutate('deleteRecord', { collection, id, key: deviceKey() }, (prev) => ({ ...prev, [collection]: removeById(prev[collection] || [], id) })),
     }),

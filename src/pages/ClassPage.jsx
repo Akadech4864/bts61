@@ -3,6 +3,8 @@ import { ChevronLeft, Paperclip, BookOpen, CalendarDays, CalendarSearch, Chevron
 import { isCourseSubject, subjectKey } from '../lib/docs';
 import { Photo } from '../components/Avatar';
 import InstructorSheet from '../components/InstructorSheet';
+import ExportButton from '../components/ExportButton';
+import { exportClasses } from '../lib/exports';
 import { Button, EmptyState, PageHeader, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import { useStore } from '../lib/store';
 import { scrollToY } from '../lib/scroll';
@@ -459,6 +461,7 @@ export default function ClassPage({ switcher }) {
         title="ตาราง"
         right={
           <div className="flex shrink-0 items-center gap-2">
+            <ExportButton what="ตารางสอน" disabled={loading} onExport={() => exportClasses(data.classes, data.resources)} />
             <label className="glass relative grid h-11 w-11 cursor-pointer place-items-center rounded-full text-navy-700" title="เลือกวันที่">
               <CalendarSearch className="h-5 w-5" />
               <input

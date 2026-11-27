@@ -6,6 +6,8 @@ import { EmptyState, Marquee, Segmented, Skeleton, TopBarSentinel } from '../com
 import MemberSuggest from '../components/MemberSuggest';
 import { MISSING_ICONS, MissingMark, MissingMarks } from '../components/MissingMarks';
 import FilterSheet, { SORT_OPTIONS } from '../components/FilterSheet';
+import ExportButton from '../components/ExportButton';
+import { exportMembers } from '../lib/exports';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
 import { COURSE_BATCH, COURSE_SUBTITLE, COURSE_TITLE_SHORT } from '../config';
@@ -199,10 +201,15 @@ function ListView({ members, onOpen, flagMissing = false }) {
 const TABLE_COLUMNS = [
   { key: 'first_name', label: 'ชื่อ-สกุล' },
   { key: 'nickname', label: 'ชื่อเล่น' },
+  { key: 'position', label: 'ตำแหน่ง' },
   { key: 'province', label: 'จังหวัด' },
   { key: 'division_bk', label: 'บก.' },
   { key: 'bureau_bch', label: 'บช.' },
+  { key: 'group_name', label: 'กลุ่ม' },
 ];
+const TABLE_COLSPAN = TABLE_COLUMNS.length + 4; // # + คอลัมน์ข้างบน + โทร อีเมล โซเชียล
+
+const dash = <span className="text-slate-300">—</span>;
 
 function SortHeader({ column, sort, onSort, className }) {
   const active = sort.key === column.key;
@@ -225,7 +232,7 @@ function SortHeader({ column, sort, onSort, className }) {
 function TableView({ sections, sort, onSort, onOpen }) {
   return (
     <div className="glass overflow-x-auto rounded-3xl">
-      <table className="w-full min-w-[640px] border-collapse text-[13px]">
+      <table className="w-full min-w-[1280px] border-collapse text-[13px]">
         <thead className="bg-white/50 text-xs">
           <tr>
             <SortHeader column={{ key: 'seq', label: '#' }} sort={sort} onSort={onSort} className="w-12 pl-3 pr-1" />
@@ -233,14 +240,16 @@ function TableView({ sections, sort, onSort, onOpen }) {
             {TABLE_COLUMNS.slice(1).map((c) => (
               <SortHeader key={c.key} column={c} sort={sort} onSort={onSort} />
             ))}
-            <th scope="col" className="whitespace-nowrap px-3 py-2.5 text-left font-semibold text-slate-500">โทร</th>
+            {['โทร', 'อีเมล', 'โซเชียล'].map((label) => (
+              <th key={label} scope="col" className="whitespace-nowrap px-3 py-2.5 text-left font-semibold text-slate-500">{label}</th>
+            ))}
           </tr>
         </thead>
         {sections.map((section) => (
         <tbody key={section.key} className="divide-y divide-white/70">
           {sections.length > 1 && (
             <tr>
-              <td colSpan={7} className={cx('px-3 py-2', section.tone === 'warn' ? 'bg-amber-400/15' : 'bg-emerald-500/10')}>
+              <td colSpan={TABLE_COLSPAN} className={cx('px-3 py-2', section.tone === 'warn' ? 'bg-amber-400/15' : 'bg-emerald-500/10')}>
                 <span className="sticky left-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-navy-900">
                   {section.tone === 'warn' ? <CircleAlert className="h-4 w-4 text-amber-600" /> : <CircleCheck className="h-4 w-4 text-emerald-600" />}
                   {section.title}
@@ -273,6 +282,7 @@ function TableView({ sections, sort, onSort, onOpen }) {
                 </button>
               </td>
               <td className="whitespace-nowrap px-3 font-semibold text-navy-800">{m.nickname || <span className="font-normal text-slate-300">—</span>}</td>
+              <td className="min-w-[160px] max-w-[260px] px-3 py-2 leading-snug text-slate-600">{m.position || dash}</td>
               <td className="whitespace-nowrap px-3 text-slate-600">{m.province || <span className="text-slate-300">—</span>}</td>
               {orgTypeOf(m) === 'other' ? (
                 // ผู้ที่ไม่ใช่ตำรวจ: แสดงชื่อหน่วยงานแทนช่อง บก./บช.
@@ -286,6 +296,7 @@ function TableView({ sections, sort, onSort, onOpen }) {
                   <td className="whitespace-nowrap px-3 text-slate-600">{m.bureau_bch || <span className="text-slate-300">—</span>}</td>
                 </>
               )}
+              <td className="whitespace-nowrap px-3 text-slate-600">{m.group_name || dash}</td>
               <td className="whitespace-nowrap px-3">
                 {phoneDigits(m.phone) ? (
                   <a href={telHref(m.phone)} onClick={(e) => e.stopPropagation()} className="font-medium text-navy-700 underline-offset-2 hover:underline">
@@ -294,6 +305,14 @@ function TableView({ sections, sort, onSort, onOpen }) {
                 ) : (
                   <span className="text-slate-300">—</span>
                 )}
+              </td>
+              <td className="whitespace-nowrap px-3">
+                {m.email ? (
+                  <a href={`mailto:${encodeURI(m.email)}`} onClick={(e) => e.stopPropagation()} className="text-navy-700 underline-offset-2 hover:underline">{m.email}</a>
+                ) : dash}
+              </td>
+              <td className="min-w-[260px] px-3 py-2">
+                {m.social ? <SocialInline member={m} max={6} className="flex-wrap gap-y-1" /> : dash}
               </td>
             </tr>
           ))}
@@ -467,7 +486,8 @@ export default function DirectoryPage() {
 
   const [legendOpen, setLegendOpen] = useState(false);
   const loading = status === 'loading';
-  const sortLabel = (SORT_OPTIONS.find((o) => o.key === sort.key) || SORT_OPTIONS[0]).label;
+  const sortLabel = (SORT_OPTIONS.find((o) => o.key === sort.key) || TABLE_COLUMNS.find((o) => o.key === sort.key) || SORT_OPTIONS[0]).label;
+  const filteredOut = result.length !== members.length;
 
   return (
     <div className="mx-auto max-w-6xl px-4 page-bottom">
@@ -569,6 +589,12 @@ export default function DirectoryPage() {
               <Grid2x2 className="h-4 w-4" /> {cols}
             </button>
           )}
+          <ExportButton
+            what={filteredOut ? 'รายชื่อที่กรองไว้' : 'ทำเนียบรุ่น'}
+            disabled={loading || !result.length}
+            className="h-10"
+            onExport={() => exportMembers(result, { label: filteredOut ? 'ทำเนียบรุ่น_ที่กรองไว้' : 'ทำเนียบรุ่น' })}
+          />
           <Segmented size="sm" value={view} onChange={setView} options={VIEWS} />
         </div>
       </div>
