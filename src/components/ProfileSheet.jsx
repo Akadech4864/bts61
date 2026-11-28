@@ -1,20 +1,100 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Building2, Copy, Landmark, Mail, MapPin, Pencil, Phone, Trash2, UsersRound, X } from 'lucide-react';
 import { Sheet, useOverlay } from './Sheet';
-import { Photo } from './Avatar';
+import { Photo, prefersReducedMotion } from './Avatar';
 import { Button } from './ui';
 import { SocialList } from './Social';
 import { useToast } from './Toast';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
-import { copyText, formatPhone, fullName, orgTypeOf, phoneDigits, telHref } from '../lib/utils';
+import { copyText, cx, formatPhone, fullName, memberPhotos, orgTypeOf, phoneDigits, telHref } from '../lib/utils';
 
-function Lightbox({ member, onClose }) {
+/**
+ * รูปของสมาชิก: มีหลายรูปจะเลื่อนเปลี่ยนเองทุก 4 วินาที ปัดซ้าย/ขวาเองได้ (หยุดเลื่อนอัตโนมัติชั่วคราวเมื่อแตะ)
+ * จุดด้านบนบอกว่าอยู่รูปที่เท่าไร — แตะรูปเพื่อดูขนาดเต็ม
+ */
+function PhotoCarousel({ member, onZoom }) {
+  const photos = memberPhotos(member);
+  const n = photos.length;
+  const ref = useRef(null);
+  const [index, setIndex] = useState(0);
+  const pausedUntil = useRef(0);
+
+  useEffect(() => {
+    setIndex(0);
+    if (ref.current) ref.current.scrollLeft = 0;
+  }, [member.id]);
+  useEffect(() => {
+    if (n < 2 || prefersReducedMotion()) return undefined;
+    const timer = setInterval(() => {
+      const el = ref.current;
+      if (!el || Date.now() < pausedUntil.current || document.visibilityState !== 'visible') return;
+      const w = el.clientWidth || 1;
+      const next = (Math.round(el.scrollLeft / w) + 1) % n;
+      el.scrollTo({ left: next * w, behavior: 'smooth' });
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [n]);
+
+  const photoClass = 'aspect-[3/4] max-h-[58dvh] w-full object-[center_22%]';
+  if (n < 2) {
+    return (
+      <button type="button" className="block w-full" onClick={() => member.photo_url && onZoom(0)} aria-label="ดูรูปขนาดเต็ม">
+        <Photo member={member} width={900} eager className={photoClass} textClass="text-8xl" />
+      </button>
+    );
+  }
+  const pause = () => { pausedUntil.current = Date.now() + 8000; };
+  const goTo = (k) => {
+    pause();
+    const el = ref.current;
+    if (el) el.scrollTo({ left: k * el.clientWidth, behavior: 'smooth' });
+  };
+  return (
+    <div className="relative">
+      <div
+        ref={ref}
+        onScroll={(e) => setIndex(Math.round(e.currentTarget.scrollLeft / (e.currentTarget.clientWidth || 1)))}
+        onPointerDown={pause}
+        onTouchStart={pause}
+        className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
+        aria-roledescription="carousel"
+        aria-label={`รูปถ่าย ${n} รูป`}
+      >
+        {photos.map((p, k) => (
+          <button
+            key={p.key}
+            type="button"
+            className="block w-full shrink-0 snap-center snap-always"
+            onClick={() => onZoom(k)}
+            aria-label={`รูปที่ ${k + 1} จาก ${n} — แตะเพื่อดูขนาดเต็ม`}
+          >
+            <Photo member={{ ...member, photo_url: p.url }} width={900} eager={k === 0} className={photoClass} textClass="text-8xl" />
+          </button>
+        ))}
+      </div>
+      <div className="absolute inset-x-0 top-8 flex justify-center gap-1.5">
+        {photos.map((p, k) => (
+          <button
+            key={p.key}
+            type="button"
+            onClick={() => goTo(k)}
+            aria-label={`ไปที่รูปที่ ${k + 1}`}
+            className={cx('h-1.5 rounded-full shadow transition-all', k === index ? 'w-5 bg-white' : 'w-1.5 bg-white/55')}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Lightbox({ member, index = 0, onClose }) {
   useOverlay(true, onClose);
+  const p = memberPhotos(member)[index];
   return createPortal(
     <div className="fixed inset-0 z-[60] flex animate-fade-in items-center justify-center bg-navy-950/95" onClick={onClose}>
-      <Photo member={member} width={1200} eager className="max-h-full max-w-full bg-transparent! object-contain!" />
+      <Photo member={p ? { ...member, photo_url: p.url } : member} width={1200} eager className="max-h-full max-w-full bg-transparent! object-contain!" />
       <button
         type="button"
         aria-label="ปิด"
@@ -89,9 +169,7 @@ export default function ProfileSheet({ memberId, onClose }) {
     <>
       <Sheet open onClose={onClose} flush>
         <div className="relative">
-          <button type="button" className="block w-full" onClick={() => m.photo_url && setZoom(true)} aria-label="ดูรูปขนาดเต็ม">
-            <Photo member={m} width={900} eager className="aspect-[3/4] max-h-[58dvh] w-full object-[center_22%]" textClass="text-8xl" />
-          </button>
+          <PhotoCarousel member={m} onZoom={(k) => setZoom(k)} />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-950/90 via-navy-950/45 to-transparent px-5 pb-4 pt-20">
             {m.seq && (
               <span className="mb-2 inline-block rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-medium text-white/90 backdrop-blur">
@@ -170,7 +248,7 @@ export default function ProfileSheet({ memberId, onClose }) {
           )}
         </div>
       </Sheet>
-      {zoom && <Lightbox member={m} onClose={() => setZoom(false)} />}
+      {zoom !== false && <Lightbox member={m} index={zoom} onClose={() => setZoom(false)} />}
     </>
   );
 }

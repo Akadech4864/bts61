@@ -73,6 +73,32 @@ export function phoneDigits(phone) {
   return first.replace(/[^\d+]/g, '');
 }
 
+export const MAX_MEMBER_PHOTOS = 8;
+const photoListCache = new WeakMap();
+/**
+ * รูปทั้งหมดของสมาชิกตามลำดับ: รูปหลัก (photo_url) ก่อน แล้วตามด้วยรูปเพิ่มเติม (photos = JSON [{id,url}])
+ * คืน [{ key, id, url }] — key = file id (หรือ url ถ้าไม่มี id) ใช้อ้างอิงตอนจัดลำดับ/ลบ
+ */
+export function memberPhotos(m) {
+  if (!m) return [];
+  const hit = photoListCache.get(m);
+  if (hit && hit.src === `${m.photo_url}|${m.photo_file_id}|${m.photos}`) return hit.list;
+  const list = [];
+  if (m.photo_url) list.push({ id: String(m.photo_file_id || ''), url: String(m.photo_url) });
+  let extra = [];
+  try {
+    extra = m.photos ? JSON.parse(m.photos) : [];
+  } catch {
+    extra = [];
+  }
+  if (Array.isArray(extra)) {
+    extra.forEach((p) => { if (p && p.url) list.push({ id: String(p.id || ''), url: String(p.url) }); });
+  }
+  const out = list.map((p) => ({ ...p, key: p.id || p.url }));
+  photoListCache.set(m, { src: `${m.photo_url}|${m.photo_file_id}|${m.photos}`, list: out });
+  return out;
+}
+
 /** ข้อมูลสำคัญที่ยังขาด (รูป / เบอร์ / ชื่อเล่น) — คืนรายการคำสั้น ๆ ว่างเปล่า = ครบแล้ว */
 export function missingInfo(m) {
   const out = [];

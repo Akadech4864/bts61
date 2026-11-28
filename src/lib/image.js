@@ -22,6 +22,22 @@ function toBlob(canvas, quality) {
   });
 }
 
+/** ครอปกรอบ 3:4 กลางภาพอัตโนมัติ (ภาพแนวตั้งเอียงขึ้นด้านบนเล็กน้อยให้เห็นใบหน้า) — ใช้ตอนเลือกหลายรูปพร้อมกัน */
+export async function autoCropJpeg(src) {
+  const img = await loadImage(src);
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  let box;
+  if (w / h > PHOTO_ASPECT) {
+    const cw = h * PHOTO_ASPECT;
+    box = { x: (w - cw) / 2, y: 0, width: cw, height: h };
+  } else {
+    const ch = w / PHOTO_ASPECT;
+    box = { x: 0, y: Math.max(0, Math.min(h - ch, (h - ch) * 0.3)), width: w, height: ch };
+  }
+  return cropToJpeg(src, box, 0);
+}
+
 /**
  * ตัดรูปตามกรอบที่ผู้ใช้จัด (pixelCrop จาก react-easy-crop) แล้วย่อเป็น JPEG 600x800
  * @returns {Promise<Blob>}

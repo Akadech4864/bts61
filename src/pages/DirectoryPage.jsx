@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Camera, CircleAlert, CircleCheck, Grid2x2, IdCard, Info, LayoutGrid, Phone, Plus, RefreshCw, Search, SlidersHorizontal, Table2, Tag, UserPlus, X } from 'lucide-react';
-import { Photo } from '../components/Avatar';
+import { Photo, RotatingPhoto } from '../components/Avatar';
 import { SocialInline, SocialMarks, platformsOf } from '../components/Social';
 import { EmptyState, Marquee, Segmented, Skeleton, TopBarSentinel } from '../components/ui';
 import MemberSuggest from '../components/MemberSuggest';
@@ -117,7 +117,7 @@ function GridView({ members, cols, onOpen, flagMissing = false }) {
             dense >= 2 ? 'rounded-xl' : 'rounded-3xl',
           )}
         >
-          <Photo member={m} width={width} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass={['text-6xl', 'text-4xl', 'text-3xl', 'text-2xl'][dense]} />
+          <RotatingPhoto member={m} width={width} className="aspect-[3/4] w-full transition duration-300 group-hover:scale-[1.03]" textClass={['text-6xl', 'text-4xl', 'text-3xl', 'text-2xl'][dense]} />
           {/* มุมบนซ้าย: ลำดับที่ ตามด้วยสัญลักษณ์ของข้อมูลที่ยังขาด (ไอคอนมีกากบาททับ) */}
           {(m.seq || flagMissing) && (
             <span

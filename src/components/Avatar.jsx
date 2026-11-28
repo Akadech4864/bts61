@@ -1,6 +1,57 @@
-import { useEffect, useState } from 'react';
-import { cx, initialOf } from '../lib/utils';
+import { useEffect, useRef, useState } from 'react';
+import { cx, initialOf, memberPhotos } from '../lib/utils';
 import { useDrivePhoto } from '../lib/photos';
+
+export const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const hashOf = (s) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+};
+
+/**
+ * รูปของสมาชิกที่มีหลายรูป: ค่อย ๆ เปลี่ยนรูปเองทุก ~5 วินาที (เฉพาะตอนการ์ดอยู่บนจอ)
+ * แต่ละการ์ดเริ่มไม่พร้อมกัน จะได้ไม่เปลี่ยนพร้อมกันทั้งหน้า — มีรูปเดียวแสดงเหมือน Photo ปกติ
+ */
+export function RotatingPhoto({ member, width = 400, className, textClass, interval = 5000 }) {
+  const photos = memberPhotos(member);
+  const n = photos.length;
+  const ref = useRef(null);
+  const [index, setIndex] = useState(0);
+  const [onScreen, setOnScreen] = useState(false);
+  useEffect(() => {
+    if (n < 2 || !ref.current || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting));
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [n]);
+  useEffect(() => {
+    if (n < 2 || !onScreen || prefersReducedMotion()) return undefined;
+    let timer = setTimeout(function tick() {
+      if (document.visibilityState === 'visible') setIndex((i) => (i + 1) % n);
+      timer = setTimeout(tick, interval);
+    }, interval + (hashOf(String(member.id || '')) % 2500));
+    return () => clearTimeout(timer);
+  }, [n, onScreen, interval, member.id]);
+
+  if (n < 2) return <Photo member={member} width={width} className={className} textClass={textClass} />;
+  const current = index % n;
+  return (
+    <div ref={ref} className={cx('relative overflow-hidden', className)}>
+      {photos.map((p, k) => (
+        <Photo
+          key={p.key}
+          member={{ ...member, photo_url: p.url }}
+          width={width}
+          className={cx('absolute inset-0 h-full w-full object-[center_22%] transition-opacity duration-700', k === current ? 'opacity-100' : 'opacity-0')}
+          textClass={textClass}
+        />
+      ))}
+    </div>
+  );
+}
 
 const TINTS = [
   'bg-navy-100 text-navy-400',

@@ -259,6 +259,20 @@ export function primePhoto(fileId, fullBlob, thumbBlob) {
   }
 }
 
+/** object URL ของรูป (สำหรับแก้ไข/ครอปรูปเดิม) — drive:<id> โหลดผ่าน API, ลิงก์ปกติดาวน์โหลดมาเป็น blob */
+export async function photoObjectUrl(url) {
+  if (!url) return null;
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+  if (url.startsWith('drive:')) return request('full', url.slice(6));
+  try {
+    const res = await fetch(url, { mode: 'cors', referrerPolicy: 'no-referrer' });
+    if (!res.ok) return null;
+    return URL.createObjectURL(await res.blob());
+  } catch {
+    return null;
+  }
+}
+
 /**
  * คืน object URL ของรูป "drive:<id>" ('' = กำลังโหลด, null = โหลดไม่ได้)
  * kind: 'thumb' = รูปย่อ (กริด/รายการ), 'full' = รูปเต็ม (หน้ารายละเอียด)

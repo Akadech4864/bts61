@@ -273,7 +273,7 @@ const actions = {
     if (input.id && !existing) fail('NOT_FOUND', 'ไม่พบรายชื่อนี้ อาจถูกลบไปแล้ว');
     const isNew = !existing;
     const canInfo = isNew ? perms.add : perms.edit;
-    const wantsPhoto = !!p.photo || p.removePhoto;
+    const wantsPhoto = !!p.photo || p.removePhoto || !!p.gallery;
     if (isNew && !canInfo) fail('FORBIDDEN', 'ผู้ดูแลยังไม่เปิดให้เพิ่มรายชื่อใหม่');
     if (!isNew && !canInfo && !(wantsPhoto && perms.photo)) fail('FORBIDDEN', 'ผู้ดูแลยังไม่เปิดให้แก้ไขข้อมูล');
     if (wantsPhoto && !perms.photo) fail('FORBIDDEN', 'ผู้ดูแลยังไม่เปิดให้อัปโหลดหรือเปลี่ยนรูปถ่าย');
@@ -302,7 +302,23 @@ const actions = {
     if (canInfo && !record.rank) fail('VALIDATION', 'กรุณาเลือกคำนำหน้า / ยศ');
     if (canInfo && !admin && !record.nickname) fail('VALIDATION', 'กรุณากรอกชื่อเล่น');
 
-    if (p.photo) {
+    if (p.gallery) {
+      const current = [];
+      if (record.photo_url) current.push({ id: record.photo_file_id || '', url: record.photo_url });
+      try { (JSON.parse(record.photos || '[]') || []).forEach((x) => x && x.url && current.push({ id: x.id || '', url: x.url })); } catch { /* ข้าม */ }
+      const byKey = new Map(current.map((x) => [x.id || x.url, x]));
+      const adds = p.gallery.add || [];
+      if (adds.length > 6) fail('VALIDATION', 'เพิ่มรูปได้ครั้งละไม่เกิน 6 รูป');
+      const list = [];
+      (p.gallery.order || []).forEach((o) => {
+        if (o.keep !== undefined && byKey.has(o.keep)) { list.push(byKey.get(o.keep)); byKey.delete(o.keep); }
+        else if (o.add !== undefined && adds[o.add]) list.push({ id: uid('file'), url: `data:${adds[o.add].mimeType};base64,${adds[o.add].base64}` });
+      });
+      if (list.length > 8) fail('VALIDATION', 'มีรูปได้ไม่เกิน 8 รูปต่อคน');
+      record.photo_url = list[0] ? list[0].url : '';
+      record.photo_file_id = list[0] ? list[0].id : '';
+      record.photos = list.length > 1 ? JSON.stringify(list.slice(1)) : '';
+    } else if (p.photo) {
       record.photo_url = `data:${p.photo.mimeType};base64,${p.photo.base64}`;
       record.photo_file_id = uid('file');
     } else if (p.removePhoto) {

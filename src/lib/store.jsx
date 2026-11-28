@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api, blobToBase64, isDemo } from './api';
-import { readStored, writeStored } from './utils';
+import { memberPhotos, readStored, writeStored } from './utils';
 import { makeThumb, primePhoto } from './photos';
 import { docMime, MAX_DOC_BYTES } from './docs';
 import { useToast } from '../components/Toast';
@@ -190,8 +190,35 @@ export function StoreProvider({ children }) {
       },
       saveSettings: (settings) =>
         mutate('saveSettings', { settings }, (prev, res) => ({ ...prev, settings: { ...DEFAULT_SETTINGS, ...res } })),
-      async saveMember(member, { photoBlob = null, removePhoto = false } = {}) {
+      /**
+       * gallery = [{ kind: 'keep', key } | { kind: 'new', blob }] รูปทั้งหมดหลังแก้ไขตามลำดับ (รายการแรก = รูปหลัก)
+       * ไม่ส่ง gallery = ไม่เปลี่ยนรูป
+       */
+      async saveMember(member, { photoBlob = null, removePhoto = false, gallery = null } = {}) {
         const payload = { member, removePhoto };
+        const newThumbs = [];
+        if (gallery) {
+          const add = [];
+          const order = [];
+          for (const it of gallery) {
+            if (it.kind === 'keep') {
+              order.push({ keep: it.key });
+              continue;
+            }
+            const entry = { base64: await blobToBase64(it.blob), mimeType: it.blob.type || 'image/jpeg' };
+            let thumb = null;
+            try {
+              thumb = await makeThumb(it.blob);
+              entry.thumb = await blobToBase64(thumb);
+            } catch {
+              thumb = null;
+            }
+            newThumbs.push({ index: order.length, blob: it.blob, thumb });
+            order.push({ add: add.length });
+            add.push(entry);
+          }
+          payload.gallery = { order, add };
+        }
         let thumbBlob = null;
         if (photoBlob) {
           payload.photo = { base64: await blobToBase64(photoBlob), mimeType: photoBlob.type || 'image/jpeg' };
@@ -205,6 +232,11 @@ export function StoreProvider({ children }) {
         }
         const res = await mutate('saveMember', payload, (prev, r) => ({ ...prev, members: upsert(prev.members, r) }));
         if (photoBlob && res && res.photo_file_id) primePhoto(res.photo_file_id, photoBlob, thumbBlob);
+        // รูปที่เพิ่งอัปโหลด: ใส่แคชในเครื่องทันที (ลำดับในผลลัพธ์ตรงกับที่ส่งไป)
+        if (res && newThumbs.length) {
+          const saved = memberPhotos(res);
+          newThumbs.forEach((n) => { const p = saved[n.index]; if (p && p.id) primePhoto(p.id, n.blob, n.thumb); });
+        }
         return res;
       },
       deleteMember: (id) =>

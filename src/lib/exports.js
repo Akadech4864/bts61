@@ -1,6 +1,6 @@
 /** Export ข้อมูลเป็นไฟล์ Excel: ตารางสอน ตารางเวร และทำเนียบรุ่น (ทุกช่องข้อมูล) */
 import { downloadXlsx } from './xlsx';
-import { compareClass, formatPhone, fullName, missingInfo, orgTypeOf, parseISODate, resolveDuty, thCompare, toISODate } from './utils';
+import { compareClass, formatPhone, fullName, memberPhotos, missingInfo, orgTypeOf, parseISODate, resolveDuty, thCompare, toISODate } from './utils';
 import { memberSocials, platformOf, SOCIAL_PLATFORMS } from './social';
 import { subjectKey } from './docs';
 import { COURSE_TITLE_SHORT } from '../config';
@@ -116,7 +116,7 @@ export function exportMembers(members, { label = 'ทำเนียบรุ่
       formatPhone(m.phone) || '',
       m.email || '',
       ...platforms.map((p) => socials.filter((s) => platformOf(s.type).key === p.key).map((s) => s.value).join('\n')),
-      m.photo_url ? 'มี' : 'ไม่มี',
+      memberPhotos(m).length ? `${memberPhotos(m).length} รูป` : 'ไม่มี',
       missingInfo(m).join(', '),
     ];
   });
