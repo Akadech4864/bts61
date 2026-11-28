@@ -63,7 +63,28 @@ export async function api(action, payload = {}, { timeout = 60000 } = {}) {
   return json.data;
 }
 
-export function blobToBase64(blob) {
+/** แปลงไบต์เป็น base64 ทีละช่วง (ไม่ให้ String.fromCharCode รับอาร์กิวเมนต์มากเกินไป) */
+function bytesToBase64(bytes) {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+/**
+ * ไฟล์/รูป -> base64
+ * iPhone ที่เปิด "โหมดล็อกดาวน์" (Lockdown Mode) ไม่มี FileReader ("Can't find variable: FileReader")
+ * จึงใช้ blob.arrayBuffer() เป็นหลัก แล้วค่อยใช้ FileReader กับเบราว์เซอร์เก่าที่ไม่มี arrayBuffer()
+ */
+export async function blobToBase64(blob) {
+  try {
+    if (typeof blob.arrayBuffer === 'function') return bytesToBase64(new Uint8Array(await blob.arrayBuffer()));
+    if (typeof Response === 'function') return bytesToBase64(new Uint8Array(await new Response(blob).arrayBuffer()));
+  } catch {
+    // ลองวิธีถัดไป
+  }
+  if (typeof FileReader === 'undefined') throw new Error('อ่านไฟล์ไม่สำเร็จ — ลองปิดโหมดล็อกดาวน์ของ iPhone ชั่วคราว หรือเปิดด้วย Safari/Chrome');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
