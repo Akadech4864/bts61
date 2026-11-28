@@ -306,13 +306,14 @@ const actions = {
       const current = [];
       if (record.photo_url) current.push({ id: record.photo_file_id || '', url: record.photo_url });
       try { (JSON.parse(record.photos || '[]') || []).forEach((x) => x && x.url && current.push({ id: x.id || '', url: x.url })); } catch { /* ข้าม */ }
+      const hideOf = (o, i) => (i > 0 && o.hide ? { hide: 1 } : {});
       const byKey = new Map(current.map((x) => [x.id || x.url, x]));
       const adds = p.gallery.add || [];
       if (adds.length > 6) fail('VALIDATION', 'เพิ่มรูปได้ครั้งละไม่เกิน 6 รูป');
       const list = [];
       (p.gallery.order || []).forEach((o) => {
-        if (o.keep !== undefined && byKey.has(o.keep)) { list.push(byKey.get(o.keep)); byKey.delete(o.keep); }
-        else if (o.add !== undefined && adds[o.add]) list.push({ id: uid('file'), url: `data:${adds[o.add].mimeType};base64,${adds[o.add].base64}` });
+        if (o.keep !== undefined && byKey.has(o.keep)) { const k = byKey.get(o.keep); list.push({ id: k.id, url: k.url, ...hideOf(o, list.length) }); byKey.delete(o.keep); }
+        else if (o.add !== undefined && adds[o.add]) list.push({ id: uid('file'), url: `data:${adds[o.add].mimeType};base64,${adds[o.add].base64}`, ...hideOf(o, list.length) });
       });
       if (list.length > 8) fail('VALIDATION', 'มีรูปได้ไม่เกิน 8 รูปต่อคน');
       record.photo_url = list[0] ? list[0].url : '';

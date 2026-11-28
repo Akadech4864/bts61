@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { cx, initialOf, memberPhotos } from '../lib/utils';
+import { cx, initialOf, shownPhotos } from '../lib/utils';
 import { useDrivePhoto } from '../lib/photos';
 
 export const prefersReducedMotion = () =>
@@ -16,7 +16,7 @@ const hashOf = (s) => {
  * แต่ละการ์ดเริ่มไม่พร้อมกัน จะได้ไม่เปลี่ยนพร้อมกันทั้งหน้า — มีรูปเดียวแสดงเหมือน Photo ปกติ
  */
 export function RotatingPhoto({ member, width = 400, className, textClass, interval = 5000 }) {
-  const photos = memberPhotos(member);
+  const photos = shownPhotos(member);
   const n = photos.length;
   const ref = useRef(null);
   const [index, setIndex] = useState(0);

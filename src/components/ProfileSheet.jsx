@@ -8,14 +8,14 @@ import { SocialList } from './Social';
 import { useToast } from './Toast';
 import { useStore } from '../lib/store';
 import { useUI } from '../lib/ui';
-import { copyText, cx, formatPhone, fullName, memberPhotos, orgTypeOf, phoneDigits, telHref } from '../lib/utils';
+import { copyText, cx, formatPhone, fullName, orgTypeOf, phoneDigits, shownPhotos, telHref } from '../lib/utils';
 
 /**
  * รูปของสมาชิก: มีหลายรูปจะเลื่อนเปลี่ยนเองทุก 4 วินาที ปัดซ้าย/ขวาเองได้ (หยุดเลื่อนอัตโนมัติชั่วคราวเมื่อแตะ)
  * จุดด้านบนบอกว่าอยู่รูปที่เท่าไร — แตะรูปเพื่อดูขนาดเต็ม
  */
 function PhotoCarousel({ member, onZoom }) {
-  const photos = memberPhotos(member);
+  const photos = shownPhotos(member);
   const n = photos.length;
   const ref = useRef(null);
   const [index, setIndex] = useState(0);
@@ -91,7 +91,7 @@ function PhotoCarousel({ member, onZoom }) {
 
 function Lightbox({ member, index = 0, onClose }) {
   useOverlay(true, onClose);
-  const p = memberPhotos(member)[index];
+  const p = shownPhotos(member)[index];
   return createPortal(
     <div className="fixed inset-0 z-[60] flex animate-fade-in items-center justify-center bg-navy-950/95" onClick={onClose}>
       <Photo member={p ? { ...member, photo_url: p.url } : member} width={1200} eager className="max-h-full max-w-full bg-transparent! object-contain!" />

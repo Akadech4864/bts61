@@ -25,7 +25,11 @@ const ORG_TYPES = [
 
 const uniqueSorted = (values) => [...new Set(values.filter(Boolean))].sort(thCompare);
 // รายการรูปในฟอร์ม: keep = รูปเดิมในระบบ, new = รูปใหม่ที่ครอปแล้ว รอบันทึก
-const keepItems = (m) => memberPhotos(m).map((p) => ({ key: p.key, kind: 'keep', url: p.url }));
+const keepItems = (m) => memberPhotos(m).map((p) => ({ key: p.key, kind: 'keep', url: p.url, hidden: p.hidden }));
+// ลำดับ + การติ๊กแสดง ใช้ตรวจว่ามีการเปลี่ยนแปลงรูปหรือไม่
+const photoSig = (list) => list.map((x) => `${x.key}${x.hidden ? '-' : '+'}`).join('|');
+// รูปหลักแสดงเสมอ
+const mainShown = (list) => (list.length && list[0].hidden ? [{ ...list[0], hidden: false }, ...list.slice(1)] : list);
 let newSeq = 0;
 
 function MemberFormInner({ initial, prefill, onClose }) {
@@ -36,7 +40,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
   const [form, setForm] = useState(() => ({ ...BLANK, ...(initial || prefill || {}) }));
   const [socials, setSocials] = useState(() => socialRows((initial || prefill || {}).social)); // [{ key, type, value }]
   const [photos, setPhotos] = useState(() => keepItems(initial || prefill)); // รูปทั้งหมดตามลำดับ (รายการแรก = รูปหลัก)
-  const [origKeys] = useState(() => keepItems(initial || prefill).map((x) => x.key).join('|'));
+  const [origSig] = useState(() => photoSig(keepItems(initial || prefill)));
   const [crop, setCrop] = useState(null); // { src, replaceKey? } รูปที่กำลังจัดกรอบ
   const [busyPhoto, setBusyPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -156,9 +160,12 @@ function MemberFormInner({ initial, prefill, onClose }) {
       const next = prev.slice();
       const [it] = next.splice(i, 1);
       next.splice(to, 0, it);
-      return next;
+      return mainShown(next);
     });
-  const removePhotoAt = (key) => setPhotos((prev) => prev.filter((x) => x.key !== key));
+  const removePhotoAt = (key) => setPhotos((prev) => mainShown(prev.filter((x) => x.key !== key)));
+  const toggleShown = (key) => setPhotos((prev) => mainShown(prev.map((x) => (x.key === key ? { ...x, hidden: !x.hidden } : x))));
+  const setAllShown = (shown) => setPhotos((prev) => mainShown(prev.map((x) => ({ ...x, hidden: !shown }))));
+  const shownCount = photos.filter((x) => !x.hidden).length;
 
   async function submit(e) {
     e.preventDefault();
@@ -193,8 +200,9 @@ function MemberFormInner({ initial, prefill, onClose }) {
       } else {
         member.agency = '';
       }
-      const changed = photos.map((x) => x.key).join('|') !== origKeys || photos.some((x) => x.kind === 'new');
-      await saveMember(member, { gallery: canPhoto && changed ? photos.map((x) => (x.kind === 'new' ? { kind: 'new', blob: x.blob } : { kind: 'keep', key: x.key })) : null });
+      const changed = photoSig(photos) !== origSig || photos.some((x) => x.kind === 'new');
+      const gallery = photos.map((x) => (x.kind === 'new' ? { kind: 'new', blob: x.blob, hidden: !!x.hidden } : { kind: 'keep', key: x.key, hidden: !!x.hidden }));
+      await saveMember(member, { gallery: canPhoto && changed ? gallery : null });
       toast.success(isNew ? 'เพิ่มรายชื่อเรียบร้อย' : 'บันทึกข้อมูลเรียบร้อย');
       onClose();
     } catch (err) {
@@ -260,10 +268,26 @@ function MemberFormInner({ initial, prefill, onClose }) {
                 </p>
                 <span className="shrink-0 text-[12px] tabular-nums text-slate-400">{photos.length}/{MAX_MEMBER_PHOTOS}</span>
               </div>
+              {photos.length > 1 && (
+                <div className="mb-2 flex items-center justify-between gap-2 rounded-2xl bg-navy-500/[0.07] px-3 py-2">
+                  <p className="text-[12.5px] text-slate-600" data-shown-count>
+                    แสดง <strong className="font-semibold text-navy-900">{shownCount}</strong> จาก {photos.length} รูป
+                    <span className="text-slate-400"> · ติ๊กรูปที่ต้องการให้แสดงสลับกัน</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setAllShown(shownCount < photos.length)}
+                    className="shrink-0 rounded-full px-2 py-1 text-[12.5px] font-semibold text-navy-700 hover:bg-white/60"
+                  >
+                    {shownCount < photos.length ? 'เลือกทั้งหมด' : 'เฉพาะรูปหลัก'}
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" data-photo-grid>
                 {photos.map((it, i) => (
-                  <div key={it.key} className="relative overflow-hidden rounded-2xl shadow-[0_8px_18px_-10px_rgb(11_28_54/0.5)] ring-2 ring-white" data-photo-item={it.kind}>
-                    <Photo member={{ ...form, photo_url: it.url }} width={320} eager className="aspect-[3/4] w-full object-[center_22%]" textClass="text-3xl" />
+                  <div key={it.key} className="flex flex-col gap-1" data-photo-item={it.kind} data-photo-shown={it.hidden ? 'no' : 'yes'}>
+                  <div className={cx('relative overflow-hidden rounded-2xl shadow-[0_8px_18px_-10px_rgb(11_28_54/0.5)] ring-2 transition', it.hidden ? 'ring-slate-200' : 'ring-white')}>
+                    <Photo member={{ ...form, photo_url: it.url }} width={320} eager className={cx('aspect-[3/4] w-full object-[center_22%] transition', it.hidden && 'opacity-40 grayscale')} textClass="text-3xl" />
                     {i === 0 ? (
                       <span className="absolute left-1.5 top-1.5 rounded-full bg-gold-400 px-2 py-0.5 text-[10.5px] font-bold text-navy-950 shadow">รูปหลัก</span>
                     ) : (
@@ -286,6 +310,24 @@ function MemberFormInner({ initial, prefill, onClose }) {
                       </button>
                     </div>
                   </div>
+                  <label
+                    className={cx(
+                      'flex h-8 items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold transition',
+                      i === 0 ? 'text-gold-700' : it.hidden ? 'cursor-pointer bg-white/40 text-slate-400' : 'cursor-pointer bg-navy-500/10 text-navy-800',
+                    )}
+                    title={i === 0 ? 'รูปหลักแสดงเสมอ' : 'ติ๊กเพื่อให้แสดงรูปนี้'}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!it.hidden}
+                      disabled={i === 0}
+                      onChange={() => toggleShown(it.key)}
+                      aria-label={`แสดงรูปที่ ${i + 1}`}
+                      className="h-4 w-4 accent-navy-700"
+                    />
+                    {i === 0 ? 'แสดงเสมอ' : 'แสดง'}
+                  </label>
+                  </div>
                 ))}
                 {!full && (
                   <>
@@ -303,7 +345,7 @@ function MemberFormInner({ initial, prefill, onClose }) {
                 )}
               </div>
               {photos.length > 0 && (
-                <p className="mt-1.5 text-[11.5px] leading-snug text-slate-400">☆ ตั้งเป็นรูปหลัก · ✎ แก้ไข/จัดกรอบ · ‹ › เลื่อนลำดับ · ✕ ลบ — รูปจะเปลี่ยนจริงเมื่อกด "บันทึก"</p>
+                <p className="mt-1.5 text-[11.5px] leading-snug text-slate-400">☑ แสดง/ซ่อน · ☆ ตั้งเป็นรูปหลัก · ✎ แก้ไข/จัดกรอบ · ‹ › เลื่อนลำดับ · ✕ ลบ — รูปจะเปลี่ยนจริงเมื่อกด "บันทึก"</p>
               )}
             </div>
           )}

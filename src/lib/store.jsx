@@ -202,7 +202,7 @@ export function StoreProvider({ children }) {
           const order = [];
           for (const it of gallery) {
             if (it.kind === 'keep') {
-              order.push({ keep: it.key });
+              order.push(it.hidden ? { keep: it.key, hide: true } : { keep: it.key });
               continue;
             }
             const entry = { base64: await blobToBase64(it.blob), mimeType: it.blob.type || 'image/jpeg' };
@@ -214,7 +214,7 @@ export function StoreProvider({ children }) {
               thumb = null;
             }
             newThumbs.push({ index: order.length, blob: it.blob, thumb });
-            order.push({ add: add.length });
+            order.push(it.hidden ? { add: add.length, hide: true } : { add: add.length });
             add.push(entry);
           }
           payload.gallery = { order, add };

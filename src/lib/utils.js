@@ -84,7 +84,7 @@ export function memberPhotos(m) {
   const hit = photoListCache.get(m);
   if (hit && hit.src === `${m.photo_url}|${m.photo_file_id}|${m.photos}`) return hit.list;
   const list = [];
-  if (m.photo_url) list.push({ id: String(m.photo_file_id || ''), url: String(m.photo_url) });
+  if (m.photo_url) list.push({ id: String(m.photo_file_id || ''), url: String(m.photo_url), hidden: false });
   let extra = [];
   try {
     extra = m.photos ? JSON.parse(m.photos) : [];
@@ -92,12 +92,15 @@ export function memberPhotos(m) {
     extra = [];
   }
   if (Array.isArray(extra)) {
-    extra.forEach((p) => { if (p && p.url) list.push({ id: String(p.id || ''), url: String(p.url) }); });
+    extra.forEach((p) => { if (p && p.url) list.push({ id: String(p.id || ''), url: String(p.url), hidden: !!p.hide }); });
   }
   const out = list.map((p) => ({ ...p, key: p.id || p.url }));
   photoListCache.set(m, { src: `${m.photo_url}|${m.photo_file_id}|${m.photos}`, list: out });
   return out;
 }
+
+/** รูปที่เจ้าของเลือกให้แสดง (ติ๊กไว้) — รูปหลักแสดงเสมอ */
+export const shownPhotos = (m) => memberPhotos(m).filter((p) => !p.hidden);
 
 /** ข้อมูลสำคัญที่ยังขาด (รูป / เบอร์ / ชื่อเล่น) — คืนรายการคำสั้น ๆ ว่างเปล่า = ครบแล้ว */
 export function missingInfo(m) {
